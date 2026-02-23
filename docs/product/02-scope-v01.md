@@ -119,7 +119,7 @@ We are building a WhatsApp-first workforce management system for security manpow
 
 | Approver | Role | Status | Date | Notes |
 |----------|------|--------|------|-------|
-| Ken | Product Owner | ⬜ Pending | | |
+| Ken | Product Owner | ✅ Approved | 2026-02-23 | |
 
 **Status legend:** ⬜ Pending · ✅ Approved · 🔄 Revisions Requested · ❌ Rejected
 
