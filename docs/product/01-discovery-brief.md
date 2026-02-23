@@ -86,13 +86,15 @@ The entire cycle from job creation → officer assignment → attendance trackin
 - DO report: PDF with job details, timestamps, GPS, photos, remarks, incident notes, signature
 - Finance email configurable per job/client
 
-### Open Items
-- Competitor landscape — any known alternatives?
-- Budget range
-- Expected scale for pilot (officers / jobs per day)
-- PDPA compliance for GPS + photo data
-- "3 shift" max — clarify: 3 shifts per job or 3 shifts per officer per day?
-- Recurring jobs: natural language input or structured?
+### Resolved Items (2026-02-23)
+- Competitors: No direct competitors in SG — current alternative is manual WhatsApp + phone calls
+- Budget: 50K SGD for MVP
+- Pilot scale: 1,000 officers / jobs per day
+- PDPA: Not required for MVP
+- Shifts: Flexible, variable duration (not fixed 3-shift model)
+- Recurring jobs: Supports both natural language and structured input
+- Tech stack: Hono.js (backend), PostgreSQL (database), DigitalOcean (hosting)
+- LLM: Google Gemini + OpenAI
 
 ---
 

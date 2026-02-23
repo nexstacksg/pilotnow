@@ -80,6 +80,7 @@ We are building a WhatsApp-first workforce management system for security manpow
 |-----------|----------|
 | **Size** | M (Medium) |
 | **Duration** | 8 weeks |
+| **Budget** | 50K SGD |
 | **Team** | TBD |
 | **Sprints** | 4 × two-week sprints |
 
@@ -102,16 +103,15 @@ We are building a WhatsApp-first workforce management system for security manpow
 | Site manager ignores signature link | Medium | High | 1hr timeout + escalation to admin |
 | Officer smartphone issues (old device, no GPS) | Low | Medium | Graceful fallback, admin manual entry |
 
-### Open Questions
+### Resolved Questions
 
-- [ ] Competitor landscape — any known alternatives in SG security manpower?
-- [ ] Budget range for MVP?
-- [ ] Expected pilot scale — how many officers / jobs per day?
-- [ ] PDPA compliance requirements for GPS + photo data storage?
-- [ ] "3 shift" max — per job or per officer per day?
-- [ ] Recurring jobs — natural language or structured input?
-- [ ] Tech stack decisions — backend, database, hosting?
-- [ ] LLM provider selection — OpenAI, Anthropic, local?
+- ✅ Budget: 50K SGD for MVP
+- ✅ Pilot scale: 1,000 officers / jobs per day
+- ✅ PDPA: Not required for MVP
+- ✅ Shifts: Flexible, not fixed timing (not "3 shift max" — shifts are variable duration)
+- ✅ Recurring jobs: Supports both natural language and structured input
+- ✅ Tech stack: Hono.js, PostgreSQL, DigitalOcean
+- ✅ LLM: Google Gemini + OpenAI
 
 ---
 
