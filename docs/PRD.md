@@ -51,10 +51,10 @@ Enable security companies to manage their workforce end-to-end using WhatsApp as
 Admin is the only control role in the system.
 
 Responsibilities:
+- Receive job requests from customers (via WhatsApp or email)
 - Create and manage jobs via WhatsApp
-- Broadcast jobs to security officers
-- Monitor job acceptance and assignments
-- Track attendance, GPS check-ins, and photo proof
+- Assign security officers to jobs
+- Monitor attendance, GPS check-ins, and photo proof
 - Generate and send DO reports to finance
 
 **Security Officer**
@@ -62,42 +62,48 @@ Responsibilities:
 Security Officers are primary field users.
 
 Responsibilities:
-- Receive job notifications via WhatsApp
-- Accept or pass job requests
+- Receive job assignment notifications via WhatsApp
+- Acknowledge assignments
 - Perform GPS + photo check-ins
-- Submit hourly site photos
+- Submit periodic site photos (frequency per job type)
 - Complete assigned duties
 
 ### 3.2 External Actors (No User Accounts)
 
 These stakeholders are not system users in the MVP and do not have logins or dashboards.
 
-- **Site Manager:** Signs DO report via one-time digital link
-- **Finance Team:** Receives DO report via email for billing
+- **Customer:** Sends job requests to PilotNow company (via WhatsApp or email)
+- **Site Manager:** Signs DO report via one-time digital link (verified by mobile + IC last 4 digits)
+- **Finance Team:** Receives DO report PDF via email for billing
 
 ## 4. In-Scope Features (MVP)
 
 ### Job Management
-- Natural language job creation via WhatsApp
-- AI-powered job detail parsing
-- Job broadcast to eligible officers
+- Natural language job creation via WhatsApp (admin)
+- LLM-powered job detail parsing (free-form text → structured data)
 - Job edits and cancellation
+- Recurring job support (same site, same time, weekly)
 
 ### Assignment Management
-- One-tap job acceptance (Request / Pass)
-- Auto-assignment based on response order
-- Assignment quota enforcement
+- Admin-driven officer assignment (not self-selection)
+- Multi-officer assignment per job
+- Single-job constraint per officer (no concurrent jobs)
+- Assignment notifications to officers
 
 ### Attendance & Proof
-- GPS-verified photo check-in
+- GPS-verified photo check-in (default 100m radius, configurable per site)
 - Automatic timestamping
-- Hourly photo reminders
-- Missing or late proof detection
+- Periodic photo reminders (frequency defined per job type)
+- Missing or late proof detection → immediate admin alert
+- No-show detection → admin alert after 10 minutes
+- Automated escalation for no-shows
 
 ### Reporting
-- Automatic DO report generation
-- Digital signature capture via link
-- Email delivery of DO report
+- Automatic DO report generation (PDF)
+- Report contents: job details, timestamps, GPS data, photos, officer remarks, incident notes
+- Digital signature capture via link (verified by mobile number + IC last 4 digits)
+- Signature timeout: 1 hour → escalation
+- Email delivery of DO report (configurable recipient per job/client)
 
 ## 5. Out of Scope (MVP)
 
@@ -106,58 +112,69 @@ These stakeholders are not system users in the MVP and do not have logins or das
 - Payroll and salary automation
 - Advanced analytics and reporting
 - Multi-language support
+- Finance acknowledgement tracking
 
 ## 6. Key User Flows
 
-### 6.1 Job Creation Flow (Admin)
+### 6.1 Job Creation Flow
 
 ```
-Admin sends natural language job request via WhatsApp
-  → System parses message into structured job data
-  → Admin confirms job details
-  → Job is broadcast to officers
+Customer sends job request via WhatsApp/email to PilotNow
+  → Admin receives and reviews request
+  → Admin sends job details via WhatsApp (natural language)
+  → LLM parses message into structured job data
+  → Admin confirms parsed job details
+  → Job is created in system
 ```
 
-### 6.2 Job Acceptance Flow (Officer)
+### 6.2 Officer Assignment Flow
 
 ```
-Officer receives job card in WhatsApp
-  → Officer taps Request or Pass
-  → System auto-assigns based on availability
-  → Confirmation sent to officer
+Admin selects officers for the job
+  → System sends assignment notification to officers via WhatsApp
+  → Officers acknowledge assignment
+  → Job status updated
 ```
 
 ### 6.3 Attendance & Proof Flow (Officer)
 
 ```
-Officer receives check-in reminder
-  → Officer submits GPS + photo
-  → System validates and stores proof
-  → Hourly reminders continue until shift ends
+Officer arrives at site
+  → Officer submits GPS + photo check-in
+  → System validates GPS (within configured radius)
+  → Proof stored with timestamp
+  → Periodic photo reminders sent (per job type frequency)
+  → If missed: admin alerted immediately
+  → If no check-in within 10 min: automated escalation
 ```
 
-### 6.4 Job Completion Flow
+### 6.4 Job Completion & DO Report Flow
 
 ```
-System sends digital signature link
-  → Site Manager signs via browser
-  → DO report auto-generated
-  → Report emailed to finance
+Shift ends → System generates DO report (PDF)
+  → Digital signature link sent to Site Manager
+  → Site Manager verifies via mobile + IC last 4 digits
+  → Site Manager signs
+  → If not signed within 1 hour: escalation
+  → Signed DO report emailed to finance (PDF)
 ```
 
 ## 7. Functional Requirements
 
 ### Admin
-- Create, edit, cancel jobs
+- Create, edit, cancel jobs (natural language via WhatsApp)
+- Assign/reassign officers to jobs
 - View job status and assigned officers
-- Monitor attendance and proof
-- Generate and send reports
+- Monitor attendance and proof in real-time
+- Receive alerts for missed check-ins and no-shows
+- Generate and send DO reports
 
 ### Security Officer
-- Receive job notifications
-- Accept or decline jobs
-- Submit check-ins and photos
-- Receive confirmations and reminders
+- Receive job assignment notifications
+- Acknowledge assignments
+- Submit GPS + photo check-ins
+- Submit periodic site photos
+- Receive reminders and confirmations
 
 ## 8. Non-Functional Requirements
 
@@ -166,32 +183,40 @@ System sends digital signature link
 - Photo upload confirmation within 3 seconds
 
 ### Security
-- Secure WhatsApp Business API integration
+- GreenAPI WhatsApp integration
 - Encrypted media storage
 - Access control by role
+- Site manager verification (mobile + IC last 4 digits)
 
 ### Reliability
 - Retry logic for failed uploads
 - Graceful handling of network interruptions
+- Automated escalation for no-shows and missed proofs
 
 ## 9. Assumptions & Constraints
 
 ### Assumptions
 - All officers use WhatsApp
 - GPS permissions are enabled on officer devices
+- WhatsApp Business API already approved (GreenAPI)
 
 ### Constraints
 - WhatsApp API rate limits
 - GPS accuracy depends on device and environment
+- One officer cannot work multiple concurrent jobs
+- 3 shift maximum per job
 
 ## 10. MVP Delivery Timeline
 
+**Total: 8 weeks**
+
 | Week | Deliverable |
 |---|---|
-| Week 1 | Infrastructure & WhatsApp API setup |
-| Week 2–3 | Job, assignment, and attendance flows |
-| Week 4 | Reporting & email delivery |
-| Week 5 | End-to-end testing & pilot launch |
+| Week 1–2 | Infrastructure, GreenAPI WhatsApp setup, LLM integration |
+| Week 3–4 | Job creation, assignment, and notification flows |
+| Week 5–6 | Attendance, GPS check-in, photo proof, escalation |
+| Week 7 | DO reporting, digital signature, email delivery |
+| Week 8 | End-to-end testing & pilot launch |
 
 ## 11. Future Enhancements (Post-MVP)
 
@@ -200,3 +225,4 @@ System sends digital signature link
 - Payroll integration
 - Multi-company support
 - AI-based attendance anomaly detection
+- Configurable photo reminder frequency per job

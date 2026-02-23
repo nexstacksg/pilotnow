@@ -1,116 +1,97 @@
-# PilotNow – Open Questions
+# PilotNow – Open Questions (Resolved)
 
-These questions need answers before or during development. Reply inline or discuss in GitHub Issues.
-
----
-
-### Q1: Natural Language Parsing Approach
-
-How robust does the job creation parser need to be at MVP? Security job descriptions tend to follow patterns.
-
-**Options:**
-- **A) Template-based parser** — Simpler, cheaper, predictable. Admin follows a loose format.
-- **B) LLM-powered parsing** — More flexible, handles free-form text. Adds cost and latency per message.
-
-**Recommendation:** Start with template-based + fallback to LLM for ambiguous inputs.
+All questions answered on 2026-02-23.
 
 ---
 
-### Q2: Auto-Assignment Logic
+### Q1: Natural Language Parsing Approach ✅
 
-"Auto-assignment based on response order" — is it truly first-come-first-served?
-
-- Does admin want to **review requests** before confirming assignment?
-- Or is it fully automatic — first officer to tap "Request" gets the job?
-- What if multiple officers are needed for one job?
+**Answer:** LLM-powered parsing (Option B). Free-form text input from admin, parsed by LLM into structured job data.
 
 ---
 
-### Q3: Digital Signature Trust
+### Q2: Auto-Assignment Logic ✅
 
-Site managers will receive a signature link from a WhatsApp number they may not recognize.
-
-- How do we establish trust? Options:
-  - Admin informs site manager in advance
-  - PIN-based verification (admin shares PIN with site manager)
-  - Branded landing page with company logo
-- What if the site manager doesn't sign? Timeout? Escalation?
+**Answer:** Original question was based on wrong assumption. The flow is:
+- **Customer** sends the job request (or email) to PilotNow company
+- **Admin** then assigns officers — not officer self-selection
+- This is admin-driven assignment, not first-come-first-served
 
 ---
 
-### Q4: Hourly Photo Reminder Frequency
+### Q3: Digital Signature Trust ✅
 
-Hourly reminders could be too frequent or too infrequent depending on the site.
-
-- Should reminder frequency be **configurable per job**?
-- What's the acceptable range? (e.g., every 30 min to every 4 hours)
-- What happens if an officer misses a photo submission? Alert to admin?
-
----
-
-### Q5: GPS Accuracy Threshold
-
-What's the acceptable GPS radius for check-in validation?
-
-- **Strict:** 100m (may cause false rejections in areas with poor GPS)
-- **Moderate:** 200–300m
-- **Lenient:** 500m
-- Should this be configurable per site?
+**Answer:** No complex trust mechanism needed.
+- System sends a link to the site manager
+- Site manager fills in **mobile number** and **last 4 digits of IC** for verification
+- If site manager doesn't sign within **1 hour**, escalation triggers
 
 ---
 
-### Q6: WhatsApp Business API Readiness
+### Q4: Hourly Photo Reminder Frequency ✅
 
-The 5-week timeline is tight. WhatsApp Business API approval can take 1–2 weeks.
-
-- Is the WhatsApp Business API account already approved?
-- Which BSP (Business Solution Provider) are we using? (e.g., Twilio, 360dialog, official Meta Cloud API)
-- Do we have the phone number ready?
-
----
-
-### Q7: Officer No-Show Handling
-
-What happens when an assigned officer doesn't check in?
-
-- Is there an escalation flow? (e.g., alert admin after X minutes)
-- Can admin reassign the job to another officer?
-- Is this manual for MVP or do we need automated escalation?
+**Answer:**
+- Reminder frequency is part of the **job's nature/behaviour** (defined per job type)
+- Configurable frequency per job is **good to have**
+- If officer misses a photo submission → **alert admin immediately**
 
 ---
 
-### Q8: Data Model Clarifications
+### Q5: GPS Accuracy Threshold ✅
 
-A few details to confirm:
-
-- Can one job have **multiple officers** assigned?
-- Can one officer be assigned to **multiple concurrent jobs**?
-- What's the maximum shift duration?
-- Is there a concept of **recurring jobs** (same site, same time, every week)?
+**Answer:**
+- Default: **100m** (strict)
+- **Configurable per site** — yes
 
 ---
 
-### Q9: DO Report Contents
+### Q6: WhatsApp Business API Readiness ✅
 
-What exactly goes into a Delivery Order report?
+**Answer:**
+- WhatsApp Business API: **Already approved**
+- BSP: **GreenAPI** (WhatsApp)
+- Timeline revised to **8 weeks total**
 
+---
+
+### Q7: Officer No-Show Handling ✅
+
+**Answer:**
+- Alert admin if officer doesn't check in within **10 minutes**
+- Admin **can reassign** to another officer
+- **Automated escalation** (not manual) for MVP
+
+---
+
+### Q8: Data Model Clarifications ✅
+
+**Answer:**
+- One job → **multiple officers**: Yes
+- One officer → **multiple concurrent jobs**: No
+- Maximum shift duration: **3 shifts**
+- Recurring jobs: **Yes** (same site, same time, weekly)
+
+---
+
+### Q9: DO Report Contents ✅
+
+**Answer:** All of the following included:
 - Job details (site, date, time, officer)
 - Check-in/check-out timestamps with GPS
 - Photo evidence summary
 - Site manager signature
-- Anything else? (e.g., incident notes, officer remarks)
+- Incident notes / officer remarks
 
 ---
 
-### Q10: Finance Integration
+### Q10: Finance Integration ✅
 
-"Report emailed to finance" — clarify:
-
-- Is it a PDF attachment?
-- Fixed email address or configurable per job/client?
-- Any specific format required by finance systems?
-- Do we need to track whether finance has received/acknowledged it?
+**Answer:**
+- PDF attachment: **Yes**
+- Email configurable per job/client: **Yes**
+- Specific format required: **No**
+- Track finance acknowledgement: **No**
 
 ---
 
-*Last updated: 2026-02-23*
+*All questions resolved: 2026-02-23*
