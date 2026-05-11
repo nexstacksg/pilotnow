@@ -5,64 +5,70 @@
 | **Client** | PilotNow (NexStack Pte Ltd) |
 | **Contact** | Ken Ling, Product Owner, @ken88ling |
 | **Industry** | Security Manpower / Workforce Management |
-| **Date** | 2026-02-23 |
+| **Date** | 2026-05-12 |
 | **Captured by** | Aira |
 
 ---
 
 ## 1. Business Context
 
-Security manpower companies in Singapore manage daily operations through WhatsApp group chats, phone calls, spreadsheets, and paper-based processes. PilotNow is a new product by NexStack to replace these manual workflows with a WhatsApp-first automated system. The product targets the security manpower industry specifically, where WhatsApp is already the primary communication channel.
+Security manpower companies in Singapore still run daily operations through fragmented WhatsApp chats, calls, spreadsheets, and paper DO processes. PilotNow is intended to become a full operations platform for this segment: not just faster job creation, but a complete operating system for job intake, staffing, field attendance proof, escalations, reporting, sign-off, and finance handoff.
+
+The earlier documentation positioned the product as an MVP-first build. The project direction has now shifted: the requirement set should describe the **full business workflow** and **full baseline product** even if engineering delivery is phased.
 
 ## 2. Problem Statement
 
-Current operations are manual, slow, and error-prone:
+Current operations are manual, slow, and operationally fragile:
 
-- **Job posting:** Takes 10–15 minutes per job, done manually in WhatsApp groups
-- **Job tracking:** Difficult to track acceptance in busy group chats
-- **Attendance chasing:** Frequent phone calls to officers for check-ins and photos
-- **Attendance proof:** Missing or unreliable — no GPS, no timestamps
-- **Signatures:** Paper-based DO signatures are delayed or lost
-- **Billing:** Slow DO report preparation causes delayed billing and cash-flow gaps
+- **Job intake:** Requests come in from multiple chats and formats, causing duplicate entry and missed details
+- **Scheduling:** Matching officers to jobs is manual and conflict-prone
+- **Execution visibility:** Ops teams chase officers for acknowledgement, check-in, proof, and checkout
+- **Evidence quality:** Attendance proof is inconsistent; GPS, timestamps, photos, and remarks are not centrally managed
+- **Exception handling:** No-shows, missed proofs, and site issues are handled ad hoc
+- **Sign-off & billing:** DO signatures and finance delivery are delayed, incomplete, or hard to audit
+- **Management visibility:** There is no reliable operational history for disputes, performance review, or service analysis
 
-The entire cycle from job creation → officer assignment → attendance tracking → DO report → billing is manual, creating bottlenecks at every step.
+The product opportunity is to replace this fragmented operating model with a single, traceable workflow from request intake to finance-ready closure.
 
 ## 3. Target Users & Personas
 
 | Persona | Description | Key Needs |
 |---------|-------------|-----------|
-| Admin / Ops Manager | Operations staff managing 10–50+ officers daily. Moderate tech comfort, fluent with WhatsApp. | Fast job creation, reliable attendance tracking, instant DO reports |
-| Security Officer | Field worker at client sites. Has smartphone with WhatsApp + GPS. Basic tech comfort — can tap buttons, send photos. | Clear assignment info, simple check-in, minimal friction |
-| Customer (External) | Security company's client who sends job requests. No system account. | Send job requirements via WhatsApp or email |
-| Site Manager (External) | Client-side person at security site. Varying tech comfort. No system account. | Sign DO report quickly via web link |
-| Finance Team (External) | Receives DO reports for billing. No system interaction. | Timely, complete, accurate PDF reports |
+| Admin / Ops Manager | Operations staff managing daily job creation, staffing, attendance, and customer follow-through | Fast execution, visibility, exception handling, accurate reporting |
+| Dispatcher / Scheduler | Planner responsible for coverage, shift balance, and rapid reassignments | Conflict detection, resource visibility, staffing control |
+| Security Officer | Field worker using WhatsApp on-site | Clear instructions, simple proof submission, low-friction shift flow |
+| Site Manager (External) | Client-side contact who verifies attendance and signs off reports | Simple, trustworthy sign-off workflow |
+| Finance Team | Internal or client-side recipients of reports for billing | Timely, accurate, traceable report delivery |
+| Management / Operations Lead | Needs operational visibility across jobs, incidents, exceptions, and delivery performance | Dashboards, auditability, exportable history |
 
 ## 4. Key Goals & Success Metrics
 
-| Goal | Success Metric | Target |
-|------|---------------|--------|
-| Reduce admin effort per job | Admin time from creation to assignment | ≥80% reduction |
-| 100% verifiable attendance | GPS + timestamp + photo coverage | 100% of check-ins |
-| Faster billing cycle | Time from job completion to DO report | Immediate (auto-generated) |
-| Faster invoicing | Time from DO report to billing initiation | Within 24 hours |
+| Goal | Success Metric | Target Direction |
+|------|---------------|------------------|
+| Reduce admin effort per job | Time from intake to staffed job | Significant reduction vs manual baseline |
+| Improve staffing reliability | Acknowledged and covered shifts before start | High coverage with early exception visibility |
+| Achieve verifiable attendance | GPS + timestamp + photo audit trail | Full evidence for all attended shifts |
+| Improve exception response | Time to detect and act on no-shows / misses | Near real-time escalation |
+| Accelerate billing readiness | Time from shift completion to finance-ready report | Same-day closure where possible |
+| Improve operational accountability | Searchable historical evidence and audit trace | Full job-level traceability |
 
 ## 5. Constraints
 
 | Constraint | Details |
 |------------|---------|
-| **Budget** | TBD — open item |
-| **Timeline** | 8 weeks total for MVP |
-| **Technology** | WhatsApp-first via GreenAPI (already approved). LLM for job parsing. |
-| **Compliance** | TBD — PDPA considerations for GPS tracking + officer photos |
-| **Other** | WhatsApp API rate limits. GPS accuracy depends on device/environment. |
+| **Operational model** | WhatsApp remains primary for field staff, but admin visibility cannot remain chat-only |
+| **Technology** | GreenAPI for messaging, LLM parsing, secure media/report storage, email delivery, GPS validation |
+| **Compliance** | PDPA-aware handling of GPS, photos, personal data, signatures, and retention policies is required |
+| **Reliability** | Messaging failures, GPS inaccuracy, and human non-response must all have recovery flows |
+| **Commercial** | Previous 50K / 8-week number was MVP framing only and should not constrain full requirement design |
 
 ## 6. Competitive Landscape
 
 | Competitor / Alternative | What They Do Well | What They Lack |
 |--------------------------|-------------------|----------------|
-| Manual WhatsApp + phone calls | Familiar, zero learning curve | Unscalable, no proof, no automation |
-| Generic workforce management apps | Feature-rich | Not WhatsApp-native, adoption friction for field officers |
-| TBD — open item | — | — |
+| Manual WhatsApp + phone calls | Familiar, zero learning curve | No structure, no audit, no automation |
+| Generic workforce management apps | Rich admin tooling | Weak field adoption when officers live in WhatsApp |
+| Security guard ops handled via spreadsheets + PDFs | Cheap and familiar | Fragile, delayed, poor evidence quality |
 
 ## 7. Stakeholders
 
@@ -70,31 +76,23 @@ The entire cycle from job creation → officer assignment → attendance trackin
 |------|------|-------------|----------------|
 | Ken Ling | Product Owner / NexStack Founder | Daily | Final |
 
-## 8. Raw Notes
+## 8. Product Direction Notes
 
-- GreenAPI already approved as WhatsApp BSP
-- LLM-powered parsing chosen over template-based (admin sends free-form text)
-- Assignment is admin-driven, not officer self-selection
-- GPS: 100m default radius, configurable per site
-- Digital signature verification: mobile number + IC last 4 digits, 1hr timeout
-- No-show escalation: automated alert after 10 minutes, admin can reassign
-- One officer = one active job at a time (no concurrency)
-- One job can have multiple officers
-- Max 3 shifts per job
-- Recurring jobs supported (weekly)
-- Photo reminder frequency defined per job type
-- DO report: PDF with job details, timestamps, GPS, photos, remarks, incident notes, signature
-- Finance email configurable per job/client
+- PilotNow should be defined as a **full operations platform**, not only a pilot deployment
+- WhatsApp-first execution is a strength, but admin operations need structured management surfaces and history
+- Client/site/officer master data is core, not optional
+- Exception handling is product-critical, not just an edge-case feature
+- Reporting must serve both day-to-day ops and downstream audit / billing needs
+- Finance handoff, compliance, retention, and traceability are in baseline scope
 
-### Resolved Items (2026-02-23)
-- Competitors: No direct competitors in SG — current alternative is manual WhatsApp + phone calls
-- Budget: 50K SGD for MVP
-- Pilot scale: 1,000 officers / jobs per day
-- PDPA: Not required for MVP
-- Shifts: Flexible, variable duration (not fixed 3-shift model)
-- Recurring jobs: Supports both natural language and structured input
-- Tech stack: Hono.js (backend), PostgreSQL (database), DigitalOcean (hosting)
-- LLM: Google Gemini + OpenAI
+### Historical References Retained
+
+- Prior MVP reference: 50K SGD
+- Prior MVP reference: 8 weeks
+- Initial scale assumption: 1,000 officers / jobs per day
+- Tech stack direction: Hono.js, PostgreSQL, DigitalOcean, GreenAPI, Gemini, OpenAI
+
+These references remain useful as background only; they should not limit the full requirement definition.
 
 ---
 

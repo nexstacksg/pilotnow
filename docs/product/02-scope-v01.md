@@ -1,117 +1,134 @@
-# Scope v0.1
+# Scope v0.2
 
 | Field | Value |
 |-------|-------|
 | **Project** | PilotNow |
 | **Client** | NexStack Pte Ltd |
-| **Version** | 0.1 |
-| **Date** | 2026-02-23 |
+| **Version** | 0.2 |
+| **Date** | 2026-05-12 |
 | **Author** | Aira Ling |
 
 ---
 
 ## 1. Project Summary
 
-We are building a WhatsApp-first workforce management system for security manpower companies. PilotNow will enable admins to create jobs via natural language WhatsApp messages (parsed by LLM), assign officers, track GPS-verified attendance with photo proof, and auto-generate DO reports for billing — replacing manual WhatsApp group chats, phone calls, and paper-based processes. Target launch: 8 weeks.
+PilotNow is a workforce operations platform for security manpower companies, designed around WhatsApp-first field execution and supported by structured back-office operations, reporting, compliance, and billing workflows. The product must cover the full operational lifecycle: client/site setup, job intake, planning, assignment, attendance verification, escalation handling, incident capture, DO reporting, signature collection, finance handoff, and operational visibility.
 
-## 2. Scope
+The earlier MVP framing is no longer the target for this document. This scope defines the **full baseline product requirement**. Sequencing can still be phased during delivery, but the requirement set should describe the complete operating model from end to end.
+
+## 2. Product Scope
 
 ### In Scope
 
-| # | Feature / Capability | Notes |
-|---|----------------------|-------|
-| 1 | Job creation via WhatsApp | Admin sends free-form text, LLM parses into structured job |
-| 2 | Officer assignment | Admin-driven, multi-officer per job, no concurrency |
-| 3 | GPS + photo check-in | 100m default radius, configurable per site |
-| 4 | Periodic photo reminders | Frequency per job type, missed = admin alert |
-| 5 | No-show detection & escalation | Automated alert after 10 min, admin can reassign |
-| 6 | DO report generation | Auto PDF with full proof, timestamps, GPS, photos |
-| 7 | Digital signature | Web link, verified by mobile + IC last 4 digits, 1hr timeout |
-| 8 | Email delivery | DO report PDF to finance, configurable per job/client |
-| 9 | Recurring jobs | Same site, same time, weekly schedule |
+| # | Capability Area | Scope Detail |
+|---|-----------------|-------------|
+| 1 | Lead / job intake | Job requests via WhatsApp, structured admin entry, recurring schedules, amendments, cancellations |
+| 2 | Master data management | Clients, sites, site managers, officers, job types, finance recipients, operating rules |
+| 3 | Planning & scheduling | Single and recurring jobs, manpower requirement planning, conflict checks, replacements, shift coverage visibility |
+| 4 | Assignment operations | Admin assignment, acknowledgement tracking, reassignment, standby handling, assignment audit trail |
+| 5 | Field execution | Check-in, periodic proof-of-presence, checkout, incident/remark logging, early/late status tracking |
+| 6 | GPS & proof validation | Site radius rules, geocoding, accuracy handling, manual review / override workflow, evidence retention |
+| 7 | Escalation engine | No-show, missed photo, late checkout, failed delivery, signature timeout, exception routing |
+| 8 | DO reporting | Automated DO report assembly, partial reports, unsigned handling, officer-by-officer audit history |
+| 9 | Digital signature workflow | Signature request, verification, expiry, resend, fallback share flow, tamper-evident signed output |
+| 10 | Finance handoff | Email delivery, recipient rules, resend, bounce handling, download/share fallback |
+| 11 | Admin operations console | Job monitoring, exception review, evidence lookup, status visibility, search and filter views |
+| 12 | Reporting & audit | Operational logs, job history, attendance history, incident logs, exportable reporting, audit trace |
+| 13 | Security & compliance | Access control, encrypted storage/transit, retention rules, PDPA-aware data handling, auditability |
+| 14 | Platform integrations | GreenAPI, LLM parsing, maps/geocoding, email, file storage, monitoring/alerting |
 
-### Out of Scope
+### Delivery Sequencing Note
 
-| Item | Reason |
-|------|--------|
-| Web admin dashboard | Phase 2 |
-| Native mobile app | WhatsApp-first for MVP |
-| Payroll / salary automation | Phase 2 |
-| Advanced analytics & reporting | Phase 2 |
-| Multi-language support | Not required for initial market |
-| Finance acknowledgement tracking | Not needed for MVP |
-| Officer self-selection / bidding | Admin-driven assignment model |
+This scope is intentionally written as the full requirement set. Implementation can be phased, but the following items are **not excluded from product scope**:
 
-## 3. Key Features (High-Level)
+- Admin web / operations console
+- Advanced reporting and audit visibility
+- Finance acknowledgement / delivery traceability
+- Officer master-data lifecycle management
+- Compliance, retention, and security controls
+- Manual exception handling paths for operational edge cases
 
-1. **LLM Job Parsing** — Admin types job details in natural language via WhatsApp. LLM extracts site, date, time, officer count, and requirements into structured data. Admin confirms before creation.
+## 3. End-to-End Product Flow
 
-2. **Admin-Driven Assignment** — Admin selects and assigns officers to jobs. Officers receive WhatsApp notifications and acknowledge. One officer can only work one job at a time.
+1. **Master data setup**  
+   Admin configures clients, sites, site managers, job types, officers, escalation rules, finance recipients, and site radius settings.
 
-3. **GPS-Verified Attendance** — Officers submit photo + location for check-in. System validates GPS within configurable radius (default 100m). All proof timestamped and stored.
+2. **Job intake**  
+   Admin receives customer job requests and creates jobs via WhatsApp or structured entry. System parses, validates, detects duplicates/conflicts, and stores jobs.
 
-4. **Automated Escalation** — If officer doesn't check in within 10 minutes of job start, admin is alerted automatically. Missed periodic photos also trigger immediate alerts. Admin can reassign.
+3. **Planning and assignment**  
+   Admin assigns officers, tracks acknowledgement, handles unavailability, and resolves staffing conflicts before shift start.
 
-5. **DO Report & Digital Signature** — PDF report auto-generated on shift end with full audit trail. Signature link sent to site manager, verified by mobile + IC last 4 digits. 1-hour timeout with escalation.
+4. **Pre-shift readiness**  
+   Officers receive reminders and job details. Admin sees unacknowledged, understaffed, or exception-risk jobs before start time.
 
-6. **Finance Email Delivery** — Signed DO report PDF emailed to finance team. Recipient configurable per job or client.
+5. **Live field execution**  
+   Officers check in with proof, respond to periodic reminders, log incidents/remarks, and check out at shift end.
 
-7. **Recurring Jobs** — Support for weekly recurring jobs (same site, same schedule) to reduce repetitive job creation.
+6. **Exception handling**  
+   System escalates no-shows, missed proof requests, failed deliveries, GPS anomalies, and signature delays; admins resolve or override where needed.
 
-## 4. Assumptions & Dependencies
+7. **Report closure**  
+   System generates DO reports with full audit trail, routes them for site sign-off, and preserves signed/unsigned outcomes.
+
+8. **Finance and audit follow-through**  
+   Final reports are delivered to finance recipients, delivery is tracked, and all operational evidence remains available for audit and dispute handling.
+
+## 4. Key Product Requirements (High-Level)
+
+1. **Multi-channel job intake with structured normalization** — Free-form WhatsApp remains core, but the product must also support structured operational data entry and correction.
+2. **Full workforce scheduling control** — The system must support assignment, acknowledgement, reassignment, recurring schedules, and staffing conflict prevention.
+3. **Verifiable field attendance** — GPS, timestamp, photo, and evidence trails must be captured reliably with operational fallback paths.
+4. **Real-time exception management** — Admins must be able to detect, investigate, and resolve issues before they become billing or service failures.
+5. **Operational reporting and compliance** — DO reports, incidents, remarks, audit logs, and history views must support both internal ops and client-facing accountability.
+6. **Finance-ready closure** — Signed or unsigned reports must move cleanly into finance workflows with traceability.
+7. **Administrative visibility** — The business must be able to search, filter, review, and manage jobs, officers, clients, and exceptions beyond chat-only interactions.
+
+## 5. Assumptions & Dependencies
 
 ### Assumptions
 
-- All officers use WhatsApp with GPS-enabled smartphones
-- GreenAPI WhatsApp Business API account already approved
-- Security companies willing to adopt WhatsApp-based workflow
-- Site managers will cooperate with digital signature process
+- Officers continue to use WhatsApp as the primary field execution channel
+- Operations teams need both **chat-first execution** and **structured admin visibility**
+- Site managers may sign digitally, but fallback operational handling is still required for delayed or failed signature capture
+- The product must support audit and dispute review, not just day-of operations
 
 ### Dependencies
 
-- GreenAPI account setup and phone number configuration
-- LLM service selection and API access
-- Email service for DO report delivery
-- Hosting infrastructure provisioned
+- GreenAPI account setup and production messaging reliability
+- LLM service availability and confidence handling
+- Maps / geocoding service for address normalization and radius validation
+- Email / delivery provider for finance handoff
+- Secure file storage for photos, PDFs, and signatures
+- Monitoring, logging, and alerting for operational exceptions
 
-## 5. Estimated Size & Timeline
+## 6. Commercial / Delivery Context
 
-| Attribute | Estimate |
-|-----------|----------|
-| **Size** | M (Medium) |
-| **Duration** | 8 weeks |
-| **Budget** | 50K SGD |
-| **Team** | TBD |
-| **Sprints** | 4 × two-week sprints |
+| Attribute | Current Reference |
+|-----------|-------------------|
+| **Requirement framing** | Full product baseline |
+| **Prior estimate** | 50K SGD MVP reference only |
+| **Delivery planning** | To be re-estimated against full scope |
+| **Release strategy** | Sequenced delivery allowed, but requirements remain full-scope |
 
-| Sprint | Weeks | Focus |
-|--------|-------|-------|
-| Sprint 1 | 1–2 | Infrastructure, GreenAPI setup, LLM integration |
-| Sprint 2 | 3–4 | Job creation, assignment, notification flows |
-| Sprint 3 | 5–6 | Attendance, GPS check-in, photo proof, escalation |
-| Sprint 4 | 7–8 | DO reporting, signature, email delivery, E2E testing |
-
-## 6. Risks & Open Questions
+## 7. Risks & Open Questions
 
 ### Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| GreenAPI rate limits hit during broadcast | Medium | High | Implement queuing and retry logic |
-| GPS accuracy issues in buildings/underground | High | Medium | Configurable radius per site, manual override option |
-| LLM parsing errors on ambiguous input | Medium | Medium | Admin confirmation step before job creation |
-| Site manager ignores signature link | Medium | High | 1hr timeout + escalation to admin |
-| Officer smartphone issues (old device, no GPS) | Low | Medium | Graceful fallback, admin manual entry |
+| GreenAPI rate limits or delivery instability | Medium | High | Queueing, retry logic, alerting, operational fallback |
+| GPS accuracy issues in dense / indoor sites | High | Medium | Configurable radius, evidence review, override workflow |
+| LLM parsing ambiguity | Medium | Medium | Confirmation flow, structured edit path, fallback parsing |
+| Signature completion delays | Medium | High | Escalation, resend, unsigned workflow, fallback share path |
+| Audit / compliance gaps if evidence handling is weak | Medium | High | Retention, access controls, audit logs, PDPA-aware handling |
 
-### Resolved Questions
+### Resolved Direction
 
-- ✅ Budget: 50K SGD for MVP
-- ✅ Pilot scale: 1,000 officers / jobs per day
-- ✅ PDPA: Not required for MVP
-- ✅ Shifts: Flexible, not fixed timing (not "3 shift max" — shifts are variable duration)
-- ✅ Recurring jobs: Supports both natural language and structured input
-- ✅ Tech stack: Hono.js, PostgreSQL, DigitalOcean
-- ✅ LLM: Google Gemini + OpenAI
+- PilotNow should now be documented as a **full product requirement**, not only an MVP
+- WhatsApp remains primary for field execution, but operational visibility must extend beyond chat-only interaction
+- Reporting, finance handoff, compliance, and admin control are in baseline scope
+- Budget / timeline must be reworked separately against the expanded requirement set
 
 ---
 
@@ -119,10 +136,10 @@ We are building a WhatsApp-first workforce management system for security manpow
 
 | Approver | Role | Status | Date | Notes |
 |----------|------|--------|------|-------|
-| Ken | Product Owner | ✅ Approved | 2026-02-23 | |
+| Ken | Product Owner | 🔄 Needs review | 2026-05-12 | Scope updated from MVP framing to full product baseline |
 
 **Status legend:** ⬜ Pending · ✅ Approved · 🔄 Revisions Requested · ❌ Rejected
 
 ---
 
-**Next step:** On approval → [03-prd.md](03-prd.md)
+**Next step:** Update and align [03-prd.md](03-prd.md) to the full-scope baseline.
