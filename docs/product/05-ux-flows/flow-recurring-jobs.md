@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Screen** | WhatsApp Conversation — Recurring Job Setup & Management |
-| **URL** | N/A (WhatsApp chat) |
+| **URL** | N/A (chat flow) |
 | **PRD Ref** | Feature 9: Recurring Jobs |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
@@ -12,7 +12,7 @@
 
 ## Purpose
 
-Admin sets up weekly recurring jobs so the same site/shift/officer assignments repeat automatically without manual re-creation each week. Supports both natural language and structured input.
+Admin sets up weekly recurring jobs so the same site/shift/officer assignments repeat predictably without manual re-creation each week, while still allowing admin review and adjustment. Supports both natural language and structured input.
 
 ## Entry Points
 
@@ -28,7 +28,7 @@ Admin sets up weekly recurring jobs so the same site/shift/officer assignments r
 
 After job confirmation (see [flow-job-creation.md](flow-job-creation.md)):
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Job #1042 created!
 
@@ -46,9 +46,9 @@ Make this a recurring job?
 Set up recurring job: 2 officers at Mapletree Business City every Monday and Wednesday, 8am-6pm
 ```
 
-### Step 2: Bot Confirms Recurrence
+### Step 2: System Confirms Recurrence
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 🔄 Recurring Job Setup
 
@@ -75,7 +75,7 @@ Assign the same officers each week?
 
 **Admin taps:** 👥 Same Officers
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Recurring job created!
 
@@ -93,7 +93,7 @@ I'll notify you and the officers each week.
 
 **Admin taps:** 🔄 Assign Each Week
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Recurring job created!
 
@@ -107,7 +107,7 @@ I'll remind you to assign officers 24 hours before each shift.
 
 ### Weekly Auto-Creation Notification
 
-**Bot → Admin (24 hours before next occurrence):**
+**System → Admin (24 hours before next occurrence):**
 ```
 🔄 Recurring job auto-created
 
@@ -130,7 +130,7 @@ Officers have been notified. All good?
 
 **Admin sends:** "Show my recurring jobs"
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 🔄 Active Recurring Jobs
 
@@ -151,7 +151,7 @@ Reply with number to manage, or:
 
 **Admin replies:** "1"
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 🔄 RJ-001 — Mapletree Business City Tower A
 
@@ -173,7 +173,7 @@ Reply with number to manage, or:
 
 **Admin taps:** ⏸️ Pause
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⏸️ RJ-001 paused.
 
@@ -189,7 +189,7 @@ Resume anytime by saying "resume RJ-001" or:
 
 **Admin taps:** 🗑️ Delete
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ Delete recurring job RJ-001?
 
@@ -251,7 +251,7 @@ What would you like to change? E.g.:
 - "Mon, Wed, Fri"
 ```
 
-Admin replies naturally. Bot updates and confirms.
+Admin replies naturally. System updates and confirms.
 
 ## Navigation Map
 

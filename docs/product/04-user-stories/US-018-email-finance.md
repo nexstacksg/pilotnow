@@ -5,7 +5,7 @@
 | **Story ID** | US-018 |
 | **Epic** | DO Reporting |
 | **Feature** | Email DO Report to Finance |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 4 |
@@ -39,7 +39,7 @@
 - **Given** I am setting up a new client
 - **When** I send "Set finance email for MegaCorp to accounts@megacorp.com"
 - **Then** the email is saved for all future MegaCorp jobs
-- **And** bot confirms: "✅ Finance email for MegaCorp set to accounts@megacorp.com"
+- **And** the system confirms: "✅ Finance email for MegaCorp set to accounts@megacorp.com"
 
 ### Scenario 4: Email for unsigned report (admin skipped signature)
 
@@ -68,7 +68,7 @@
 - Email delivery fails → retry 3 times over 30 min, alert admin if all fail
 - Finance email not configured for client → admin prompted to set it before sending
 - Very large PDF attachment (>10MB) → compress images, or send download link instead
-- Multiple DO reports for same client on same day → each sent individually (not batched in MVP)
+- Multiple DO reports for same client on same day → delivery rules should support either individual sends or configured batching, with traceability for each report
 
 ## Dependencies
 

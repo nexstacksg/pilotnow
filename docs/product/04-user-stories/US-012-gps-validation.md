@@ -5,7 +5,7 @@
 | **Story ID** | US-012 |
 | **Epic** | Attendance & Proof |
 | **Feature** | GPS Validation & Site Configuration |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 3 story points |
 | **Sprint** | Sprint 3 |
@@ -40,7 +40,7 @@
 
 ## UI/UX Notes
 
-- Site configuration via WhatsApp: "Set up site [name]" → bot prompts for address, GPS coordinates, radius
+- Site configuration can be maintained in the web application; supported admin commands may also prompt for address, GPS coordinates, and radius
 - Admin can also update just the radius: "Set [site] radius to [X]m"
 - GPS coordinates can be set by admin sharing a location pin on WhatsApp
 

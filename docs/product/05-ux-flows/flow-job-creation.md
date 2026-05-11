@@ -1,10 +1,10 @@
-# UX Flow — Job Creation via WhatsApp
+# UX Flow — Job Creation
 
 | Field | Value |
 |-------|-------|
-| **Screen** | WhatsApp Conversation — Job Creation |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 1: LLM Job Parsing |
+| **Screen** | Job Creation — Admin Intake Flow |
+| **URL** | Web app intake + WhatsApp-supported intake |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
 
@@ -12,12 +12,12 @@
 
 ## Purpose
 
-Admin creates a new security job by sending natural language text via WhatsApp. The LLM parses the message into structured job data. Admin reviews and confirms before the job is created in the system.
+Admin creates a new security job using PilotNow intake. The flow preserves natural-language WhatsApp intake, while also supporting equivalent admin actions from the web application. The LLM parses the message into structured job data. Admin reviews and confirms before the job is created in the system.
 
 ## Entry Points
 
-- Admin sends a WhatsApp message to the PilotNow bot number
-- No menu or command needed — any message containing job-like details triggers parsing
+- Admin starts job creation from WhatsApp intake or the web application intake flow
+- No rigid menu or command needed — any message containing job-like details can trigger parsing, and equivalent admin web intake is also supported
 
 ## Conversation Flow
 
@@ -28,9 +28,9 @@ Admin creates a new security job by sending natural language text via WhatsApp. 
 Need 2 officers at Mapletree Business City Tower A tomorrow 8am to 6pm. Must have valid security license. Contact person Sarah Tan 91234567.
 ```
 
-### Step 2: Bot Parses & Presents Confirmation
+### Step 2: System Parses & Presents Confirmation
 
-**Bot reply:**
+**System reply:**
 ```
 📋 New Job Summary
 
@@ -48,14 +48,14 @@ Please confirm:
 | Button | Action |
 |--------|--------|
 | ✅ Confirm | Creates the job |
-| ✏️ Edit | Bot asks what to change |
+| ✏️ Edit | System asks what to change |
 | ❌ Cancel | Discards the job |
 
 ### Step 3a: Admin Confirms
 
 **Admin taps:** ✅ Confirm
 
-**Bot reply:**
+**System reply:**
 ```
 ✅ Job #1042 created!
 
@@ -76,7 +76,7 @@ Ready to assign officers? Send officer names or tap below:
 
 **Admin taps:** ✏️ Edit
 
-**Bot reply:**
+**System reply:**
 ```
 What would you like to change? Just tell me, e.g.:
 - "Change time to 9am-5pm"
@@ -84,13 +84,13 @@ What would you like to change? Just tell me, e.g.:
 - "Add site: VivoCity"
 ```
 
-Admin sends correction in natural language. Bot re-parses, shows updated summary (back to Step 2).
+Admin sends correction in natural language. System re-parses, shows updated summary (back to Step 2).
 
 ### Step 3c: Admin Cancels
 
 **Admin taps:** ❌ Cancel
 
-**Bot reply:**
+**System reply:**
 ```
 ❌ Job creation cancelled. No worries — just send me new job details anytime.
 ```
@@ -99,20 +99,20 @@ Admin sends correction in natural language. Bot re-parses, shows updated summary
 
 | Element | Type | Action |
 |---------|------|--------|
-| Free-form text | WhatsApp message | Triggers LLM parsing |
-| ✅ Confirm | WhatsApp button | Creates job in system |
-| ✏️ Edit | WhatsApp button | Re-enters edit loop |
-| ❌ Cancel | WhatsApp button | Discards draft job |
-| 👤 Assign Officers | WhatsApp button | Transitions to assignment flow |
-| ⏭️ Assign Later | WhatsApp button | Ends flow, job saved as unassigned |
+| Free-form text | WhatsApp message / web intake text | Triggers LLM parsing |
+| ✅ Confirm | Chat action / web action | Creates job in system |
+| ✏️ Edit | Chat action / web action | Re-enters edit loop |
+| ❌ Cancel | Chat action / web action | Discards draft job |
+| 👤 Assign Officers | Chat action / web action | Transitions to assignment flow |
+| ⏭️ Assign Later | Chat action / web action | Ends flow, job saved as unassigned |
 
 ## States
 
 ### Parsing Success
-- Bot presents structured summary with confirmation buttons (Step 2)
+- System presents structured summary with confirmation actions (Step 2)
 
 ### Parsing Ambiguous / Incomplete
-**Bot reply:**
+**System reply:**
 ```
 I got most of the details but need a few more:
 
@@ -124,10 +124,10 @@ I got most of the details but need a few more:
 Please reply with the missing info.
 ```
 
-Bot asks follow-up questions for missing required fields (site, date, time, officer count). Admin replies naturally.
+System asks follow-up questions for missing required fields (site, date, time, officer count). Admin replies naturally or updates via the web application.
 
 ### Parsing Failure
-**Bot reply:**
+**System reply:**
 ```
 🤔 Sorry, I couldn't understand that as a job request. 
 
@@ -138,7 +138,7 @@ Or send the details and I'll try again.
 ```
 
 ### Duplicate Detection
-**Bot reply:**
+**System reply:**
 ```
 ⚠️ This looks similar to an existing job:
 
@@ -151,7 +151,7 @@ Create anyway?
 **Buttons:** ✅ Create New | ❌ Cancel
 
 ### System Error
-**Bot reply:**
+**System reply:**
 ```
 ⚠️ Something went wrong saving the job. Please try again in a moment.
 ```
@@ -177,9 +177,9 @@ Admin free-form message
 
 | Scenario | Timeout | Action |
 |----------|---------|--------|
-| Confirmation pending (no button tap) | 30 minutes | Bot sends reminder: "Still want to create this job?" |
-| No response after reminder | 2 hours | Draft discarded, bot notifies: "Job draft expired." |
-| Edit loop idle | 15 minutes | Bot: "Still editing? Send changes or tap Cancel." |
+| Confirmation pending (no button tap) | 30 minutes | System sends reminder: "Still want to create this job?" |
+| No response after reminder | 2 hours | Draft discarded, system notifies: "Job draft expired." |
+| Edit loop idle | 15 minutes | System: "Still editing? Send changes or tap Cancel." |
 
 ---
 

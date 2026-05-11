@@ -5,7 +5,7 @@
 | **Story ID** | US-003 |
 | **Epic** | Job Management |
 | **Feature** | Cancel Job |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 3 story points |
 | **Sprint** | Sprint 2 |
@@ -15,7 +15,7 @@
 ## Story
 
 **As an** admin,
-**I want** to cancel a job via WhatsApp,
+**I want** to cancel a job through PilotNow,
 **so that** assigned officers are notified immediately and the job is removed from active scheduling.
 
 ## Acceptance Criteria
@@ -24,7 +24,7 @@
 
 - **Given** job JOB-1234 exists with status "Open" and no officers assigned
 - **When** I send "Cancel JOB-1234"
-- **Then** the bot asks for confirmation: "Cancel JOB-1234 at Marina Bay Tower on 24 Feb? ✅ Yes | ❌ No"
+- **Then** the system asks for confirmation: "Cancel JOB-1234 at Marina Bay Tower on 24 Feb? ✅ Yes | ❌ No"
 - **And** on confirmation, the job status changes to "Cancelled"
 
 ### Scenario 2: Cancel a job with assigned officers
@@ -39,7 +39,7 @@
 
 - **Given** officers have already checked in to job JOB-1234
 - **When** I try to cancel
-- **Then** the bot warns: "⚠️ 2 officers have already checked in. Cancel anyway? ✅ Yes | ❌ No"
+- **Then** the system warns: "⚠️ 2 officers have already checked in. Cancel anyway? ✅ Yes | ❌ No"
 - **And** on confirmation, checked-in officers are auto checked-out with reason "Job cancelled"
 - **And** partial attendance is recorded for DO reporting
 
@@ -47,14 +47,14 @@
 
 - **Given** job JOB-1234 is already completed
 - **When** I try to cancel it
-- **Then** the bot responds "JOB-1234 is already completed and cannot be cancelled"
+- **Then** the system responds "JOB-1234 is already completed and cannot be cancelled"
 
 ## UI/UX Notes
 
 - Admin can cancel by ID or context: "Cancel JOB-1234" or "Cancel the MBS job tomorrow"
 - Always require explicit confirmation before cancellation
 - Officer notification should be clear and immediate
-- Cancellation reason is optional: bot asks "Any reason? (or skip)"
+- Cancellation reason is optional: system asks "Any reason? (or skip)"
 
 ## Edge Cases
 

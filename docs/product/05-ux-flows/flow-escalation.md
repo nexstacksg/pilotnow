@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | **Screen** | WhatsApp Conversation — No-Show & Missed Photo Escalation |
-| **URL** | N/A (WhatsApp chat) |
+| **URL** | N/A (chat flow) |
 | **PRD Ref** | Feature 5: Automated Escalation |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
@@ -28,11 +28,11 @@ Automated alerts when officers fail to check in (no-show), miss periodic photos,
 
 | Time | Action |
 |------|--------|
-| Shift start | Bot sends check-in prompt to officer |
-| +5 min | Bot sends urgent reminder to officer |
+| Shift start | System sends check-in prompt to officer |
+| +5 min | System sends urgent reminder to officer |
 | +10 min | Admin alerted (no-show) |
 
-**Bot → Officer (+5 min):**
+**System → Officer (+5 min):**
 ```
 ⚠️ URGENT: Check in now!
 
@@ -42,7 +42,7 @@ Automated alerts when officers fail to check in (no-show), miss periodic photos,
 Please send your photo + location immediately.
 ```
 
-**Bot → Admin (+10 min):**
+**System → Admin (+10 min):**
 ```
 🚨 NO-SHOW ALERT
 
@@ -63,7 +63,7 @@ Job #1042 needs 2 officers. Currently: 1/2 on site.
 
 ### Admin Taps 🔄 Reassign
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 📋 Available officers for Mon 24 Feb, 08:00–18:00:
 
@@ -81,7 +81,7 @@ Reply with a name to reassign, or tap:
 
 **After admin picks replacement:**
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Reassigned!
 
@@ -91,14 +91,14 @@ Reply with a name to reassign, or tap:
 Ahmad has been notified of removal.
 ```
 
-**Bot → Original Officer:**
+**System → Original Officer:**
 ```
 ℹ️ You've been removed from Job #1042 (Mapletree Business City Tower A) due to no check-in.
 
 Please contact your admin if this is an error.
 ```
 
-**Bot → New Officer:**
+**System → New Officer:**
 ```
 🚨 URGENT Assignment
 
@@ -130,7 +130,7 @@ See [flow-periodic-photos.md](flow-periodic-photos.md) for detailed flow. Summar
 | +30 min | Re-send notification |
 | +1 hour | Admin alerted |
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ No response to assignment
 
@@ -176,7 +176,7 @@ Original officer removed, new officer assigned and notified.
 ### Unresolved — Admin Takes No Action
 | Timeout | Action |
 |---------|--------|
-| 30 min after admin alert | Bot: "🚨 Reminder: Job #1042 still has a no-show. Need to reassign?" |
+| 30 min after admin alert | System: "🚨 Reminder: Job #1042 still has a no-show. Need to reassign?" |
 | 1 hour | Second reminder |
 
 ### Multiple No-Shows (Same Job)

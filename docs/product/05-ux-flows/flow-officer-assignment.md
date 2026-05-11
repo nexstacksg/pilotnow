@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Screen** | WhatsApp Conversation — Officer Assignment |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 2: Admin-Driven Assignment |
+| **URL** | N/A (chat flow) |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
 
@@ -18,7 +18,7 @@ Admin assigns one or more officers to a created job. Officers receive WhatsApp n
 
 - Directly after job creation (tap "👤 Assign Officers")
 - Admin sends message like "assign Ahmad to job 1042"
-- Admin sends officer names without job context (bot asks which job)
+- Admin sends officer names without job context (system asks which job)
 
 ## Conversation Flow
 
@@ -27,7 +27,7 @@ Admin assigns one or more officers to a created job. Officers receive WhatsApp n
 **Option A — From job creation flow:**
 Admin taps 👤 Assign Officers after creating job.
 
-**Bot reply:**
+**System reply:**
 ```
 👥 Assign officers to Job #1042
 📍 Mapletree Business City Tower A
@@ -47,9 +47,9 @@ Send officer names (e.g., "Ahmad and Ravi") or tap:
 Assign Ahmad and Ravi to the Mapletree job tomorrow
 ```
 
-### Step 2: Bot Confirms Assignment
+### Step 2: System Confirms Assignment
 
-**Bot reply:**
+**System reply:**
 ```
 ✅ Assigning to Job #1042 (Mapletree Business City Tower A):
 
@@ -68,7 +68,7 @@ Assign Ahmad and Ravi to the Mapletree job tomorrow
 
 ### Step 3: Officers Receive Notification
 
-**Bot → Officer (individual chat):**
+**System → Officer (individual chat):**
 ```
 📢 New Assignment
 
@@ -89,7 +89,7 @@ Please confirm:
 
 ### Step 4a: Officer Accepts
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Confirmed! You're assigned to:
 📍 Mapletree Business City Tower A
@@ -98,19 +98,19 @@ Please confirm:
 I'll remind you 1 hour before. See you there! 👍
 ```
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Ahmad bin Hassan accepted Job #1042 (Mapletree Business City Tower A)
 ```
 
 ### Step 4b: Officer Declines
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 Got it. I've notified the admin. No worries!
 ```
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ Ahmad bin Hassan declined Job #1042 (Mapletree Business City Tower A).
 
@@ -169,7 +169,7 @@ Both officers have been notified.
 ### Officer Acknowledgement Timeout
 | Timeout | Action |
 |---------|--------|
-| 30 min no response | Bot re-sends notification to officer |
+| 30 min no response | System re-sends notification to officer |
 | 1 hour no response | Admin alerted: "Ahmad hasn't responded to Job #1042. Reassign?" |
 
 ### Show Available List

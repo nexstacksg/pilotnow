@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Screen** | WhatsApp Conversation — GPS + Photo Check-In |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 3: GPS-Verified Attendance |
+| **Screen** | Officer Check-In Flow |
+| **URL** | N/A (chat flow) |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Security Officer |
 | **Date** | 2026-02-23 |
 
@@ -17,14 +17,14 @@ Officer checks in at the job site by sending a photo with GPS location via Whats
 ## Entry Points
 
 - Officer taps "📍 Check In" button from reminder message
-- Officer sends a photo with location to the bot at/near shift start time
-- Bot prompts officer at shift start time if not already checked in
+- Officer sends a photo with location to PilotNow at/near shift start time
+- System prompts officer at shift start time if not already checked in
 
 ## Conversation Flow
 
-### Step 1: Bot Prompts Check-In
+### Step 1: System Prompts Check-In
 
-**Bot → Officer (at shift start time):**
+**System → Officer (at shift start time):**
 ```
 📍 Time to check in!
 
@@ -52,7 +52,7 @@ Officer sends a WhatsApp photo with location sharing enabled.
 
 ### Step 3a: Check-In Success (GPS Valid)
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Checked in!
 
@@ -63,7 +63,7 @@ Officer sends a WhatsApp photo with location sharing enabled.
 Have a good shift! I'll check in with you for periodic photos.
 ```
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Ahmad bin Hassan checked in
 📍 Mapletree Business City Tower A
@@ -72,7 +72,7 @@ Have a good shift! I'll check in with you for periodic photos.
 
 ### Step 3b: Check-In Failed — GPS Out of Range
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ⚠️ GPS check failed
 
@@ -90,7 +90,7 @@ Please move closer to the site and try again, or contact your admin.
 
 **If officer taps 📞 Contact Admin:**
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ Ahmad bin Hassan GPS check failed at Mapletree Business City Tower A.
 Distance: 250m (limit: 100m)
@@ -106,7 +106,7 @@ The officer is requesting help.
 
 ### Step 3c: Check-In Failed — No Location
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 📍 I need your location to check in.
 
@@ -117,7 +117,7 @@ Tip: Tap the 📎 attachment icon → Location → Send Your Current Location.
 
 ### Step 3d: Check-In Failed — No Photo
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 📸 I need a photo to check in.
 
@@ -128,11 +128,11 @@ Please send a photo of yourself at the site along with your location.
 
 | Element | Type | Action |
 |---------|------|--------|
-| 📍 Check In | WhatsApp button | Prompts photo + location |
-| Photo + location | WhatsApp media + location | Validates GPS, stores proof |
-| 🔄 Try Again | WhatsApp button | Re-prompts for submission |
-| 📞 Contact Admin | WhatsApp button | Escalates GPS issue to admin |
-| ✅ Override & Accept (admin) | WhatsApp button | Manual GPS override |
+| 📍 Check In | Chat action | Prompts photo + location |
+| Photo + location | Chat media + location | Validates GPS, stores proof |
+| 🔄 Try Again | Chat action | Re-prompts for submission |
+| 📞 Contact Admin | Chat action | Escalates GPS issue to admin |
+| ✅ Override & Accept (admin) | Chat action / web action | Manual GPS override |
 
 ## States
 
@@ -154,7 +154,7 @@ Check-in still accepted but flagged:
 ⚠️ Late check-in has been noted and admin notified.
 ```
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ Ahmad bin Hassan checked in LATE
 📍 Mapletree Business City Tower A
@@ -183,7 +183,7 @@ Auto-retry once. If still failing, notify admin.
 ```
 Shift start time
     │
-    ├─→ Bot prompts check-in
+    ├─→ System prompts check-in
     │       │
     │       └─→ Officer sends photo + location
     │               ├─→ GPS valid → ✅ Checked in → Admin notified
@@ -199,7 +199,7 @@ Shift start time
 | Scenario | Timeout | Action |
 |----------|---------|--------|
 | No check-in after shift start | 10 minutes | Triggers no-show escalation (see flow-escalation.md) |
-| GPS retry pending | 5 minutes | Bot reminds: "Still trying to check in?" |
+| GPS retry pending | 5 minutes | System reminds: "Still trying to check in?" |
 
 ---
 

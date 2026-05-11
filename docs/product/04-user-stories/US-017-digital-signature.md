@@ -5,7 +5,7 @@
 | **Story ID** | US-017 |
 | **Epic** | DO Reporting |
 | **Feature** | Digital Signature |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 4 |
@@ -15,7 +15,7 @@
 ## Story
 
 **As a** site manager,
-**I want** to digitally sign a DO report via a web link sent to my WhatsApp,
+**I want** to digitally sign a DO report via a secure web link sent to me,
 **so that** I can verify the attendance record without paper forms.
 
 ## Acceptance Criteria

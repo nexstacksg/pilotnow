@@ -5,7 +5,7 @@
 | **Story ID** | US-006 |
 | **Epic** | Officer Assignment |
 | **Feature** | Reassign Officer |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 2 |
@@ -15,7 +15,7 @@
 ## Story
 
 **As an** admin,
-**I want** to reassign an officer on a job (replace one officer with another) via WhatsApp,
+**I want** to reassign an officer on a job (replace one officer with another) through PilotNow,
 **so that** I can handle no-shows, cancellations, or staffing changes quickly.
 
 ## Acceptance Criteria
@@ -31,7 +31,7 @@
 ### Scenario 2: Reassign during a no-show escalation
 
 - **Given** admin receives a no-show alert for Ahmad on JOB-1234
-- **When** the bot offers reassignment options
+- **When** the system offers reassignment options
 - **Then** admin can pick a replacement from available officers
 - **And** the replacement officer is notified immediately
 
@@ -47,7 +47,7 @@
 
 - **Given** Ravi is already assigned to another job at the same time
 - **When** I try to assign Ravi as replacement
-- **Then** the bot warns about the conflict (same as US-005 Scenario 3)
+- **Then** the system warns about the conflict (same as US-005 Scenario 3)
 
 ## UI/UX Notes
 

@@ -5,7 +5,7 @@
 | **Story ID** | US-007 |
 | **Epic** | Officer Assignment |
 | **Feature** | Officer Acknowledgement |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 2 |
@@ -54,15 +54,15 @@
 
 - Assignment message uses WhatsApp quick reply buttons: ✅ Accept | ❌ Decline
 - Confirmation message includes full job details and a reminder note
-- Officers should be able to view their current assignment: reply "My job" → bot shows active assignment
+- Officers should be able to view their current assignment: reply "My job" → system shows active assignment
 - Keep messages short and scannable — officers are on mobile
 
 ## Edge Cases
 
-- Officer replies with unrecognized text (e.g., "OK") → bot asks "Did you mean Accept? ✅ Accept | ❌ Decline"
+- Officer replies with unrecognized text (e.g., "OK") → system asks "Did you mean Accept? ✅ Accept | ❌ Decline"
 - Officer tries to accept after admin has already reassigned → "This assignment has been updated. Please check your latest messages."
 - Officer accepts two rapid notifications (race condition) → only the latest assignment is active
-- Decline reason: bot optionally asks "Any reason?" but doesn't require it
+- Decline reason: system optionally asks "Any reason?" but doesn't require it
 
 ## Dependencies
 
@@ -78,9 +78,9 @@
 | 2 | Accept via text | Reply "Accept" | Same as button |
 | 3 | Decline | Tap ❌ Decline | Assignment removed, admin notified |
 | 4 | No response 30 min | Wait 30 min without responding | Admin alerted |
-| 5 | Ambiguous reply | Reply "OK" | Bot clarifies with buttons |
+| 5 | Ambiguous reply | Reply "OK" | System clarifies with buttons |
 | 6 | Re-acknowledge after edit | Admin edits job → officer gets updated notification | Must re-acknowledge |
-| 7 | View active assignment | Officer sends "My job" | Bot shows current assignment details |
+| 7 | View active assignment | Officer sends "My job" | System shows current assignment details |
 
 ---
 

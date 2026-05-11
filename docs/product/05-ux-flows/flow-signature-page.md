@@ -2,17 +2,17 @@
 
 | Field | Value |
 |-------|-------|
-| **Screen** | DO Report Digital Signature (Web Page) |
+| **Screen** | DO Report Digital Signature Page |
 | **URL** | /sign/{token} |
-| **PRD Ref** | Feature 7: Digital Signature |
-| **Access** | Site Manager (external, unauthenticated — verified by mobile + IC) |
+| **PRD Ref** | See PRD v2.0 |
+| **Access** | Site Manager / authorized client-side signer (external, unauthenticated — verified by mobile + IC) |
 | **Date** | 2026-02-23 |
 
 ---
 
 ## Purpose
 
-The only web page in PilotNow. Site managers open this link (received via WhatsApp) to verify their identity, review the DO report summary, and provide a digital signature. Link expires after 1 hour.
+A dedicated external web flow in PilotNow. Site managers open this link (received via WhatsApp or shared through approved channels) to verify their identity, review the DO report summary, and provide a digital signature. Link expires after 1 hour.
 
 ## Entry Points
 
@@ -47,7 +47,7 @@ The only web page in PilotNow. Site managers open this link (received via WhatsA
 - "Sign & Submit" button — primary CTA
 
 ### Footer
-- "Powered by PilotNow"
+- PilotNow product footer and support information
 - Link expiry countdown: "This link expires in XX minutes"
 - Support contact info
 

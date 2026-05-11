@@ -1,10 +1,10 @@
-# UX Flow — DO Report Generation & Delivery
+# UX Flow — DO Report Generation, Signature, and Delivery
 
 | Field | Value |
 |-------|-------|
-| **Screen** | WhatsApp Conversation — DO Report |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 6: DO Report & Digital Signature; Feature 7: Finance Email Delivery |
+| **Screen** | DO Report Closure Flow |
+| **URL** | Web app admin flow + WhatsApp/site-manager touchpoints |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
 
@@ -12,7 +12,7 @@
 
 ## Purpose
 
-Auto-generate a PDF DO (Deployment Order) report when a job completes (all officers checked out). Report includes full audit trail: job details, timestamps, GPS data, photos, remarks, and incident notes. Admin reviews, signature link is sent to site manager, and signed report is emailed to finance.
+Auto-generate a PDF DO (Deployment Order) report when a job completes or reaches closure criteria. Report includes full audit trail: job details, timestamps, GPS data, photos, remarks, incident notes, and exception markers where relevant. Admin reviews, signature link is sent to site manager, and signed or unsigned report is delivered to finance with traceability.
 
 ## Entry Points
 
@@ -23,7 +23,7 @@ Auto-generate a PDF DO (Deployment Order) report when a job completes (all offic
 
 ### Step 1: Report Auto-Generated
 
-**Bot → Admin (after all officers check out):**
+**System → Admin (after all officers check out):**
 ```
 📄 DO Report Ready — Job #1042
 
@@ -49,7 +49,7 @@ Auto-generate a PDF DO (Deployment Order) report when a job completes (all offic
 
 ### Step 2: Admin Reviews PDF
 
-Admin taps 📄 View PDF. Bot sends the PDF file via WhatsApp.
+Admin taps 📄 View PDF. System sends or opens the PDF according to the active admin surface.
 
 Admin can review and then proceed to signature or add remarks first.
 
@@ -57,7 +57,7 @@ Admin can review and then proceed to signature or add remarks first.
 
 **Admin taps:** ✍️ Send for Signature
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 📱 Site manager details for signature:
 
@@ -75,7 +75,7 @@ Send signature link to this contact?
 
 **Admin taps ✅ Send:**
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Signature link sent to Sarah Tan (91234567).
 
@@ -83,7 +83,7 @@ Send signature link to this contact?
 I'll notify you when it's signed or if it expires.
 ```
 
-**Bot → Site Manager (via WhatsApp):**
+**System → Site Manager (via WhatsApp or approved delivery channel):**
 ```
 📋 DO Report — Signature Required
 
@@ -102,7 +102,7 @@ Please review and sign the deployment report:
 
 (See [flow-signature-page.md](flow-signature-page.md) for the web page flow)
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ DO Report SIGNED
 
@@ -112,11 +112,12 @@ Please review and sign the deployment report:
 ⏰ Signed at: 18:45 PM
 
 📧 Sending to finance now...
+🔎 Delivery trace will be recorded.
 ```
 
 ### Step 5: Email to Finance
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 📧 DO Report emailed!
 
@@ -129,7 +130,7 @@ Please review and sign the deployment report:
 
 ### Step 4b: Signature Expired
 
-**Bot → Admin (after 1 hour):**
+**System → Admin (after 1 hour):**
 ```
 ⏰ Signature link expired!
 
@@ -148,12 +149,12 @@ Please review and sign the deployment report:
 
 | Element | Type | Action |
 |---------|------|--------|
-| 📄 View PDF | WhatsApp button | Sends PDF in chat |
-| ✍️ Send for Signature | WhatsApp button | Initiates signature flow |
-| ✏️ Add Remarks | WhatsApp button | Admin adds notes |
-| ✅ Send (signature) | WhatsApp button | Sends link to site manager |
-| 🔄 Resend Link | WhatsApp button | New signature link |
-| ⏭️ Send Without Signature | WhatsApp button | Emails unsigned report |
+| 📄 View PDF | Chat action / web action | Sends or opens PDF |
+| ✍️ Send for Signature | Chat action / web action | Initiates signature flow |
+| ✏️ Add Remarks | Chat action / web action | Admin adds notes |
+| ✅ Send (signature) | Chat action / web action | Sends link to site manager |
+| 🔄 Resend Link | Chat action / web action | New signature link |
+| ⏭️ Send Without Signature | Chat action / web action | Emails unsigned report |
 
 ## States
 
@@ -168,10 +169,10 @@ Auto-retry up to 3 times. If still failing:
 ```
 
 ### Unsigned Report Sent to Finance
-Marked as "UNSIGNED" watermark on PDF. Admin explicitly chose this option.
+Marked as "UNSIGNED" watermark on PDF. Admin explicitly chose this option. Delivery logs must preserve the unsigned decision and reason.
 
 ### Partial Data (Missing Photos)
-Report still generates but flags gaps:
+Report still generates but flags gaps and exception notes:
 ```
 📄 DO Report Ready — Job #1042
 ⚠️ Note: 2 periodic photos were missed during this shift.

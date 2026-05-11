@@ -5,7 +5,7 @@
 | **Story ID** | US-005 |
 | **Epic** | Officer Assignment |
 | **Feature** | Assign Officers to Job |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 2 |
@@ -15,7 +15,7 @@
 ## Story
 
 **As an** admin,
-**I want** to assign one or more officers to a job via WhatsApp,
+**I want** to assign one or more officers to a job through PilotNow,
 **so that** officers are notified of their assignment and I can manage staffing.
 
 ## Acceptance Criteria
@@ -40,20 +40,20 @@
 
 - **Given** Ahmad is already assigned to JOB-1111 at the same date/time
 - **When** I try to assign Ahmad to JOB-1234 with overlapping time
-- **Then** the bot warns: "⚠️ Ahmad is already assigned to JOB-1111 (8am-6pm). Assign anyway and remove from JOB-1111?"
+- **Then** the system warns: "⚠️ Ahmad is already assigned to JOB-1111 (8am-6pm). Assign anyway and remove from JOB-1111?"
 - **And** I choose to proceed or pick a different officer
 
 ### Scenario 4: All slots filled
 
 - **Given** JOB-1234 needs 2 officers and already has 2 assigned
 - **When** I try to assign a 3rd officer
-- **Then** the bot warns: "JOB-1234 already has 2/2 officers. Add an additional officer? ✅ Yes | ❌ No"
+- **Then** the system warns: "JOB-1234 already has 2/2 officers. Add an additional officer? ✅ Yes | ❌ No"
 
 ### Scenario 5: Officer not found
 
 - **Given** I type an unrecognized name
 - **When** I send "Assign John to JOB-1234"
-- **Then** the bot responds with suggestions: "No officer found for 'John'. Did you mean: John Tan, Johnny Lim?"
+- **Then** the system responds with suggestions: "No officer found for 'John'. Did you mean: John Tan, Johnny Lim?"
 
 ## UI/UX Notes
 
@@ -68,13 +68,13 @@
 
   Please acknowledge: ✅ Accept | ❌ Decline
   ```
-- Admin can assign by name, phone number, or officer ID
-- Bot should show available officers on request: "Who's available on 24 Feb 8am-6pm?"
+- Admin can assign by name, phone number, officer ID, or supported web selection flow
+- System should show available officers on request: "Who's available on 24 Feb 8am-6pm?"
 
 ## Edge Cases
 
 - Officer's phone is off / WhatsApp undelivered → message queued, admin notified if undelivered after 5 min
-- Assign officer to job on their off-day (if off-day tracking exists) → no restriction in MVP, admin decides
+- Assign officer to job on their off-day or unavailable date → system warns clearly and requires admin confirmation or reassignment decision
 - Assign same officer twice to same job → reject: "Ahmad is already assigned to JOB-1234"
 - Name fuzzy matching: "Ahmad" matches "Ahmad bin Hassan" and "Ahmad Razak" → show options
 

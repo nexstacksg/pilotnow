@@ -5,7 +5,7 @@
 | **Story ID** | US-013 |
 | **Epic** | Escalation |
 | **Feature** | No-Show Detection & Escalation |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 3 |
@@ -39,7 +39,7 @@
 
 - **Given** admin received a no-show alert for Ahmad
 - **When** admin taps "🔄 Reassign"
-- **Then** bot shows available officers for the same time slot
+- **Then** the system shows available officers for the same time slot
 - **And** admin selects a replacement → standard assignment flow (US-006)
 
 ### Scenario 3: Admin chooses to wait

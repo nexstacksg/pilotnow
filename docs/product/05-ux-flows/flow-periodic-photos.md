@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Screen** | WhatsApp Conversation — Periodic Photo Reminders |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 4: Periodic Photo Reminders |
+| **URL** | N/A (chat flow) |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Security Officer |
 | **Date** | 2026-02-23 |
 
@@ -16,14 +16,14 @@ During a shift, officers receive periodic photo reminders (frequency configured 
 
 ## Entry Points
 
-- System-initiated: bot sends reminder at configured intervals after check-in
+- System-initiated: system sends reminder at configured intervals after check-in
 - Frequency defined per job (e.g., hourly, every 2 hours)
 
 ## Conversation Flow
 
-### Step 1: Bot Sends Photo Reminder
+### Step 1: System Sends Photo Reminder
 
-**Bot → Officer (at scheduled interval):**
+**System → Officer (at scheduled interval):**
 ```
 📸 Photo check — 10:00 AM
 
@@ -39,7 +39,7 @@ Please send a photo from your current location at Mapletree Business City Tower 
 
 Officer sends a photo via WhatsApp.
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Photo received — 10:02 AM
 📍 Mapletree Business City Tower A
@@ -51,7 +51,7 @@ Next photo due at 11:00 AM. 👍
 
 Officer can include text with the photo (e.g., incident notes).
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Photo received — 10:02 AM
 📝 Remark noted: "Visitor car parked in restricted zone"
@@ -61,7 +61,7 @@ Next photo due at 11:00 AM.
 
 ### Step 3: Missed Photo — First Reminder
 
-**Bot → Officer (5 min after due time):**
+**System → Officer (5 min after due time):**
 ```
 ⏰ Photo reminder overdue!
 
@@ -80,7 +80,7 @@ Please send a photo now.
 
 **If no photo after 10 minutes past due:**
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ⚠️ Missed photo alert
 
@@ -133,7 +133,7 @@ What's the issue?
 | 🚨 Incident | Security incident in progress |
 | 🚻 On break | Stepped away briefly |
 
-**Bot → Admin (if incident):**
+**System → Admin (if incident):**
 ```
 🚨 Officer reports incident in progress
 👤 Ahmad bin Hassan

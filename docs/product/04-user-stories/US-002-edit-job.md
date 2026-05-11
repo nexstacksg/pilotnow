@@ -5,7 +5,7 @@
 | **Story ID** | US-002 |
 | **Epic** | Job Management |
 | **Feature** | Edit Job |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 2 |
@@ -15,7 +15,7 @@
 ## Story
 
 **As an** admin,
-**I want** to edit an existing job's details via WhatsApp,
+**I want** to edit an existing job's details through PilotNow,
 **so that** I can update site, time, officer count, or requirements when plans change.
 
 ## Acceptance Criteria
@@ -24,7 +24,7 @@
 
 - **Given** a job (JOB-1234) exists with status "Open" or "Assigned"
 - **When** I send "Edit JOB-1234: change time to 9am-5pm"
-- **Then** the bot shows the updated job summary with changes highlighted
+- **Then** the system shows the updated job summary with changes highlighted
 - **And** I confirm to save the changes
 
 ### Scenario 2: Edit triggers officer re-notification
@@ -45,12 +45,12 @@
 
 - **Given** a job has status "Completed" or "Cancelled"
 - **When** I try to edit it
-- **Then** the bot responds "This job is [completed/cancelled] and cannot be edited"
+- **Then** the system responds "This job is [completed/cancelled] and cannot be edited"
 
 ## UI/UX Notes
 
 - Admin can reference job by ID: "Edit JOB-1234" or by context: "Edit the Marina Bay job tomorrow"
-- Bot shows before/after comparison for changed fields:
+- System shows before/after comparison for changed fields:
   ```
   ✏️ Edit JOB-1234:
   ⏰ Time: 08:00–18:00 → 09:00–17:00
@@ -80,8 +80,8 @@
 |---|----------|-------|-----------------|
 | 1 | Edit time on open job | "Edit JOB-1234: time 9am-5pm" → Confirm | Time updated, confirmation sent |
 | 2 | Edit assigned job | Edit time on job with 2 assigned officers | Officers receive update notification |
-| 3 | Edit in-progress job site | Try to change site on checked-in job | Bot rejects with explanation |
-| 4 | Edit completed job | Try to edit a completed job | Bot rejects |
+| 3 | Edit in-progress job site | Try to change site on checked-in job | System rejects with explanation |
+| 4 | Edit completed job | Try to edit a completed job | System rejects |
 | 5 | Reduce officer count | Edit from 3 to 2 officers | Admin prompted to select officer to remove |
 
 ---

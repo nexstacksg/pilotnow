@@ -5,7 +5,7 @@
 | **Story ID** | US-009 |
 | **Epic** | Attendance & Proof |
 | **Feature** | GPS + Photo Check-In |
-| **PRD Ref** | — |
+| **PRD Ref** | See PRD v2.0 |
 | **Priority** | Must |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 3 |
@@ -23,7 +23,7 @@
 ### Scenario 1: Successful check-in within GPS radius
 
 - **Given** I am assigned to JOB-1234 at Marina Bay Tower and my shift has started
-- **When** I send a photo with location sharing to the bot, and my GPS is within 100m of the site
+- **When** I send a photo with location sharing to PilotNow, and my GPS is within 100m of the site
 - **Then** the system records my check-in with timestamp, GPS coordinates, and photo
 - **And** I receive: "✅ Checked in to JOB-1234 at Marina Bay Tower. Time: 08:02. Have a good shift!"
 - **And** admin is notified (or can query check-in status)
@@ -67,16 +67,16 @@
 - Alternatively: Officer sends photo with WhatsApp location attachment in single message
 - Success confirmation is immediate and friendly
 - GPS validation happens server-side by comparing officer's coordinates with site coordinates
-- Bot should guide officers who are confused: "To check in, send a selfie photo and share your live location"
+- System should guide officers who are confused: "To check in, send a selfie photo and share your live location"
 
 ## Edge Cases
 
-- GPS spoofing → MVP does not detect; future: cross-reference with cell tower data
+- GPS spoofing or suspicious location behaviour → system flags for admin review and supports future stronger anti-spoof controls
 - Officer sends multiple photos → only first photo used for check-in, others stored as supplementary
 - Officer checks in to wrong job (has upcoming job too) → check in applies to the currently active/started job
 - GPS accuracy very low (>500m uncertainty) → warn officer: "GPS signal weak. Move outdoors and try again."
 - Officer already checked in → "You're already checked in to JOB-1234 at 08:02"
-- Photo is blurry or unrecognizable → accepted in MVP (no AI photo validation)
+- Photo is blurry or unrecognizable → check-in may proceed, but evidence quality is flagged for admin review where needed
 
 ## Dependencies
 

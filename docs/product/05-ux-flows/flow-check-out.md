@@ -3,8 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Screen** | WhatsApp Conversation — Check-Out |
-| **URL** | N/A (WhatsApp chat) |
-| **PRD Ref** | Feature 3: GPS-Verified Attendance |
+| **URL** | N/A (chat flow) |
+| **PRD Ref** | See PRD v2.0 |
 | **Access** | Security Officer |
 | **Date** | 2026-02-23 |
 
@@ -16,15 +16,15 @@ Officer checks out at shift end, completing the attendance record. System captur
 
 ## Entry Points
 
-- Bot prompts at shift end time
+- System prompts at shift end time
 - Officer sends "check out" or similar message
 - Admin initiates early check-out for an officer
 
 ## Conversation Flow
 
-### Step 1: Bot Prompts Check-Out
+### Step 1: System Prompts Check-Out
 
-**Bot → Officer (at shift end time):**
+**System → Officer (at shift end time):**
 ```
 ⏰ Shift ending — 18:00
 
@@ -43,7 +43,7 @@ Time to check out! Any remarks or incidents to report?
 
 **Officer taps:** ✅ Check Out
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Checked out!
 
@@ -58,7 +58,7 @@ Thanks for your shift! 👍
 
 **Officer taps:** 📝 Add Remarks
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 📝 Type your remarks or incident notes below:
 ```
@@ -68,7 +68,7 @@ Thanks for your shift! 👍
 Visitor vehicle towed at 3pm. New CCTV camera installed at lobby B.
 ```
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ✅ Checked out with remarks!
 
@@ -82,7 +82,7 @@ Thanks for your shift! 👍
 
 ### Step 3: Admin Notification
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Ahmad bin Hassan checked out
 📍 Mapletree Business City Tower A
@@ -94,7 +94,7 @@ Thanks for your shift! 👍
 
 When all officers for a job have checked out:
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 📋 Job #1042 complete — all officers checked out.
 
@@ -110,15 +110,15 @@ DO report is being generated. You'll receive it shortly.
 
 | Element | Type | Action |
 |---------|------|--------|
-| ✅ Check Out | WhatsApp button | Completes check-out |
-| 📝 Add Remarks | WhatsApp button | Opens text input for remarks |
-| Remarks text | WhatsApp message | Stored with check-out record |
-| 📄 View Report (admin) | WhatsApp button | Links to DO report flow |
+| ✅ Check Out | Chat action | Completes check-out |
+| 📝 Add Remarks | Chat action | Opens text input for remarks |
+| Remarks text | Chat message | Stored with check-out record |
+| 📄 View Report (admin) | Chat action / web action | Links to DO report flow |
 
 ## States
 
 ### Early Check-Out (before shift end)
-Officer can check out early. Bot flags it:
+Officer can check out early. System flags it:
 ```
 ⚠️ Your shift ends at 18:00 (1h 30m remaining).
 
@@ -132,7 +132,7 @@ If confirmed → admin notified of early departure.
 ### Late Check-Out (officer doesn't respond)
 | Timeout | Action |
 |---------|--------|
-| 15 min after shift end | Bot: "⏰ Shift ended. Please check out." |
+| 15 min after shift end | System: "⏰ Shift ended. Please check out." |
 | 30 min after shift end | Admin alerted: "Officer hasn't checked out" |
 | 1 hour after shift end | Auto check-out at shift end time, flagged as "auto" |
 
@@ -142,14 +142,14 @@ Admin can force check-out:
 Check out Ahmad from Mapletree job
 ```
 
-**Bot → Admin:**
+**System → Admin:**
 ```
 ✅ Ahmad bin Hassan checked out (by admin)
 📍 Mapletree Business City Tower A
 ⏰ 18:00 PM
 ```
 
-**Bot → Officer:**
+**System → Officer:**
 ```
 ℹ️ You've been checked out by admin.
 📍 Mapletree Business City Tower A
@@ -166,7 +166,7 @@ Check out Ahmad from Mapletree job
 ```
 Shift end time
     │
-    ├─→ Bot prompts check-out
+    ├─→ System prompts check-out
     │       ├─→ ✅ Simple check-out → Record saved → Admin notified
     │       └─→ 📝 Remarks → Text input → Record saved → Admin notified
     │
