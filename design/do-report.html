@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=860" />
+<title>DO Report · J-1814 · Tampines Mall</title>
+<link rel="stylesheet" href="styles/tokens.css">
+<style>
+  html, body { background: var(--bg-2); }
+  @page { size: A4; margin: 0; }
+  .page { width: 794px; min-height: 1123px; margin: 24px auto; background: var(--bg-0); padding: 56px 64px 64px; box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 12px 32px rgba(0,0,0,0.08); position: relative; }
+  @media print { html, body { background: #fff; } .page { box-shadow: none; margin: 0; } }
+
+  .top { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 2px solid var(--fg-0); padding-bottom: 16px; }
+  .mark { width: 30px; height: 30px; background: var(--fg-0); border-radius: 5px; position: relative; }
+  .mark::before { content:''; position:absolute; top:7px; left:7px; width:16px; height:3px; background: var(--red-500); }
+  .mark::after { content:''; position:absolute; top:13px; left:7px; width:11px; height:3px; background:#fff; box-shadow: 0 5px 0 -2px #fff, 0 5px 0 #fff; }
+  .brand-row { display: flex; align-items: center; gap: 10px; }
+  .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.025em; }
+  .brand .d { color: var(--red-500); }
+  .top-meta { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); text-align: right; line-height: 1.7; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; margin: 18px 0 6px; }
+  .lead { font-size: 14px; color: var(--fg-1); max-width: 540px; line-height: 1.5; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 1px solid var(--fg-0); border-bottom: 1px solid var(--border-0); margin-top: 28px; }
+  .cell { padding: 14px 0; border-right: 1px solid var(--border-0); }
+  .cell:last-child { border-right: none; padding-left: 24px; }
+  .cell:first-child { padding-right: 24px; }
+  .cell .k { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); margin-bottom: 6px; }
+  .cell .v { font-size: 14px; color: var(--fg-0); }
+  .cell .v.mono { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); }
+
+  section { margin-top: 28px; }
+  .sh { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid var(--fg-0); margin-bottom: 12px; }
+  .sh h2 { font-size: 13px; font-weight: 700; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; margin: 0; }
+  .sh .mono { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th { text-align: left; padding: 8px 0; font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); font-weight: 500; border-bottom: 1px solid var(--border-0); }
+  td { padding: 9px 0; border-bottom: 1px solid var(--border-0); vertical-align: top; color: var(--fg-1); }
+  td.mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-1); }
+  td.strong { color: var(--fg-0); font-weight: 500; }
+
+  .proof-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+  .pcell { aspect-ratio: 1; border: 1px solid var(--border-0); border-radius: 3px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; background:
+    linear-gradient(135deg, transparent 49%, rgba(0,0,0,0.04) 49%, rgba(0,0,0,0.04) 51%, transparent 51%),
+    linear-gradient(45deg, transparent 49%, rgba(0,0,0,0.04) 49%, rgba(0,0,0,0.04) 51%, transparent 51%),
+    var(--bg-1);
+  }
+  .pcell .t { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-2); }
+  .pcell .b { font-family: var(--font-mono); font-size: 9px; color: var(--fg-3); }
+  .pcell.miss { background: var(--red-50); border-color: var(--red-200); }
+  .pcell.miss .t, .pcell.miss .b { color: var(--red-700); }
+
+  .sign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 16px; }
+  .sign-box { border: 1px solid var(--border-0); padding: 14px; min-height: 140px; display: flex; flex-direction: column; gap: 6px; position: relative; }
+  .sign-box .k { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); }
+  .sign-box svg { flex: 1; max-height: 80px; width: 100%; }
+  .sign-box .name { font-size: 13px; color: var(--fg-0); font-weight: 600; }
+  .sign-box .meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); }
+
+  .stamp { position: absolute; top: 50%; right: 16px; transform: translateY(-50%) rotate(-8deg); color: var(--red-500); border: 2px solid var(--red-500); padding: 6px 12px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.7; }
+
+  footer { margin-top: 36px; padding-top: 14px; border-top: 1px solid var(--border-0); display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top">
+    <div class="brand-row">
+      <div class="mark"></div>
+      <div>
+        <div class="brand">pilotnow<span class="d">.</span></div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px;">SecureForce SG · operations</div>
+      </div>
+    </div>
+    <div class="top-meta">
+      Issued · 11 May 2026 21:43 SGT<br/>
+      Ref · DO-J1814-001<br/>
+      Page · 1 of 1
+    </div>
+  </div>
+
+  <span class="eyebrow" style="margin-top: 24px; display: inline-block">DELIVERY ORDER · APEX MALL GROUP</span>
+  <h1>Day shift, Tampines Mall<br/>Loading Bay</h1>
+  <p class="lead">Service delivered 08:00–20:00 SGT on 11 May 2026 by two assigned officers, with 12 of 12 proof events received and one operational remark logged. No incidents.</p>
+
+  <div class="grid-2">
+    <div class="cell">
+      <div class="k">Client</div>
+      <div class="v">Apex Mall Group</div>
+      <div class="v mono">Billing · Apex Retail Pte Ltd</div>
+      <div class="v mono">Contact · Serena Wong · +65 6622 8800</div>
+    </div>
+    <div class="cell">
+      <div class="k">Site</div>
+      <div class="v">Tampines Mall — Loading Bay</div>
+      <div class="v mono">4 Tampines Central 5, S(529510)</div>
+      <div class="v mono">1.3536, 103.9446 · radius 120m</div>
+    </div>
+    <div class="cell">
+      <div class="k">Job</div>
+      <div class="v mono">J-1814 · Day shift · 12h</div>
+      <div class="v mono">2026-05-11 · 08:00 → 20:00 SGT</div>
+    </div>
+    <div class="cell">
+      <div class="k">Outcome</div>
+      <div class="v">Closed · Signed</div>
+      <div class="v mono">Site manager · Edwin Tay · 21:42 SGT</div>
+    </div>
+  </div>
+
+  <section>
+    <div class="sh"><h2>Officers &amp; attendance</h2><span class="mono">2 OFFICERS</span></div>
+    <table>
+      <thead><tr><th>Officer</th><th>ID</th><th>Acknowledged</th><th>Check-in</th><th>Check-out</th><th>GPS avg</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="strong">Tan Wei Ming</td>
+          <td class="mono">O-101</td>
+          <td class="mono">07:42 ✓</td>
+          <td class="mono">07:01 · 24m</td>
+          <td class="mono">20:02 · 18m</td>
+          <td class="mono">16m</td>
+        </tr>
+        <tr>
+          <td class="strong">Muhammad Hafiz</td>
+          <td class="mono">O-102</td>
+          <td class="mono">07:46 ✓</td>
+          <td class="mono">07:03 · 8m</td>
+          <td class="mono">20:01 · 12m</td>
+          <td class="mono">11m</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="sh"><h2>Proof of presence</h2><span class="mono">12 / 12 RECEIVED · 1 LATE</span></div>
+    <div class="proof-grid">
+      <div class="pcell"><div class="t">07:01</div><div class="b">TW · IN</div></div>
+      <div class="pcell"><div class="t">08:00</div><div class="b">TW</div></div>
+      <div class="pcell"><div class="t">10:00</div><div class="b">TW</div></div>
+      <div class="pcell"><div class="t">12:00</div><div class="b">TW</div></div>
+      <div class="pcell"><div class="t">14:00</div><div class="b">TW</div></div>
+      <div class="pcell"><div class="t">16:00</div><div class="b">TW</div></div>
+      <div class="pcell"><div class="t">07:03</div><div class="b">MH · IN</div></div>
+      <div class="pcell"><div class="t">08:07</div><div class="b">MH</div></div>
+      <div class="pcell"><div class="t">10:22</div><div class="b">MH · LATE</div></div>
+      <div class="pcell"><div class="t">12:00</div><div class="b">MH</div></div>
+      <div class="pcell"><div class="t">14:00</div><div class="b">MH</div></div>
+      <div class="pcell"><div class="t">20:02</div><div class="b">MH · OUT</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sh"><h2>Remarks &amp; incidents</h2><span class="mono">1 REMARK · 0 INCIDENTS</span></div>
+    <table>
+      <tbody>
+        <tr>
+          <td class="mono" style="width: 90px">09:48 SGT</td>
+          <td class="strong" style="width: 130px">Tan Wei Ming</td>
+          <td>Loading bay closed for cleaning until 10:30. Verified with Mr. Suresh. Resumed normal flow at 10:34.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <div class="sh"><h2>Sign-off</h2><span class="mono">PDPA · AUDIT-LOGGED</span></div>
+    <div class="sign-grid">
+      <div class="sign-box">
+        <div class="k">SITE MANAGER</div>
+        <svg viewBox="0 0 400 80" preserveAspectRatio="none">
+          <path d="M20,60 C60,20 100,70 140,40 S220,15 260,55 310,65 380,30" stroke="#0A0A0A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="name">Edwin Tay</div>
+        <div class="meta">11 MAY 2026 · 21:42 SGT · TOKEN ····7D14</div>
+        <div class="stamp">Signed</div>
+      </div>
+      <div class="sign-box">
+        <div class="k">OPS · ON BEHALF OF</div>
+        <svg viewBox="0 0 400 80" preserveAspectRatio="none">
+          <path d="M30,50 C70,30 110,60 150,35 S240,55 290,30 340,55 380,40" stroke="#0A0A0A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="name">Aira Ling</div>
+        <div class="meta">11 MAY 2026 · 21:30 SGT · OPS LEAD</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>PILOTNOW · NEXSTACK PTE LTD</span>
+    <span>DO-J1814-001 · SHA ····A92F1D</span>
+    <span>PAGE 1 / 1</span>
+  </footer>
+</div>
+</body>
+</html>

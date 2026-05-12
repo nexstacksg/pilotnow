@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Sign DO · J-1814 · Tampines Mall</title>
+<link rel="stylesheet" href="styles/tokens.css">
+<style>
+  html, body { background: var(--bg-1); }
+  .frame { max-width: 440px; margin: 0 auto; min-height: 100vh; background: var(--bg-0); border-left: 1px solid var(--border-0); border-right: 1px solid var(--border-0); display: flex; flex-direction: column; }
+  .hd { padding: 18px 20px; border-bottom: 1px solid var(--border-0); display: flex; align-items: center; gap: 10px; }
+  .mark { width: 22px; height: 22px; background: var(--fg-0); border-radius: 4px; position: relative; }
+  .mark::before { content:''; position:absolute; top:5px; left:5px; width:12px; height:2px; background: var(--red-500); }
+  .mark::after { content:''; position:absolute; top:9px; left:5px; width:8px; height:2px; background:#fff; box-shadow: 0 4px 0 -2px #fff, 0 4px 0 #fff; }
+  .brand { font-weight:700; letter-spacing: -0.02em; font-size: 14px; }
+  .brand .d { color: var(--red-500); }
+  .hd .mono { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .eyebrow { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); }
+  .body { padding: 22px 20px; }
+  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; margin: 6px 0 4px; }
+  .sub { font-size: 13px; color: var(--fg-2); }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: var(--bg-2); color: var(--fg-1); border: 1px solid var(--border-0); margin-top: 10px; }
+  .pill .dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; }
+
+  .summary { margin-top: 20px; border: 1px solid var(--border-0); border-radius: 6px; }
+  .srow { display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border-0); align-items: baseline; font-size: 13px; }
+  .srow:last-child { border-bottom: none; }
+  .srow .k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .srow .v { color: var(--fg-0); }
+  .srow .mono { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); }
+
+  .photos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 16px; }
+  .photo { aspect-ratio: 1; background:
+      linear-gradient(135deg, transparent 49%, var(--border-0) 49%, var(--border-0) 51%, transparent 51%),
+      linear-gradient(45deg, transparent 49%, var(--border-0) 49%, var(--border-0) 51%, transparent 51%),
+      var(--bg-2);
+    border: 1px solid var(--border-0); border-radius: 4px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .sign-block { margin-top: 22px; }
+  .sign-pad { border: 1px solid var(--border-1); border-radius: 6px; aspect-ratio: 2 / 1; background:
+    linear-gradient(var(--bg-1) 23px, var(--border-0) 24px, var(--bg-0) 25px) 0 0/100% 24px;
+    position: relative; }
+  .sign-pad::before { content: 'Sign with finger'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .sign-pad svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .sign-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .ghost { background: transparent; border: 1px solid var(--border-1); padding: 8px 12px; border-radius: 4px; font-size: 12px; font-family: var(--font-sans); cursor: pointer; color: var(--fg-0); }
+
+  .signer { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .input { padding: 10px 12px; border: 1px solid var(--border-1); border-radius: 4px; font-family: inherit; font-size: 13px; background: var(--bg-0); width: 100%; }
+  label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); }
+
+  .consent { margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: var(--fg-1); padding: 12px; background: var(--bg-1); border: 1px solid var(--border-0); border-radius: 4px; }
+  .check { width: 16px; height: 16px; border: 1px solid var(--fg-0); border-radius: 2px; flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; background: var(--fg-0); color: var(--bg-0); font-size: 11px; }
+
+  .cta { margin-top: 20px; display: flex; gap: 10px; padding: 18px 20px; border-top: 1px solid var(--border-0); background: var(--bg-0); position: sticky; bottom: 0; }
+  .btn-primary { flex: 1; background: var(--fg-0); color: var(--bg-0); border: none; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  .btn-decline { background: transparent; color: var(--red-700); border: 1px solid var(--red-200); padding: 12px 16px; font-size: 13px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+
+  .foot { padding: 12px 20px 24px; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <header class="hd">
+    <div class="mark"></div>
+    <div class="brand">pilotnow<span class="d">.</span></div>
+    <span class="mono">DO · J-1814</span>
+  </header>
+
+  <div class="body">
+    <span class="eyebrow">DELIVERY ORDER · APEX MALL GROUP</span>
+    <h1>Confirm service delivery</h1>
+    <div class="sub">Edwin Tay, please verify and sign the report for yesterday's day shift at Tampines Mall.</div>
+    <span class="pill"><span class="dot"></span>Verified: link sent to +65 9088 ····42 · expires 11 May 23:59</span>
+
+    <div class="summary">
+      <div class="srow"><span class="k">Site</span><span class="v">Tampines Mall — Loading Bay</span></div>
+      <div class="srow"><span class="k">Job</span><span class="mono">J-1814 · 2026-05-11</span></div>
+      <div class="srow"><span class="k">Window</span><span class="mono">08:00 — 20:00 SGT · 12h</span></div>
+      <div class="srow"><span class="k">Officers</span><span class="v">Tan Wei Ming · Muhammad Hafiz</span></div>
+      <div class="srow"><span class="k">Proofs</span><span class="mono">12/12 · GPS avg 14m</span></div>
+      <div class="srow"><span class="k">Incidents</span><span class="v" style="color: var(--fg-2)">None · 1 remark</span></div>
+    </div>
+
+    <div class="photos">
+      <div class="photo">07:01 IN</div>
+      <div class="photo">11:00</div>
+      <div class="photo">15:00</div>
+      <div class="photo">19:00</div>
+      <div class="photo">20:02 OUT</div>
+      <div class="photo">+7 more</div>
+    </div>
+
+    <div class="sign-block">
+      <label style="display:block; margin-bottom: 8px;">Signature</label>
+      <div class="sign-pad">
+        <svg viewBox="0 0 400 200" preserveAspectRatio="none">
+          <path d="M30,140 C70,80 110,160 150,120 S230,80 270,130 320,150 360,90" stroke="#0A0A0A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sign-actions">
+        <button class="ghost">Clear</button>
+        <span style="flex:1"></span>
+        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); align-self: center;">SIGNED · 11 MAY 21:42</span>
+      </div>
+    </div>
+
+    <div class="signer">
+      <div>
+        <label>Name</label>
+        <input class="input" value="Edwin Tay" readonly style="margin-top:6px" />
+      </div>
+      <div>
+        <label>Role</label>
+        <input class="input" value="Site Manager" readonly style="margin-top:6px" />
+      </div>
+    </div>
+
+    <div class="consent">
+      <span class="check">✓</span>
+      <span>I confirm the service was delivered as described, that I am authorised to sign on behalf of Marina Bay Holdings, and I consent to a copy being emailed to finance for billing.</span>
+    </div>
+  </div>
+
+  <div class="cta">
+    <button class="btn-decline">Flag issue</button>
+    <button class="btn-primary">Approve &amp; submit</button>
+  </div>
+
+  <div class="foot">PILOTNOW · SECURED LINK · TOKEN ····7D14 · PDPA-AWARE</div>
+</div>
+</body>
+</html>
