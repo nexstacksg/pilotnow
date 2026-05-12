@@ -26,6 +26,8 @@ docs/product/
 
 The repo originally started from an MVP framing. Current direction is to document the **full requirement set and full end-to-end operating flow**, then phase delivery afterward.
 
+Previous MVP pricing/budget references are no longer used as product framing.
+
 ## License
 
 Proprietary – NexStack Pte Ltd

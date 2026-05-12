@@ -60,7 +60,7 @@ The product opportunity is to replace this fragmented operating model with a sin
 | **Technology** | GreenAPI for messaging, LLM parsing, secure media/report storage, email delivery, GPS validation |
 | **Compliance** | PDPA-aware handling of GPS, photos, personal data, signatures, and retention policies is required |
 | **Reliability** | Messaging failures, GPS inaccuracy, and human non-response must all have recovery flows |
-| **Commercial** | Previous 50K / 8-week number was MVP framing only and should not constrain full requirement design |
+| **Commercial** | Previous MVP commercial references should not constrain full requirement design |
 
 ## 6. Competitive Landscape
 
@@ -87,8 +87,6 @@ The product opportunity is to replace this fragmented operating model with a sin
 
 ### Historical References Retained
 
-- Prior MVP reference: 50K SGD
-- Prior MVP reference: 8 weeks
 - Initial scale assumption: 1,000 officers / jobs per day
 - Tech stack direction: Hono.js, PostgreSQL, DigitalOcean, GreenAPI, Gemini, OpenAI
 

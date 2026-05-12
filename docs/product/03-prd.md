@@ -279,8 +279,16 @@ System should support lightweight officer availability management, including off
 ### FR-018 Check-In
 Officers shall check in using photo + location. The system shall validate GPS against site radius and record timestamp, coordinates, accuracy, and media.
 
-### FR-019 Periodic Proof of Presence
-System shall send reminder-based proof requests according to job type or site rule, and store returned photos with timestamps.
+### FR-019 Configurable Periodic Proof of Presence and Status Updates
+System shall send configurable reminder-based proof requests during active shifts according to client, site, job type, shift type, officer type, or assignment rule, and store returned evidence with timestamps.
+
+Each proof request may require one or more of the following based on configuration:
+- live photo
+- location / GPS
+- current job status
+- remarks
+
+The system shall support configurable proof intervals such as every 30 minutes, every 1 hour, or every 2 hours, plus response grace periods, end-of-shift suppression rules, and escalation rules for missed responses.
 
 ### FR-020 Check-Out
 Officers shall check out using photo + location. Final checkout status shall contribute to report closure.
@@ -300,7 +308,7 @@ If an officer does not check in within the configured threshold after shift star
 If an officer does not acknowledge in time, the system shall remind and escalate to admin.
 
 ### FR-025 Missed Proof Escalation
-If periodic photo proof is missed, the system shall notify admins immediately or in batched alert mode based on configuration.
+If periodic proof or status response is missed, the system shall notify admins immediately or in batched alert mode based on configuration.
 
 ### FR-026 Delivery Failure Handling
 System shall detect failed WhatsApp or email deliveries, retry where appropriate, and expose failure states to admins.
@@ -405,10 +413,10 @@ System shall support export or retrieval of relevant evidence and job history fo
 5. Failed or missing proof creates actionable prompts and risk flags
 
 ### 9.4 Live Shift Monitoring Flow
-1. System schedules periodic proof events
-2. Officer responds or misses
-3. Exceptions are escalated to admin
-4. Incidents and remarks are captured into the job timeline
+1. System schedules configurable periodic proof events
+2. Officer submits required photo, location, status, and optional remarks, or misses the request
+3. Exceptions are escalated to admin based on configured grace period and escalation rule
+4. Incidents, remarks, and proof history are captured into the job timeline
 
 ### 9.5 Closure and Reporting Flow
 1. Officer checks out
@@ -473,11 +481,7 @@ System shall support export or retrieval of relevant evidence and job history fo
 
 This PRD defines the **full product requirement baseline**. Delivery can still be phased, but phasing decisions must be made explicitly after the full requirement is agreed.
 
-Historical commercial reference only:
-- earlier estimate: 50K SGD
-- earlier timeline reference: 8 weeks
-
-These references are background context only and do not define the requirement boundary.
+Earlier MVP commercial references have been removed from product framing and do not define the requirement boundary.
 
 ## 14. Product Decisions Confirmed
 

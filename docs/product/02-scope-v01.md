@@ -107,7 +107,7 @@ This scope is intentionally written as the full requirement set. Implementation 
 | Attribute | Current Reference |
 |-----------|-------------------|
 | **Requirement framing** | Full product baseline |
-| **Prior estimate** | 50K SGD MVP reference only |
+| **Prior estimate** | Prior MVP estimate retained only as outdated historical context |
 | **Delivery planning** | To be re-estimated against full scope |
 | **Release strategy** | Sequenced delivery allowed, but requirements remain full-scope |
 
@@ -128,7 +128,7 @@ This scope is intentionally written as the full requirement set. Implementation 
 - PilotNow should now be documented as a **full product requirement**, not only an MVP
 - WhatsApp remains primary for field execution, but operational visibility must extend beyond chat-only interaction
 - Reporting, finance handoff, compliance, and admin control are in baseline scope
-- Budget / timeline must be reworked separately against the expanded requirement set
+- Budget / timeline should be assessed separately against the expanded requirement set and are not part of product framing
 
 ---
 
