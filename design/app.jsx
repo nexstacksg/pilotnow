@@ -1,4 +1,4 @@
-/* global React, PN_DATA, Icon, cx, SchedulingScreen, OpsScreen, JobDetailScreen, MasterScreen, ReportsScreen */
+/* global React, PN_DATA, Icon, cx, SchedulingScreen, OpsScreen, JobsScreen, JobDetailScreen, CreateJobScreen, ClientPortalScreen, FinanceScreen, MasterScreen, ReportsScreen, SettingsScreen */
 
 const { useState: useStateA, useEffect: useEffectA } = React;
 
@@ -9,8 +9,13 @@ const NAV = [
     { id: 'jobs',       label: 'Jobs',       icon: 'briefcase',     count: '247' },
   ]},
   { section: 'MANAGE', items: [
-    { id: 'master', label: 'Master data', icon: 'database' },
-    { id: 'reports', label: 'Reports',    icon: 'bar-chart-3' },
+    { id: 'master',  label: 'Master data',   icon: 'database' },
+    { id: 'client',  label: 'Client portal', icon: 'building-2' },
+    { id: 'finance', label: 'Finance & DO',  icon: 'receipt',     count: '4', alert: true },
+    { id: 'reports', label: 'Reports',       icon: 'bar-chart-3' },
+  ]},
+  { section: 'SETUP', items: [
+    { id: 'settings', label: 'Settings', icon: 'settings' },
   ]},
   { section: 'EXPORT', items: [
     { id: 'signature', label: 'Signature page', icon: 'pen-tool', external: 'signature.html' },
@@ -66,8 +71,12 @@ function Topbar({ active }) {
     ops: 'Live ops',
     jobs: 'Jobs',
     'job-detail': 'Job detail',
+    create: 'New job',
+    client: 'Client portal',
+    finance: 'Finance & DO',
     master: 'Master data',
     reports: 'Reports',
+    settings: 'Settings',
   };
   return (
     <div className="topbar">
@@ -123,6 +132,8 @@ function TweaksFAB({ open, setOpen, theme, setTheme, density, setDensity }) {
 function App() {
   const [active, setActive] = useStateA('scheduling');
   const [selJob, setSelJob] = useStateA(null);
+  const [fromScreen, setFromScreen] = useStateA('scheduling');
+  const [createMode, setCreateMode] = useStateA('single');
   const [tweakOpen, setTweakOpen] = useStateA(false);
   const [theme, setTheme] = useStateA(DEFAULTS.theme);
   const [density, setDensity] = useStateA(DEFAULTS.density);
@@ -150,28 +161,40 @@ function App() {
     if (window.lucide) window.lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
   });
 
+  const NAV_SCREENS = ['scheduling', 'ops', 'jobs', 'master', 'client', 'finance', 'reports', 'settings'];
+
   function handleNav(id) {
-    if (id === 'jobs') { setActive('jobs'); return; }
     setActive(id);
     setSelJob(null);
   }
   function selectJob(j) {
+    setFromScreen(NAV_SCREENS.includes(active) ? active : 'jobs');
     setSelJob(j.id);
     setActive('job-detail');
   }
+  function newJob(mode) {
+    setFromScreen(NAV_SCREENS.includes(active) ? active : 'scheduling');
+    setCreateMode(mode || 'single');
+    setActive('create');
+  }
 
   let screen;
-  if (active === 'scheduling') screen = <SchedulingScreen onSelectJob={selectJob} />;
-  else if (active === 'ops')   screen = <OpsScreen onSelectJob={selectJob} />;
-  else if (active === 'job-detail' || active === 'jobs') {
-    screen = <JobDetailScreen jobId={selJob || 'J-1815'} onBack={() => setActive('scheduling')} />;
-  }
-  else if (active === 'master') screen = <MasterScreen />;
-  else if (active === 'reports') screen = <ReportsScreen />;
+  if (active === 'scheduling') screen = <SchedulingScreen onSelectJob={selectJob} onNew={newJob} />;
+  else if (active === 'ops')      screen = <OpsScreen onSelectJob={selectJob} />;
+  else if (active === 'jobs')     screen = <JobsScreen onSelectJob={selectJob} onNew={newJob} />;
+  else if (active === 'job-detail') screen = <JobDetailScreen jobId={selJob || 'J-1815'} onBack={() => setActive(fromScreen)} />;
+  else if (active === 'create')   screen = <CreateJobScreen mode={createMode} onBack={() => setActive(fromScreen)} />;
+  else if (active === 'client')   screen = <ClientPortalScreen onSelectJob={selectJob} />;
+  else if (active === 'finance')  screen = <FinanceScreen onSelectJob={selectJob} />;
+  else if (active === 'master')   screen = <MasterScreen />;
+  else if (active === 'reports')  screen = <ReportsScreen />;
+  else if (active === 'settings') screen = <SettingsScreen />;
+
+  const railActive = active === 'job-detail' ? fromScreen : active === 'create' ? fromScreen : active;
 
   return (
     <div className="shell" data-screen-label={active}>
-      <Rail active={active === 'job-detail' ? 'scheduling' : active} onNav={handleNav} />
+      <Rail active={railActive} onNav={handleNav} />
       <main className="page">
         <Topbar active={active} />
         {screen}

@@ -178,8 +178,21 @@ html, body {
 .fchip i { width: 11px; height: 11px; color: var(--fg-3); }
 .fchip.active { background: var(--bg-2); border-color: var(--border-2); color: var(--fg-0); }
 
-/* ───── Buttons (compact overrides) ───── */
-.btn { font-size: 12px; padding: 5px 9px; }
+/* ───── Buttons (base + compact overrides) ───── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  font-family: var(--font-sans); font-weight: 500; line-height: 1.4;
+  background: transparent; color: var(--fg-0);
+  cursor: pointer; user-select: none; white-space: nowrap;
+  transition: all var(--dur-fast) var(--ease-out);
+  font-size: 12px; padding: 5px 9px;
+}
+.btn:disabled { opacity: 0.45; pointer-events: none; }
+.btn i[data-lucide] { width: 14px; height: 14px; }
+.btn.btn-sm { font-size: 11px; padding: 3px 7px; }
+.btn-secondary { background: var(--bg-0); color: var(--fg-0); border-color: var(--border-1); }
+.btn-secondary:hover { background: var(--bg-2); }
 .btn-red { background: var(--red-500); color: #fff; }
 .btn-red:hover { background: var(--red-600); }
 .btn-dark { background: var(--fg-0); color: var(--bg-0); }
@@ -551,6 +564,88 @@ html, body {
 .tweak-seg button { background: var(--bg-0); border: none; padding: 3px 8px; font-size: 11px; cursor: pointer; color: var(--fg-1); border-right: 1px solid var(--border-0); font-family: inherit; }
 .tweak-seg button:last-child { border-right: none; }
 .tweak-seg button.on { background: var(--fg-0); color: var(--bg-0); }
+
+/* ───── Forms ───── */
+.input {
+  padding: 6px 9px; border: 1px solid var(--border-1); border-radius: var(--radius-sm);
+  font-family: var(--font-sans); font-size: 12.5px; background: var(--bg-0); color: var(--fg-0);
+  width: 100%;
+}
+.input:focus { outline: none; border-color: var(--red-500); box-shadow: var(--shadow-focus); }
+.input::placeholder { color: var(--fg-3); }
+textarea.input { resize: vertical; line-height: 1.5; font-family: var(--font-sans); }
+select.input { cursor: pointer; }
+.f-label {
+  font-family: var(--font-mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--fg-3); display: block; margin-bottom: 5px;
+}
+.f-hint { font-size: 11px; color: var(--fg-3); margin-top: 4px; }
+.form-wrap { padding: 20px 24px 32px; max-width: 920px; }
+.form-card {
+  border: 1px solid var(--border-0); border-radius: var(--radius-md);
+  background: var(--bg-0); margin-bottom: 16px; overflow: hidden;
+}
+.form-card > .hd {
+  padding: 12px 16px; border-bottom: 1px solid var(--border-0);
+  display: flex; align-items: center; gap: 10px;
+}
+.form-card > .hd .t-eyebrow { color: var(--fg-2); }
+.form-card > .bd { padding: 16px; display: grid; gap: 14px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-grid .span-2 { grid-column: 1 / -1; }
+.form-actions {
+  display: flex; gap: 8px; align-items: center;
+  padding: 14px 24px; border-top: 1px solid var(--border-0);
+  position: sticky; bottom: 0; background: var(--bg-0);
+}
+
+/* Day-of-week picker (recurring jobs) */
+.dow-pick { display: inline-flex; gap: 4px; }
+.dow-pick button {
+  width: 34px; height: 30px; border: 1px solid var(--border-1); border-radius: var(--radius-sm);
+  background: var(--bg-0); color: var(--fg-2); font-family: var(--font-mono);
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
+}
+.dow-pick button.on { background: var(--fg-0); color: var(--bg-0); border-color: var(--fg-0); }
+
+/* Delivery / pipeline status dot */
+.del-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.del-dot.sent { background: var(--success); }
+.del-dot.pending { background: var(--warning); }
+.del-dot.bounced, .del-dot.failed { background: var(--red-500); }
+.del-dot.queued { background: var(--fg-3); }
+
+/* Portal-style soft card grid */
+.tile-grid { display: grid; gap: 12px; padding: 20px 24px; }
+.tile {
+  border: 1px solid var(--border-0); border-radius: var(--radius-md);
+  background: var(--bg-0); padding: 14px 16px;
+}
+.tile .t-eyebrow { color: var(--fg-3); }
+.tile .big { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+/* Toggle switch */
+.switch {
+  width: 34px; height: 19px; border-radius: 999px; background: var(--bg-3);
+  border: 1px solid var(--border-1); position: relative; cursor: pointer; flex-shrink: 0;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.switch::after {
+  content: ''; position: absolute; top: 1px; left: 1px; width: 15px; height: 15px;
+  border-radius: 50%; background: var(--bg-0); box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.switch.on { background: var(--fg-0); border-color: var(--fg-0); }
+.switch.on::after { transform: translateX(15px); }
+.set-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 11px 0; border-bottom: 1px solid var(--border-0);
+}
+.set-row:last-child { border-bottom: none; }
+.set-row .meta { flex: 1; min-width: 0; }
+.set-row .meta .nm { font-size: 12.5px; color: var(--fg-0); font-weight: 500; }
+.set-row .meta .ds { font-size: 11.5px; color: var(--fg-2); margin-top: 2px; }
 
 /* ───── Scrollbar (subtle) ───── */
 *::-webkit-scrollbar { width: 10px; height: 10px; }

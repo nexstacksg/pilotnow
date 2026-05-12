@@ -179,7 +179,7 @@ function DayTable({ jobs, onSelect }) {
   );
 }
 
-window.SchedulingScreen = function SchedulingScreen({ initialView = 'kanban', onSelectJob }) {
+window.SchedulingScreen = function SchedulingScreen({ initialView = 'kanban', onSelectJob, onNew }) {
   const [view, setView] = useStateS(initialView);
   const [scope, setScope] = useStateS('today');
   const jobs = useMemo(() => {
@@ -205,8 +205,8 @@ window.SchedulingScreen = function SchedulingScreen({ initialView = 'kanban', on
         </div>
         <div className="ph-actions">
           <button className="btn btn-ghost"><Icon name="upload" size={13} /> Import</button>
-          <button className="btn btn-secondary"><Icon name="repeat" size={13} /> New recurring</button>
-          <button className="btn btn-red"><Icon name="plus" size={13} /> New job</button>
+          <button className="btn btn-secondary" onClick={() => onNew && onNew('recurring')}><Icon name="repeat" size={13} /> New recurring</button>
+          <button className="btn btn-red" onClick={() => onNew && onNew('single')}><Icon name="plus" size={13} /> New job</button>
         </div>
       </div>
 
