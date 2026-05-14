@@ -178,21 +178,8 @@ html, body {
 .fchip i { width: 11px; height: 11px; color: var(--fg-3); }
 .fchip.active { background: var(--bg-2); border-color: var(--border-2); color: var(--fg-0); }
 
-/* ───── Buttons (base + compact overrides) ───── */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  border: 1px solid transparent; border-radius: var(--radius-sm);
-  font-family: var(--font-sans); font-weight: 500; line-height: 1.4;
-  background: transparent; color: var(--fg-0);
-  cursor: pointer; user-select: none; white-space: nowrap;
-  transition: all var(--dur-fast) var(--ease-out);
-  font-size: 12px; padding: 5px 9px;
-}
-.btn:disabled { opacity: 0.45; pointer-events: none; }
-.btn i[data-lucide] { width: 14px; height: 14px; }
-.btn.btn-sm { font-size: 11px; padding: 3px 7px; }
-.btn-secondary { background: var(--bg-0); color: var(--fg-0); border-color: var(--border-1); }
-.btn-secondary:hover { background: var(--bg-2); }
+/* ───── Buttons (compact overrides) ───── */
+.btn { font-size: 12px; padding: 5px 9px; }
 .btn-red { background: var(--red-500); color: #fff; }
 .btn-red:hover { background: var(--red-600); }
 .btn-dark { background: var(--fg-0); color: var(--bg-0); }

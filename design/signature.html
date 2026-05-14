@@ -2,135 +2,633 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#0A0A0A" />
 <title>Sign DO · J-1814 · Tampines Mall</title>
 <link rel="stylesheet" href="styles/tokens.css">
 <style>
-  html, body { background: var(--bg-1); }
-  .frame { max-width: 440px; margin: 0 auto; min-height: 100vh; background: var(--bg-0); border-left: 1px solid var(--border-0); border-right: 1px solid var(--border-0); display: flex; flex-direction: column; }
-  .hd { padding: 18px 20px; border-bottom: 1px solid var(--border-0); display: flex; align-items: center; gap: 10px; }
-  .mark { width: 22px; height: 22px; background: var(--fg-0); border-radius: 4px; position: relative; }
-  .mark::before { content:''; position:absolute; top:5px; left:5px; width:12px; height:2px; background: var(--red-500); }
-  .mark::after { content:''; position:absolute; top:9px; left:5px; width:8px; height:2px; background:#fff; box-shadow: 0 4px 0 -2px #fff, 0 4px 0 #fff; }
-  .brand { font-weight:700; letter-spacing: -0.02em; font-size: 14px; }
+  html, body { background: var(--bg-1); -webkit-tap-highlight-color: transparent; }
+  body { font-family: var(--font-sans); }
+
+  /* Mobile-first phone frame on desktop, full-bleed on phones */
+  .shell {
+    max-width: 440px; margin: 0 auto; min-height: 100dvh;
+    background: var(--bg-0);
+    border-left: 1px solid var(--border-0); border-right: 1px solid var(--border-0);
+    display: flex; flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @media (max-width: 480px) {
+    .shell { border: none; max-width: 100%; }
+  }
+
+  /* ─── Header ─── */
+  .hdr {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border-0);
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-0);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .mark { width: 24px; height: 24px; background: var(--fg-0); border-radius: 5px; position: relative; flex-shrink: 0; }
+  .mark::before { content:''; position:absolute; top:6px; left:5px; width:14px; height:2px; background: var(--red-500); }
+  .mark::after { content:''; position:absolute; top:10px; left:5px; width:9px; height:2px; background:#fff; box-shadow: 0 4px 0 -2px #fff, 0 4px 0 #fff; }
+  .brand { font-weight:700; letter-spacing: -0.02em; font-size: 15px; line-height: 1; }
   .brand .d { color: var(--red-500); }
-  .hd .mono { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .brand .sub { display:block; font-family: var(--font-mono); font-size: 9.5px; font-weight: 400; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; }
+  .lock { margin-left: auto; display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.06em; }
+  .lock svg { width: 11px; height: 11px; }
 
+  /* ─── Step indicator ─── */
+  .steps {
+    display: flex; gap: 6px; padding: 14px 18px 16px;
+    border-bottom: 1px solid var(--border-0);
+    background: var(--bg-0);
+  }
+  .step {
+    flex: 1; display: flex; flex-direction: column; gap: 4px;
+    padding: 6px 0; border-top: 2px solid var(--border-0);
+    position: relative;
+  }
+  .step.active { border-top-color: var(--red-500); }
+  .step.done { border-top-color: var(--fg-0); }
+  .step .n { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .step.active .n { color: var(--red-600); }
+  .step.done .n { color: var(--fg-0); }
+  .step .l { font-size: 12.5px; font-weight: 600; color: var(--fg-1); letter-spacing: -0.005em; }
+  .step.active .l, .step.done .l { color: var(--fg-0); }
+  .step.done .l::after { content: '  ✓'; color: var(--success); font-weight: 700; }
+
+  /* ─── Body ─── */
+  .body { padding: 20px 18px 24px; flex: 1; }
   .eyebrow { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-2); }
-  .body { padding: 22px 20px; }
-  h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.1; margin: 6px 0 4px; }
-  .sub { font-size: 13px; color: var(--fg-2); }
+  h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; margin: 6px 0 6px; }
+  .sub { font-size: 13.5px; color: var(--fg-2); line-height: 1.45; }
+  .as-who { margin-top: 10px; display: inline-flex; align-items: center; gap: 8px; padding: 5px 9px 5px 5px; background: var(--bg-1); border: 1px solid var(--border-0); border-radius: 999px; font-size: 12px; }
+  .as-who .av { width: 22px; height: 22px; border-radius: 50%; background: var(--fg-0); color: var(--bg-0); display: grid; place-items: center; font-size: 9.5px; font-weight: 700; }
+  .as-who .meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); margin-left: 4px; }
 
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: var(--bg-2); color: var(--fg-1); border: 1px solid var(--border-0); margin-top: 10px; }
-  .pill .dot { width: 7px; height: 7px; background: var(--success); border-radius: 50%; }
+  /* ─── Summary card ─── */
+  .summary {
+    margin-top: 18px;
+    border: 1px solid var(--border-0);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .sum-hd {
+    padding: 12px 14px;
+    background: var(--fg-0); color: var(--bg-0);
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .sum-hd .t { font-size: 14px; font-weight: 600; letter-spacing: -0.015em; }
+  .sum-hd .sub { font-family: var(--font-mono); font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; }
+  .sum-body { display: grid; grid-template-columns: 110px 1fr; }
+  .sum-body > div { padding: 9px 14px; border-bottom: 1px solid var(--border-0); font-size: 13px; }
+  .sum-body > div.k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; padding-top: 11px; }
+  .sum-body > div:nth-last-child(-n+2) { border-bottom: none; }
+  .sum-body .mono { font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-1); }
 
-  .summary { margin-top: 20px; border: 1px solid var(--border-0); border-radius: 6px; }
-  .srow { display: grid; grid-template-columns: 120px 1fr; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--border-0); align-items: baseline; font-size: 13px; }
-  .srow:last-child { border-bottom: none; }
-  .srow .k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
-  .srow .v { color: var(--fg-0); }
-  .srow .mono { font-family: var(--font-mono); font-size: 12px; color: var(--fg-1); }
+  /* ─── Evidence ─── */
+  .section-hd {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin: 26px 0 10px;
+  }
+  .section-hd .t { font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+  .section-hd .m { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
 
-  .photos { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 16px; }
-  .photo { aspect-ratio: 1; background:
-      linear-gradient(135deg, transparent 49%, var(--border-0) 49%, var(--border-0) 51%, transparent 51%),
-      linear-gradient(45deg, transparent 49%, var(--border-0) 49%, var(--border-0) 51%, transparent 51%),
-      var(--bg-2);
-    border: 1px solid var(--border-0); border-radius: 4px; display: grid; place-items: center; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .photos {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+  }
+  .photo {
+    aspect-ratio: 1;
+    border: 1px solid var(--border-0); border-radius: 5px;
+    background:
+      linear-gradient(135deg, transparent 49%, rgba(0,0,0,0.05) 49%, rgba(0,0,0,0.05) 51%, transparent 51%),
+      linear-gradient(45deg, transparent 49%, rgba(0,0,0,0.05) 49%, rgba(0,0,0,0.05) 51%, transparent 51%),
+      var(--bg-1);
+    padding: 6px; position: relative;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .photo .t { font-family: var(--font-mono); font-size: 9.5px; font-weight: 600; color: var(--fg-1); }
+  .photo .b { font-family: var(--font-mono); font-size: 8.5px; color: var(--fg-3); line-height: 1.3; }
+  .photo .b .o { display: block; }
+  .photo.late { background: var(--warning-bg); border-color: rgba(0,0,0,0.05); }
+  .photo.late .t { color: var(--warning); }
+  .photo.miss { background: var(--red-50); border-color: var(--red-100); }
+  .photo.miss .t, .photo.miss .b { color: var(--red-700); }
 
-  .sign-block { margin-top: 22px; }
-  .sign-pad { border: 1px solid var(--border-1); border-radius: 6px; aspect-ratio: 2 / 1; background:
-    linear-gradient(var(--bg-1) 23px, var(--border-0) 24px, var(--bg-0) 25px) 0 0/100% 24px;
-    position: relative; }
-  .sign-pad::before { content: 'Sign with finger'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
-  .sign-pad svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* ─── Existing signature pane (when step 2) ─── */
+  .prev-sig {
+    margin-top: 18px;
+    border: 1px solid var(--border-0);
+    border-radius: 6px;
+    padding: 14px;
+    background: var(--bg-1);
+    position: relative;
+  }
+  .prev-sig .hd { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .prev-sig .hd .k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.08em; }
+  .prev-sig .hd .ok { font-family: var(--font-mono); font-size: 10px; color: var(--success); }
+  .prev-sig svg { width: 100%; height: 64px; display: block; }
+  .prev-sig .ft { display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px; }
+  .prev-sig .ft .n { font-weight: 600; }
+  .prev-sig .ft .meta { font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); }
+  .stamp-mini {
+    position: absolute; top: 10px; right: 10px;
+    color: var(--success); border: 1.5px solid var(--success);
+    font-family: var(--font-mono); font-size: 9px; font-weight: 700;
+    padding: 2px 6px; letter-spacing: 0.08em; text-transform: uppercase;
+    transform: rotate(-6deg);
+    background: rgba(255,255,255,0.7);
+  }
 
-  .sign-actions { display: flex; gap: 8px; margin-top: 10px; }
-  .ghost { background: transparent; border: 1px solid var(--border-1); padding: 8px 12px; border-radius: 4px; font-size: 12px; font-family: var(--font-sans); cursor: pointer; color: var(--fg-0); }
+  /* ─── Signature pad ─── */
+  .pad-wrap {
+    margin-top: 18px;
+    border: 1px solid var(--border-1); border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-0);
+  }
+  .pad-hd {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-0);
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg-1);
+  }
+  .pad-hd .k { font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  .pad-hd .ind {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--fg-3);
+  }
+  .pad-hd .ind .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--fg-3); }
+  .pad-hd.recording .ind { color: var(--red-600); }
+  .pad-hd.recording .ind .dot { background: var(--red-500); animation: blink 1.2s infinite; }
+  .pad-hd.signed .ind { color: var(--success); }
+  .pad-hd.signed .ind .dot { background: var(--success); }
+  @keyframes blink { 50% { opacity: 0.35; } }
 
-  .signer { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .input { padding: 10px 12px; border: 1px solid var(--border-1); border-radius: 4px; font-family: inherit; font-size: 13px; background: var(--bg-0); width: 100%; }
-  label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); }
+  .pad {
+    position: relative;
+    height: 200px;
+    background:
+      repeating-linear-gradient(transparent 0px, transparent 31px, var(--border-0) 31px, var(--border-0) 32px),
+      var(--bg-0);
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .pad canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pad .hint {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-mono); font-size: 11px;
+    color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em;
+    pointer-events: none;
+    text-align: center;
+  }
+  .pad .hint .arrow { display: block; font-size: 18px; margin-bottom: 4px; color: var(--red-500); }
+  .pad.dirty .hint { display: none; }
+  .pad .baseline {
+    position: absolute; bottom: 36px; left: 24px; right: 24px;
+    border-bottom: 1px solid var(--fg-3);
+    pointer-events: none;
+  }
+  .pad .baseline::before {
+    content: '×'; position: absolute; left: -2px; bottom: 0;
+    font-size: 14px; color: var(--fg-3); line-height: 1;
+  }
 
-  .consent { margin-top: 16px; display: flex; gap: 10px; align-items: flex-start; font-size: 12px; color: var(--fg-1); padding: 12px; background: var(--bg-1); border: 1px solid var(--border-0); border-radius: 4px; }
-  .check { width: 16px; height: 16px; border: 1px solid var(--fg-0); border-radius: 2px; flex-shrink: 0; margin-top: 1px; display: grid; place-items: center; background: var(--fg-0); color: var(--bg-0); font-size: 11px; }
+  .pad-ft {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px;
+    border-top: 1px solid var(--border-0);
+    background: var(--bg-1);
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--fg-2);
+  }
+  .pad-ft .reset {
+    background: transparent; border: 1px solid var(--border-1);
+    padding: 4px 8px; border-radius: 3px;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--fg-1); cursor: pointer; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .pad-ft .reset:hover { background: var(--bg-2); }
+  .pad-ft .stat { display: inline-flex; gap: 4px; }
+  .pad-ft .stat .v { color: var(--fg-0); font-weight: 600; }
 
-  .cta { margin-top: 20px; display: flex; gap: 10px; padding: 18px 20px; border-top: 1px solid var(--border-0); background: var(--bg-0); position: sticky; bottom: 0; }
-  .btn-primary { flex: 1; background: var(--fg-0); color: var(--bg-0); border: none; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; font-family: inherit; }
-  .btn-decline { background: transparent; color: var(--red-700); border: 1px solid var(--red-200); padding: 12px 16px; font-size: 13px; border-radius: 4px; cursor: pointer; font-family: inherit; }
+  /* Anti-reuse notice */
+  .antifraud {
+    margin-top: 10px; padding: 11px 12px;
+    background: var(--bg-1);
+    border: 1px solid var(--border-0);
+    border-radius: 6px;
+    display: flex; gap: 10px;
+    font-size: 11.5px; line-height: 1.45; color: var(--fg-1);
+  }
+  .antifraud .ic {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: var(--fg-0); color: var(--bg-0);
+    border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .antifraud .ic svg { width: 12px; height: 12px; }
+  .antifraud strong { font-weight: 600; color: var(--fg-0); }
+  .antifraud .checks { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); }
+  .antifraud .checks span { display: flex; align-items: center; gap: 5px; }
+  .antifraud .checks span::before { content: '·'; color: var(--fg-3); font-weight: 700; }
+  .antifraud .checks span.ok::before { content: '✓'; color: var(--success); }
 
-  .foot { padding: 12px 20px 24px; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; text-align: center; }
+  /* Signer fields */
+  .signer {
+    margin-top: 16px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .field label { font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-3); display: block; margin-bottom: 5px; }
+  .field input {
+    width: 100%; padding: 11px 12px;
+    border: 1px solid var(--border-1); border-radius: 5px;
+    font-family: var(--font-sans); font-size: 14px;
+    background: var(--bg-0); color: var(--fg-0);
+  }
+  .field input:focus { outline: none; border-color: var(--fg-0); }
+  .field input:read-only { background: var(--bg-1); color: var(--fg-1); }
+
+  /* Consent */
+  .consent {
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--bg-1);
+    border: 1px solid var(--border-0); border-radius: 6px;
+    display: flex; gap: 10px; align-items: flex-start;
+    font-size: 12px; line-height: 1.5; color: var(--fg-1);
+  }
+  .consent .check {
+    width: 18px; height: 18px; flex-shrink: 0;
+    border: 1.5px solid var(--fg-0); border-radius: 3px;
+    background: var(--fg-0); color: var(--bg-0);
+    display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    margin-top: 1px;
+  }
+  .consent strong { font-weight: 600; }
+
+  /* CTA */
+  .cta {
+    position: sticky; bottom: 0;
+    display: flex; gap: 8px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    background: var(--bg-0);
+    border-top: 1px solid var(--border-0);
+    z-index: 5;
+  }
+  .cta button {
+    border: none; border-radius: 6px;
+    font-family: var(--font-sans); font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: all 120ms;
+  }
+  .btn-primary { flex: 1; background: var(--fg-0); color: var(--bg-0); padding: 14px; }
+  .btn-primary:disabled { background: var(--bg-3); color: var(--fg-3); cursor: not-allowed; }
+  .btn-primary:not(:disabled):hover { background: var(--red-500); }
+  .btn-secondary { background: transparent; color: var(--fg-1); border: 1px solid var(--border-1); padding: 14px 16px; font-size: 13px; }
+  .btn-secondary:hover { background: var(--bg-1); }
+  .btn-flag { color: var(--red-700); border-color: var(--red-200); background: var(--red-50); }
+  .btn-flag:hover { background: var(--red-100); }
+
+  /* Footer */
+  .foot {
+    padding: 14px 18px 30px;
+    font-family: var(--font-mono); font-size: 9.5px;
+    color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em;
+    text-align: center; line-height: 1.6;
+    border-top: 1px solid var(--border-0);
+  }
+
+  /* ─── Success state ─── */
+  .done-pane { padding: 32px 18px 40px; text-align: center; }
+  .done-pane .check-big {
+    width: 64px; height: 64px; margin: 0 auto 18px;
+    border-radius: 50%; background: var(--fg-0); color: var(--bg-0);
+    display: grid; place-items: center; font-size: 28px; font-weight: 700;
+  }
+  .done-pane h2 { font-size: 24px; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 6px; }
+  .done-pane .lead { font-size: 13.5px; color: var(--fg-2); line-height: 1.5; max-width: 320px; margin: 0 auto; }
+  .done-pane .doref { display: inline-block; margin-top: 16px; padding: 6px 12px; background: var(--bg-1); border: 1px solid var(--border-0); border-radius: 999px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-1); }
+
+  .hide { display: none !important; }
 </style>
 </head>
 <body>
-<div class="frame">
-  <header class="hd">
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="hdr">
     <div class="mark"></div>
-    <div class="brand">pilotnow<span class="d">.</span></div>
-    <span class="mono">DO · J-1814</span>
+    <div>
+      <div class="brand">pilotnow<span class="d">.</span></div>
+      <span class="brand sub">DO · J-1814 · TAMPINES MALL</span>
+    </div>
+    <span class="lock">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14v9H5z"/><path d="M8 12V7a4 4 0 1 1 8 0v5"/></svg>
+      Secured
+    </span>
   </header>
 
-  <div class="body">
-    <span class="eyebrow">DELIVERY ORDER · APEX MALL GROUP</span>
-    <h1>Confirm service delivery</h1>
-    <div class="sub">Edwin Tay, please verify and sign the report for yesterday's day shift at Tampines Mall.</div>
-    <span class="pill"><span class="dot"></span>Verified: link sent to +65 9088 ····42 · expires 11 May 23:59</span>
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step done" id="step1"><span class="n">STEP 1 of 2</span><span class="l">Site supervisor</span></div>
+    <div class="step active" id="step2"><span class="n">STEP 2 of 2</span><span class="l">Client acknowledge</span></div>
+  </div>
 
+  <!-- MAIN -->
+  <div class="body" id="signView">
+    <span class="eyebrow" id="eyebrow">DELIVERY ORDER · APEX MALL GROUP</span>
+    <h1 id="title">Acknowledge service delivery</h1>
+    <div class="sub" id="lead">
+      Mr. Edwin Tay, please review the day-shift evidence and acknowledge that service was delivered as described.
+      Our site supervisor has already signed.
+    </div>
+
+    <div class="as-who" id="asWho">
+      <span class="av" id="asAv">ET</span>
+      <span>Signing as <strong id="asName">Edwin Tay</strong></span>
+      <span class="meta" id="asRole">SITE MGR · APEX</span>
+    </div>
+
+    <!-- Summary card -->
     <div class="summary">
-      <div class="srow"><span class="k">Site</span><span class="v">Tampines Mall — Loading Bay</span></div>
-      <div class="srow"><span class="k">Job</span><span class="mono">J-1814 · 2026-05-11</span></div>
-      <div class="srow"><span class="k">Window</span><span class="mono">08:00 — 20:00 SGT · 12h</span></div>
-      <div class="srow"><span class="k">Officers</span><span class="v">Tan Wei Ming · Muhammad Hafiz</span></div>
-      <div class="srow"><span class="k">Proofs</span><span class="mono">12/12 · GPS avg 14m</span></div>
-      <div class="srow"><span class="k">Incidents</span><span class="v" style="color: var(--fg-2)">None · 1 remark</span></div>
+      <div class="sum-hd">
+        <span class="t">Tampines Mall — Loading Bay</span>
+        <span class="sub">J-1814</span>
+      </div>
+      <div class="sum-body">
+        <div class="k">Date</div>           <div>Wed, 13 May 2026</div>
+        <div class="k">Window</div>         <div class="mono">08:00 → 20:00 SGT · 12h</div>
+        <div class="k">Officers</div>       <div>Tan Wei Ming · Muhammad Hafiz</div>
+        <div class="k">Supervisor</div>     <div>Tan Wei Ming · O-101</div>
+        <div class="k">Proof events</div>   <div class="mono">12 of 12 · 1 late · 0 miss</div>
+        <div class="k">Incidents</div>      <div>None · 1 remark logged</div>
+      </div>
     </div>
 
+    <!-- Evidence (proof every 1h with lat/lng) -->
+    <div class="section-hd">
+      <span class="t">Hourly proof · 12 captures</span>
+      <span class="m">EVERY 60 MIN · GPS</span>
+    </div>
     <div class="photos">
-      <div class="photo">07:01 IN</div>
-      <div class="photo">11:00</div>
-      <div class="photo">15:00</div>
-      <div class="photo">19:00</div>
-      <div class="photo">20:02 OUT</div>
-      <div class="photo">+7 more</div>
+      <div class="photo"><span class="t">07:01 · IN</span><span class="b"><span class="o">TAN WEI MING</span>1.35361, 103.94459<br/>± 24m</span></div>
+      <div class="photo"><span class="t">08:00</span><span class="b"><span class="o">TW</span>1.35359, 103.94461<br/>± 18m</span></div>
+      <div class="photo"><span class="t">09:00</span><span class="b"><span class="o">TW</span>1.35358, 103.94458<br/>± 11m</span></div>
+      <div class="photo late"><span class="t">10:22 · LATE</span><span class="b"><span class="o">HAFIZ</span>1.35364, 103.94461<br/>+ 22 min</span></div>
+      <div class="photo"><span class="t">11:00</span><span class="b"><span class="o">TW</span>1.35361, 103.94462<br/>± 14m</span></div>
+      <div class="photo"><span class="t">12:00</span><span class="b"><span class="o">TW</span>1.35360, 103.94460<br/>± 16m</span></div>
+      <div class="photo"><span class="t">13:00</span><span class="b"><span class="o">HAFIZ</span>1.35365, 103.94457<br/>± 9m</span></div>
+      <div class="photo"><span class="t">17:00</span><span class="b"><span class="o">TW</span>1.35362, 103.94459<br/>± 12m</span></div>
+      <div class="photo"><span class="t">20:02 · OUT</span><span class="b"><span class="o">TW</span>1.35360, 103.94462<br/>± 15m</span></div>
     </div>
 
-    <div class="sign-block">
-      <label style="display:block; margin-bottom: 8px;">Signature</label>
-      <div class="sign-pad">
-        <svg viewBox="0 0 400 200" preserveAspectRatio="none">
-          <path d="M30,140 C70,80 110,160 150,120 S230,80 270,130 320,150 360,90" stroke="#0A0A0A" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+    <!-- Step 1 supervisor signature (visible only on step 2) -->
+    <div class="prev-sig" id="prevSig">
+      <div class="hd">
+        <span class="k">STEP 1 · Site supervisor</span>
+        <span class="ok">SIGNED · FRESH · 20:18 SGT</span>
       </div>
-      <div class="sign-actions">
-        <button class="ghost">Clear</button>
-        <span style="flex:1"></span>
-        <span style="font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); align-self: center;">SIGNED · 11 MAY 21:42</span>
+      <svg viewBox="0 0 400 80" preserveAspectRatio="none">
+        <path d="M20,52 C50,30 80,62 110,44 C150,22 180,58 220,40 C260,24 300,54 340,38 C360,30 380,46 390,40"
+              stroke="#0A0A0A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </svg>
+      <div class="ft">
+        <span class="n">Tan Wei Ming · Senior Officer</span>
+        <span class="meta">SHA ····A92F · 14 STROKES</span>
+      </div>
+      <span class="stamp-mini">Verified</span>
+    </div>
+
+    <!-- Signature pad -->
+    <div class="section-hd">
+      <span class="t" id="padCaption">Your signature</span>
+      <span class="m">FRESH STROKES ONLY</span>
+    </div>
+    <div class="pad-wrap">
+      <div class="pad-hd" id="padHd">
+        <span class="k">SIGN BELOW</span>
+        <span class="ind">
+          <span class="dot"></span>
+          <span id="indText">Ready</span>
+        </span>
+      </div>
+      <div class="pad" id="pad">
+        <canvas id="canvas"></canvas>
+        <div class="baseline"></div>
+        <div class="hint" id="hint">
+          <span class="arrow">↓</span>
+          Sign with your finger
+        </div>
+      </div>
+      <div class="pad-ft">
+        <button class="reset" id="resetBtn">Clear</button>
+        <span class="stat"><span>Strokes</span><span class="v" id="strokeCount">0</span></span>
+        <span class="stat"><span>Time</span><span class="v" id="timeCount">0.0s</span></span>
+        <span style="margin-left:auto" id="hashTag">SHA ····----</span>
       </div>
     </div>
 
+    <!-- Anti-fraud notice -->
+    <div class="antifraud">
+      <span class="ic">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/></svg>
+      </span>
+      <div>
+        <strong>Fresh stroke verification</strong> · this signature is captured live and compared against past signatures and clipboard paste. Pre-saved or reused signatures are rejected.
+        <div class="checks">
+          <span class="ok">Live touch capture</span>
+          <span class="ok">No paste detected</span>
+          <span class="ok">Device · iPhone · 116.45.21.7</span>
+          <span id="freshCheck">Awaiting strokes…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signer -->
     <div class="signer">
-      <div>
+      <div class="field">
         <label>Name</label>
-        <input class="input" value="Edwin Tay" readonly style="margin-top:6px" />
+        <input id="nameInput" value="Edwin Tay" />
       </div>
-      <div>
+      <div class="field">
         <label>Role</label>
-        <input class="input" value="Site Manager" readonly style="margin-top:6px" />
+        <input id="roleInput" value="Site Manager" readonly />
       </div>
     </div>
 
+    <!-- Consent -->
     <div class="consent">
       <span class="check">✓</span>
-      <span>I confirm the service was delivered as described, that I am authorised to sign on behalf of Marina Bay Holdings, and I consent to a copy being emailed to finance for billing.</span>
+      <span>I confirm the service described above was delivered, that I am authorised to acknowledge on behalf of <strong>Apex Mall Group</strong>, and I consent to a copy of the signed DO being retained for audit and shared with finance.</span>
     </div>
   </div>
 
-  <div class="cta">
-    <button class="btn-decline">Flag issue</button>
-    <button class="btn-primary">Approve &amp; submit</button>
+  <!-- SUCCESS -->
+  <div class="done-pane hide" id="doneView">
+    <div class="check-big">✓</div>
+    <h2>Acknowledged</h2>
+    <div class="lead">
+      DO has been signed by both parties and queued for finance delivery.
+      A copy will be emailed to <strong>ap@apexretail.sg</strong> within the next 5 minutes.
+    </div>
+    <div class="doref">DO-J1814-001 · SHA ····A92F1D</div>
+    <div style="margin-top: 26px; display: flex; flex-direction: column; gap: 10px; max-width: 280px; margin-left: auto; margin-right: auto;">
+      <button class="btn-primary" onclick="window.open('do-report.html', '_blank')" style="padding: 12px; border-radius: 6px; border: none; font-family: var(--font-sans); font-size: 14px; font-weight: 600; cursor: pointer; background: var(--fg-0); color: var(--bg-0);">View PDF</button>
+      <button class="btn-secondary" style="padding: 12px 16px; font-family: var(--font-sans); font-size: 13px; cursor: pointer; background: transparent; color: var(--fg-1); border: 1px solid var(--border-1); border-radius: 6px;">Email me a copy</button>
+    </div>
   </div>
 
-  <div class="foot">PILOTNOW · SECURED LINK · TOKEN ····7D14 · PDPA-AWARE</div>
+  <!-- CTA -->
+  <div class="cta" id="ctaBar">
+    <button class="btn-secondary btn-flag" id="flagBtn">Flag issue</button>
+    <button class="btn-primary" id="submitBtn" disabled>Acknowledge &amp; sign</button>
+  </div>
+
+  <div class="foot" id="footEl">
+    PILOTNOW · NEXSTACK PTE LTD · PDPA-AWARE<br/>
+    SECURED LINK · TOKEN ····7D14 · EXPIRES 14 MAY 23:59
+  </div>
 </div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const pad = $('pad');
+  const canvas = $('canvas');
+  const ctx = canvas.getContext('2d');
+  const hint = $('hint');
+  const padHd = $('padHd');
+  const indText = $('indText');
+  const strokeCountEl = $('strokeCount');
+  const timeCountEl = $('timeCount');
+  const hashTag = $('hashTag');
+  const freshCheck = $('freshCheck');
+  const submitBtn = $('submitBtn');
+  const resetBtn = $('resetBtn');
+  const flagBtn = $('flagBtn');
+
+  let strokes = 0;
+  let points = 0;
+  let drawing = false;
+  let firstTouch = null;
+  let lastX = 0, lastY = 0;
+  let dpr = window.devicePixelRatio || 1;
+
+  function fitCanvas() {
+    const r = pad.getBoundingClientRect();
+    canvas.width = r.width * dpr;
+    canvas.height = r.height * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#0A0A0A';
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+
+  function getPos(e) {
+    const r = canvas.getBoundingClientRect();
+    const t = (e.touches && e.touches[0]) || e;
+    return { x: t.clientX - r.left, y: t.clientY - r.top };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    drawing = true;
+    pad.classList.add('dirty');
+    strokes++;
+    if (!firstTouch) firstTouch = performance.now();
+    const p = getPos(e);
+    lastX = p.x; lastY = p.y;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    points++;
+    update();
+  }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = getPos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+    points++;
+    update();
+  }
+  function end(e) {
+    if (!drawing) return;
+    drawing = false;
+    update(true);
+  }
+
+  function update(final) {
+    strokeCountEl.textContent = strokes;
+    const elapsed = firstTouch ? (performance.now() - firstTouch) / 1000 : 0;
+    timeCountEl.textContent = elapsed.toFixed(1) + 's';
+    // fake hash from stroke + points
+    const hash = ('00000000' + ((strokes * 9973 + points * 31 + Math.floor(elapsed * 100)) >>> 0).toString(16)).slice(-4).toUpperCase();
+    hashTag.textContent = 'SHA ····' + hash;
+
+    if (strokes === 0) {
+      padHd.classList.remove('recording', 'signed');
+      indText.textContent = 'Ready';
+      freshCheck.textContent = 'Awaiting strokes…';
+      freshCheck.classList.remove('ok');
+      submitBtn.disabled = true;
+    } else if (drawing) {
+      padHd.classList.add('recording'); padHd.classList.remove('signed');
+      indText.textContent = 'Capturing';
+      freshCheck.textContent = 'Capturing fresh strokes';
+      freshCheck.classList.remove('ok');
+      submitBtn.disabled = true;
+    } else {
+      // good enough = 2+ strokes OR >5s
+      const ok = strokes >= 2 || elapsed > 4;
+      padHd.classList.remove('recording');
+      padHd.classList.toggle('signed', ok);
+      indText.textContent = ok ? 'Signed' : 'Recording…';
+      freshCheck.textContent = ok ? 'Fresh stroke pattern accepted' : 'Add a bit more signature…';
+      freshCheck.classList.toggle('ok', ok);
+      submitBtn.disabled = !ok;
+    }
+  }
+
+  pad.addEventListener('mousedown', start);
+  pad.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  pad.addEventListener('touchstart', start, { passive: false });
+  pad.addEventListener('touchmove',  move,  { passive: false });
+  pad.addEventListener('touchend',   end);
+  pad.addEventListener('touchcancel',end);
+
+  resetBtn.addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pad.classList.remove('dirty');
+    strokes = 0; points = 0; firstTouch = null;
+    update();
+  });
+
+  submitBtn.addEventListener('click', () => {
+    $('signView').classList.add('hide');
+    $('ctaBar').classList.add('hide');
+    $('footEl').classList.add('hide');
+    $('doneView').classList.remove('hide');
+    // mark step 2 done
+    $('step2').classList.remove('active'); $('step2').classList.add('done');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  flagBtn.addEventListener('click', () => {
+    alert('A note will be sent to PilotNow operations. They will reach out within 30 minutes.');
+  });
+})();
+</script>
 </body>
 </html>

@@ -133,8 +133,17 @@ window.PN_DATA = (function () {
     },
   ];
 
+  const POLICIES = [
+    { id: 'P-day-mall',     name: 'Day shift · Mall / commercial',  interval: 60,  grace: 10, lateGrace: 5,  startReminderBefore: 15, escalateAt: 15, signature: '2-step', radiusDefault: 80,  active: 14 },
+    { id: 'P-night-patrol', name: 'Night patrol',                    interval: 120, grace: 15, lateGrace: 10, startReminderBefore: 30, escalateAt: 20, signature: '2-step', radiusDefault: 100, active: 6 },
+    { id: 'P-event',        name: 'Event · high-profile',           interval: 30,  grace: 5,  lateGrace: 5,  startReminderBefore: 60, escalateAt: 10, signature: '2-step', radiusDefault: 120, active: 3 },
+    { id: 'P-warehouse',    name: 'Warehouse / logistics',           interval: 180, grace: 30, lateGrace: 15, startReminderBefore: 30, escalateAt: 30, signature: 'unsigned-ok', radiusDefault: 200, active: 5 },
+    { id: 'P-concierge',    name: 'Concierge',                       interval: 90,  grace: 10, lateGrace: 5,  startReminderBefore: 15, escalateAt: 15, signature: '2-step', radiusDefault: 60,  active: 4 },
+  ];
+
   const EXCEPTIONS = [
     { id: 'EX-441', job: 'J-1816', kind: 'No-show',            severity: 'critical', age: '4m ago',  msg: 'O-201 Tan Boon Hwee not checked in. Shift started 09:00.', action: 'Reassign' },
+    { id: 'EX-461', job: 'J-1814', kind: 'Late check-in',      severity: 'high',     age: '8m ago',  msg: 'Muhammad Hafiz checked in 07:14 SGT — 14m late (policy 5m grace).',   action: 'Acknowledge' },
     { id: 'EX-442', job: 'J-1815', kind: 'Missing ack',        severity: 'high',     age: '11m ago', msg: 'Rajesh Kumar has not acknowledged assignment.',           action: 'Resend' },
     { id: 'EX-443', job: 'J-1817', kind: 'Under-staffed',      severity: 'high',     age: '23m ago', msg: 'Pharma event needs 4, only 3 assigned. T-3h to start.',  action: 'Assign' },
     { id: 'EX-444', job: 'J-1815', kind: 'Missed proof photo', severity: 'medium',   age: '32m ago', msg: 'O-110 Devi Naidu missed the 11:00 proof. 2nd this shift.', action: 'Resend' },
@@ -144,5 +153,5 @@ window.PN_DATA = (function () {
     { id: 'EX-448', job: 'J-1812', kind: 'Email bounced',      severity: 'medium',   age: '8h ago',  msg: 'finance@mbholdings.sg bounced (mailbox full).',             action: 'Retry'  },
   ];
 
-  return { OFFICERS, CLIENTS, SITES, JOBS, EXCEPTIONS };
+  return { OFFICERS, CLIENTS, SITES, JOBS, EXCEPTIONS, POLICIES };
 })();
