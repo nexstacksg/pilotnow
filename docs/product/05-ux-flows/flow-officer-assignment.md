@@ -14,6 +14,8 @@
 
 Admin assigns one or more officers to a created job. Officers receive WhatsApp notifications with job details and must acknowledge. System enforces one-active-job-per-officer constraint.
 
+Where enabled, the same flow also supports AI-led fulfilment: candidate search, officer outreach, bounded rate negotiation, assignment confirmation, and customer fulfilment update.
+
 ## Entry Points
 
 - Directly after job creation (tap "👤 Assign Officers")
@@ -87,6 +89,27 @@ Please confirm:
 | ✅ Accept | Officer acknowledges |
 | ❌ Cannot Make It | Officer declines |
 
+### Step 3b: AI-Led Offer / Negotiation Variant
+
+**System → Officer:**
+```
+Hi John — new shift available:
+
+📍 ABC Mall, Gate 2
+📅 Tue, 26 May 2026
+⏰ 08:00 – 18:00
+💵 Rate: $15/hr
+
+Can you take this shift?
+```
+
+**Officer options:**
+- Accept
+- Decline
+- Counter with requested rate
+
+If the counter-rate is within configured limits, the AI may confirm or counter once more. If the requested rate is above limit, the case is escalated to admin.
+
 ### Step 4a: Officer Accepts
 
 **System → Officer:**
@@ -101,6 +124,13 @@ I'll remind you 1 hour before. See you there! 👍
 **System → Admin:**
 ```
 ✅ Ahmad bin Hassan accepted Job #1042 (Mapletree Business City Tower A)
+```
+
+**System → Customer (for customer-originated order):**
+```
+✅ Order fulfilled: Ahmad bin Hassan assigned.
+
+We’ll remind him before shift start and update you if any exception occurs.
 ```
 
 ### Step 4b: Officer Declines
@@ -171,6 +201,13 @@ Both officers have been notified.
 |---------|--------|
 | 30 min no response | System re-sends notification to officer |
 | 1 hour no response | Admin alerted: "Ahmad hasn't responded to Job #1042. Reassign?" |
+
+### Negotiation Escalation
+| Scenario | Action |
+|----------|--------|
+| Officer counters within limit | AI may agree or send configured best-offer response |
+| Officer counters above limit | Escalate to dispatcher / admin |
+| No suitable officer found | Escalate and mark fulfilment risk |
 
 ### Show Available List
 ```

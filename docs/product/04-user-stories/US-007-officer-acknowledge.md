@@ -50,12 +50,21 @@
 - **Then** I receive updated details and must re-acknowledge
 - **And** my status resets to "Pending" until I respond
 
+### Scenario 5: Officer accepts after AI-led rate agreement
+
+- **Given** PilotNow AI has discussed and agreed a rate with me within allowed rules
+- **When** I tap the final accept button or send the acceptance keyword
+- **Then** the agreed rate and acceptance outcome are recorded
+- **And** the job assignment status changes to acknowledged / accepted
+- **And** the admin timeline shows that the assignment was secured through AI negotiation
+
 ## UI/UX Notes
 
 - Assignment message uses WhatsApp quick reply buttons: ✅ Accept | ❌ Decline
 - Confirmation message includes full job details and a reminder note
 - Officers should be able to view their current assignment: reply "My job" → system shows active assignment
 - Keep messages short and scannable — officers are on mobile
+- If rate negotiation is in scope for that shift, the conversation must present the proposed rate clearly before final acceptance
 
 ## Edge Cases
 

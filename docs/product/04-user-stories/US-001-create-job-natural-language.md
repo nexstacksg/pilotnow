@@ -18,6 +18,8 @@
 **I want** to create a job using PilotNow natural-language intake, including free-form WhatsApp input and supported admin web workflows,
 **so that** I can create jobs in seconds without filling structured forms.
 
+The same intake capability should also support a **customer-originated WhatsApp order flow** where PilotNow AI parses pasted orders into draft jobs for fulfilment.
+
 ## Acceptance Criteria
 
 ### Scenario 1: Happy path — LLM parses job successfully
@@ -55,6 +57,21 @@
 - **When** the LLM cannot interpret it as a job request
 - **Then** the system responds with a helpful prompt like "I didn't understand that as a job request. Try something like: '2 officers at [site] on [date] from [time] to [time]'"
 
+### Scenario 6: Customer pastes order and AI creates draft job
+
+- **Given** a customer sends a message like "Need 2 officers tomorrow 8am-6pm at ABC Mall, Gate 2"
+- **When** the AI detects it as a valid order request
+- **Then** the AI immediately acknowledges receipt
+- **And** the system creates a structured draft job with parsed fields
+- **And** the system either asks for clarification or proceeds according to configured confirmation mode
+
+### Scenario 7: Customer message has high-confidence details
+
+- **Given** the customer message contains all required fields with high confidence
+- **When** auto-draft mode is enabled
+- **Then** the system creates the draft job without waiting for a human admin
+- **And** the job enters fulfilment processing
+
 ## UI/UX Notes
 
 - **Input:** Admin can start from plain WhatsApp text or a supported web intake flow — no rigid template required
@@ -72,6 +89,7 @@
 - Confirm/Edit/Cancel can be shown in supported chat actions or equivalent web actions
 - Clarifying questions should be clear and stepwise, one at a time
 - System should handle typos and shorthand gracefully (e.g., "tmr" = tomorrow, "MBT" = site alias if configured)
+- For customer intake, the acknowledgement should make clear that the request is being processed and staffing search is starting
 
 ## Edge Cases
 

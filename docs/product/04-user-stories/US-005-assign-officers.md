@@ -18,6 +18,8 @@
 **I want** to assign one or more officers to a job through PilotNow,
 **so that** officers are notified of their assignment and I can manage staffing.
 
+PilotNow should also support an **AI-assisted assignment mode** where the system can search, contact, negotiate with, and secure an officer within configured business rules.
+
 ## Acceptance Criteria
 
 ### Scenario 1: Assign a single officer
@@ -55,6 +57,27 @@
 - **When** I send "Assign John to JOB-1234"
 - **Then** the system responds with suggestions: "No officer found for 'John'. Did you mean: John Tan, Johnny Lim?"
 
+### Scenario 6: AI matches and assigns the best candidate
+
+- **Given** a customer-originated job is ready for fulfilment
+- **When** the AI searches the officer pool
+- **Then** the AI ranks candidates based on availability, proximity, required qualifications, and reliability
+- **And** the AI contacts the best candidate first or follows the configured outreach sequence
+
+### Scenario 7: AI negotiation stays within allowed rate boundaries
+
+- **Given** the AI offers an officer a shift at the configured starting rate
+- **When** the officer counters within the allowed negotiation band
+- **Then** the AI may agree or counter within those limits
+- **And** once agreement is reached, the officer is assigned automatically
+
+### Scenario 8: AI escalates when negotiation exceeds limit
+
+- **Given** the officer requests a rate above the allowed maximum or the negotiation becomes unclear
+- **When** the AI cannot close within configured rules
+- **Then** the system escalates the case to a dispatcher or admin
+- **And** no out-of-bounds rate is committed automatically
+
 ## UI/UX Notes
 
 - Officer notification:
@@ -70,6 +93,7 @@
   ```
 - Admin can assign by name, phone number, officer ID, or supported web selection flow
 - System should show available officers on request: "Who's available on 24 Feb 8am-6pm?"
+- When AI-assisted sourcing is enabled, admins should be able to see candidate ranking, current outreach status, offered rate, counter-offer, and escalation state
 
 ## Edge Cases
 

@@ -14,6 +14,8 @@
 
 Admin creates a new security job using PilotNow intake. The flow preserves natural-language WhatsApp intake, while also supporting equivalent admin actions from the web application. The LLM parses the message into structured job data. Admin reviews and confirms before the job is created in the system.
 
+The same intake capability also supports a customer-facing WhatsApp order flow where the AI acknowledges the order, creates a draft job, and hands the request into fulfilment.
+
 ## Entry Points
 
 - Admin starts job creation from WhatsApp intake or the web application intake flow
@@ -50,6 +52,28 @@ Please confirm:
 | ✅ Confirm | Creates the job |
 | ✏️ Edit | System asks what to change |
 | ❌ Cancel | Discards the job |
+
+### Step 2b: Customer-Originated Intake Variant
+
+**Customer message (example):**
+```
+Need 2 officers tomorrow 8am-6pm at ABC Mall, Gate 2
+```
+
+**System reply:**
+```
+✅ Got it — processing your request now.
+
+I found:
+📍 Site: ABC Mall, Gate 2
+📅 Date: Tue, 26 May 2026
+⏰ Shift: 08:00 – 18:00
+👥 Officers needed: 2
+
+I’m now checking availability and will update you once coverage is secured.
+```
+
+If key fields are missing, the AI asks clarifying questions before fulfilment continues.
 
 ### Step 3a: Admin Confirms
 
@@ -167,6 +191,8 @@ Admin free-form message
     │       ├─→ ✅ Confirm → Job created → Assign officers flow
     │       ├─→ ✏️ Edit → Correction loop → Re-confirmation
     │       └─→ ❌ Cancel → End
+    │
+    ├─→ Customer intake success → Draft job created → Fulfilment / assignment flow
     │
     ├─→ LLM parse incomplete → Follow-up questions → Confirmation summary
     │

@@ -142,6 +142,7 @@ Admin configures:
 ### 7.2 Job Intake
 Jobs can originate from:
 - free-form WhatsApp job requests
+- customer-facing WhatsApp order messages handled directly by the AI
 - structured admin entry
 - recurring templates / schedules
 - amendments to existing jobs
@@ -153,6 +154,12 @@ System responsibilities:
 - link or create site/client data
 - flag ambiguities before job creation
 
+For customer-facing WhatsApp intake, the system must also:
+- acknowledge receipt immediately
+- create a draft structured job from the pasted order
+- identify missing or low-confidence fields
+- optionally confirm extracted details with the customer before fulfilment starts
+
 ### 7.3 Planning and Scheduling
 Admin or dispatcher:
 - reviews open jobs
@@ -161,6 +168,13 @@ Admin or dispatcher:
 - resolves conflicts
 - manages recurring schedules
 - handles understaffed or standby scenarios
+
+Where configured, the AI may also perform an autonomous fulfilment flow by:
+- searching the officer pool for suitable candidates based on availability, proximity, required credentials, and reliability
+- contacting officers one-by-one or in controlled sequence through WhatsApp
+- negotiating within pre-configured commercial boundaries
+- escalating to a human dispatcher when limits, ambiguity, or risk thresholds are hit
+- assigning the agreed officer immediately once acceptance is secured
 
 ### 7.4 Pre-Shift Readiness
 System and admin ensure:
@@ -209,6 +223,28 @@ System then:
 - logs delivery outcome
 - preserves all evidence, messages, timestamps, and status history for later review
 
+### 7.9 AI-Driven Customer Order to Fulfilment Flow
+PilotNow shall support a conversation-driven operating mode where the customer can paste a manpower request into WhatsApp and the system drives the fulfilment process end to end.
+
+Required flow:
+1. customer sends order in WhatsApp
+2. AI acknowledges receipt immediately
+3. AI parses order into a draft job record
+4. system validates fields and confidence
+5. AI searches best-fit officers based on configurable rules
+6. AI opens officer conversation with proposed shift and starting rate
+7. AI negotiates only within approved rate boundaries for that client, shift type, or officer type
+8. if agreement is reached, system assigns officer and updates job status to Assigned
+9. AI updates the customer thread that the order is fulfilled
+10. pre-shift reminders and acknowledgement logic continue automatically
+
+Human escalation must be triggered when:
+- required job details are still ambiguous
+- no suitable officer is found
+- negotiation exceeds allowed commercial limits
+- multiple officers decline and service risk rises
+- the AI detects an exception requiring business judgement
+
 ## 8. Functional Requirement Modules
 
 ## 8.1 Master Data Management
@@ -239,11 +275,18 @@ System shall allow admins to define job types with defaults such as reminder fre
 ### FR-006 Natural Language Job Intake
 Admins shall be able to submit free-form job requests via WhatsApp. The system shall parse site, date, time, manpower count, job type, and notes into structured data for confirmation.
 
+The same parsing capability shall support **customer-facing WhatsApp intake** where an external customer sends a manpower request directly to the AI-managed chat or group.
+
 ### FR-007 Structured Job Entry and Editing
 Admins shall also be able to create or edit jobs through structured operational input, not only conversational input.
 
 ### FR-008 Job Confirmation Workflow
 No parsed job shall be committed without explicit confirmation or validated structured submission.
+
+For customer-facing AI intake, the system shall support configurable confirmation modes:
+- always confirm with customer before job creation
+- auto-create draft job when confidence is high
+- auto-create draft and only ask clarifying questions for missing fields
 
 ### FR-009 Duplicate / Conflict Detection
 The system shall warn admins of likely duplicates or overlapping jobs at the same site/date/time before final creation.
@@ -258,6 +301,8 @@ Admins shall be able to amend start/end time, officer count, notes, site, and st
 
 ### FR-012 Officer Assignment
 Admins shall be able to assign one or more officers to a job, with validation against assignment conflicts, inactive status, and missing data.
+
+The system shall also support **AI-driven officer assignment orchestration** where the AI proposes or completes assignment based on configured rules and officer acceptance.
 
 ### FR-013 Officer Acknowledgement
 Officers shall be required to acknowledge assignments. Acknowledgement status shall be visible to admins.
@@ -274,12 +319,44 @@ System should support tagging replacement candidates or standby officers for at-
 ### FR-017 Officer Availability and Off-Day Management
 System should support lightweight officer availability management, including off-day flags, unavailable periods, and assignment warnings. Recommendation: include this in baseline scope as a lightweight operational control, not a full rostering/payroll module.
 
+### FR-018 AI Candidate Matching
+System shall support AI-assisted search and ranking of candidate officers for a job using configurable factors including:
+- availability / conflict-free status
+- distance or travel suitability to site
+- required certifications, rank, or eligibility
+- reliability or attendance performance indicators
+- client or site-specific officer preferences or exclusions
+
+The ranking output shall be visible to admins when required.
+
+### FR-019 Bounded Rate Negotiation
+System shall support AI-led WhatsApp negotiation with officers using pre-configured commercial rules.
+
+Minimum capabilities:
+- default offered rate by client, site, job type, shift type, or officer type
+- minimum and maximum negotiable rate boundaries
+- step-up or fallback negotiation rules
+- escalation to human dispatcher when requested rate exceeds limits or confidence is low
+- complete logging of offer, counter-offer, accepted rate, escalation, and final outcome
+
+The AI shall never confirm a rate above the allowed boundary without human approval.
+
+### FR-020 Fulfilment Status Updates to Customer
+When a customer-originated order is being processed, the system shall update the customer conversation with meaningful fulfilment states such as:
+- request received
+- clarification needed
+- sourcing in progress
+- officer assigned / order fulfilled
+- fulfilment risk / escalated to operations
+
+Customer-facing updates must be configurable to avoid exposing sensitive internal details beyond approved fields.
+
 ## 8.4 Field Execution and Attendance Proof
 
-### FR-018 Check-In
+### FR-021 Check-In
 Officers shall check in using photo + location. The system shall validate GPS against site radius and record timestamp, coordinates, accuracy, and media.
 
-### FR-019 Configurable Periodic Proof of Presence and Status Updates
+### FR-022 Configurable Periodic Proof of Presence and Status Updates
 System shall send configurable reminder-based proof requests during active shifts according to client, site, job type, shift type, officer type, or assignment rule, and store returned evidence with timestamps.
 
 Each proof request may require one or more of the following based on configuration:
@@ -290,30 +367,48 @@ Each proof request may require one or more of the following based on configurati
 
 The system shall support configurable proof intervals such as every 30 minutes, every 1 hour, or every 2 hours, plus response grace periods, end-of-shift suppression rules, and escalation rules for missed responses.
 
-### FR-020 Check-Out
+### FR-023 Check-Out
 Officers shall check out using photo + location. Final checkout status shall contribute to report closure.
 
-### FR-021 Remarks and Incident Logging
+### FR-024 Remarks and Incident Logging
 Officers shall be able to submit remarks and incident reports during active jobs. Incidents shall be flagged and optionally alerted immediately.
 
-### FR-022 Evidence Quality and Exception Flagging
+### FR-025 Pre-Shift Reminder and Readiness Tracking
+System shall support configurable pre-shift reminders to assigned officers, including multiple reminder points such as 2 hours before shift and 30 minutes before shift.
+
+The system shall:
+- record whether the officer acknowledged readiness
+- identify non-responsive officers before shift start
+- generate soft escalation or dispatcher alerts when readiness confirmation is missing
+
+### FR-026 Evidence Quality and Exception Flagging
 System shall flag low-confidence evidence scenarios such as missing location, weak GPS accuracy, unusual distance, early checkout, or suspicious proof patterns for admin review.
 
 ## 8.5 Escalation and Exception Management
 
-### FR-023 No-Show Detection
+### FR-027 No-Show Detection
 If an officer does not check in within the configured threshold after shift start, the system shall alert admins and present reassignment options.
 
-### FR-024 Missed Acknowledgement Alerting
+### FR-028 Missed Acknowledgement Alerting
 If an officer does not acknowledge in time, the system shall remind and escalate to admin.
 
-### FR-025 Missed Proof Escalation
+### FR-029 Missed Proof Escalation
 If periodic proof or status response is missed, the system shall notify admins immediately or in batched alert mode based on configuration.
 
-### FR-026 Delivery Failure Handling
+### FR-030 AI Negotiation and Fulfilment Escalation
+System shall escalate to admin or dispatcher when autonomous fulfilment cannot complete within configured business rules, including:
+- no suitable officer found
+- repeated officer decline
+- commercial limit exceeded
+- customer clarification unresolved
+- fulfilment deadline at risk
+
+Escalation state shall be visible in admin monitoring views.
+
+### FR-031 Delivery Failure Handling
 System shall detect failed WhatsApp or email deliveries, retry where appropriate, and expose failure states to admins.
 
-### FR-027 Manual Override and Resolution
+### FR-032 Manual Override and Resolution
 Admins shall be able to mark exceptions as reviewed, overridden, resolved, or accepted with reason notes.
 
 ## 8.6 DO Reporting and Sign-Off

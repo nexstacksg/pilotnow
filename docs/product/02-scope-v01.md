@@ -56,6 +56,8 @@ This scope is intentionally written as the full requirement set. Implementation 
 2. **Job intake**  
    Admin receives customer job requests and creates jobs via WhatsApp or structured entry. System parses, validates, detects duplicates/conflicts, and stores jobs.
 
+   The baseline scope must also support an **AI-driven order-to-fulfilment flow** where a customer sends a manpower request directly through WhatsApp, the system creates a draft job, searches suitable officers, manages bounded rate negotiation, confirms assignment, and updates the customer once coverage is secured.
+
 3. **Planning and assignment**  
    Admin assigns officers, tracks acknowledgement, handles unavailability, and resolves staffing conflicts before shift start.
 
@@ -78,11 +80,12 @@ This scope is intentionally written as the full requirement set. Implementation 
 
 1. **Multi-channel job intake with structured normalization** — Free-form WhatsApp remains core, but the product must also support structured operational data entry and correction.
 2. **Full workforce scheduling control** — The system must support assignment, acknowledgement, reassignment, recurring schedules, and staffing conflict prevention.
-3. **Verifiable field attendance** — GPS, timestamp, photo, and evidence trails must be captured reliably with operational fallback paths.
-4. **Real-time exception management** — Admins must be able to detect, investigate, and resolve issues before they become billing or service failures.
-5. **Operational reporting and compliance** — DO reports, incidents, remarks, audit logs, and history views must support both internal ops and client-facing accountability.
-6. **Finance-ready closure** — Signed or unsigned reports must move cleanly into finance workflows with traceability.
-7. **Administrative visibility** — The business must be able to search, filter, review, and manage jobs, officers, clients, and exceptions beyond chat-only interactions.
+3. **Autonomous AI fulfilment support** — The system must support customer-facing WhatsApp intake, candidate matching, bounded negotiation rules, and automated fulfilment updates with human escalation when confidence or commercial limits are exceeded.
+4. **Verifiable field attendance** — GPS, timestamp, photo, and evidence trails must be captured reliably with operational fallback paths.
+5. **Real-time exception management** — Admins must be able to detect, investigate, and resolve issues before they become billing or service failures.
+6. **Operational reporting and compliance** — DO reports, incidents, remarks, audit logs, and history views must support both internal ops and client-facing accountability.
+7. **Finance-ready closure** — Signed or unsigned reports must move cleanly into finance workflows with traceability.
+8. **Administrative visibility** — The business must be able to search, filter, review, and manage jobs, officers, clients, and exceptions beyond chat-only interactions.
 
 ## 5. Assumptions & Dependencies
 
