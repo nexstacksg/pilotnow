@@ -14,9 +14,7 @@ out/
 .env.local
 .env.*.local
 
-# local-only settings
-.claude/settings.local.json
-
 # misc
 .DS_Store
 *.log
+*.tsbuildinfo
