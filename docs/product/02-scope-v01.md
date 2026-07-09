@@ -10,6 +10,10 @@
 
 ---
 
+> **Status note (2026-07-09):** This scope document predates PRD v2.1/v2.2. Where it conflicts with the PRD, **the PRD prevails** — in particular: the operating model is **admin-led** (PRD Section 5), and the PilotNow software contains **no AI/LLM element** (PRD FR-033). All AI capability referenced here ("LLM parsing", "autonomous AI fulfilment support") is delivered by the **external agent layer** (e.g. Hermes, OpenClaw) connecting through the MCP tool surface over the Web API, under draft-and-confirm guardrails (PRD Section 1.1, FR-032–FR-036).
+
+---
+
 ## 1. Project Summary
 
 PilotNow is a workforce operations platform for security manpower companies, designed around WhatsApp-first field execution and supported by structured back-office operations, reporting, compliance, and billing workflows. The product must cover the full operational lifecycle: client/site setup, job intake, planning, assignment, attendance verification, escalation handling, incident capture, DO reporting, signature collection, finance handoff, and operational visibility.

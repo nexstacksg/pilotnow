@@ -5,10 +5,14 @@
 | **Story ID** | US-019 |
 | **Epic** | AI Fulfilment Automation |
 | **Feature** | Customer Order to AI-Driven Fulfilment |
-| **PRD Ref** | See PRD v2.0 |
-| **Priority** | Must |
+| **PRD Ref** | PRD v2.2 — Section 1.1, FR-032–FR-036 |
+| **Priority** | Could (backlog; requires CR to activate) |
 | **Size** | 13 story points |
 | **Sprint** | Backlog |
+
+---
+
+> **Architecture note (PRD v2.2):** This story is **not a PilotNow core feature**. It describes a **skill set for the external agent layer** (e.g. Hermes, OpenClaw). The agent owns the WhatsApp conversations and performs every system action through the MCP tool surface over the Web API, under a restricted agent identity (FR-034/FR-035). All finalizing actions remain subject to the draft-and-confirm and hard-denial rules (FR-032/FR-036) — e.g. "assigns the officer automatically" below means the agent proposes the assignment and configured rules or a human admin confirm it. The PilotNow core contains no AI and needs no change beyond exposing the tools; delivering this story means authoring and testing agent skills plus the negotiation-limit configuration.
 
 ---
 
@@ -72,9 +76,11 @@
 
 ## Dependencies
 
-- WhatsApp integration
+- External agent runtime (e.g. Hermes, OpenClaw) with WhatsApp channel ownership
+- PilotNow MCP tool surface over the Web API (FR-034), with agent identity and permissions (FR-035)
+- Draft-and-confirm endpoints for job/assignment/rate proposals (FR-036)
 - Officer master data and availability logic
-- Negotiation boundary rules by client / shift / officer type
+- Negotiation boundary rules by client / shift / officer type (configured in PilotNow, enforced by core logic)
 - Escalation routing to admin / dispatcher
 
 ---

@@ -5,12 +5,14 @@
 | **Story ID** | US-005 |
 | **Epic** | Officer Assignment |
 | **Feature** | Assign Officers to Job |
-| **PRD Ref** | See PRD v2.0 |
+| **PRD Ref** | PRD v2.2 — see also Section 1.1, FR-032–FR-036 |
 | **Priority** | Must |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 2 |
 
 ---
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). The "AI-assisted assignment mode" below is delivered by the **external agent layer** (e.g. Hermes, OpenClaw): the agent searches candidates via MCP tools, runs the WhatsApp outreach and negotiation conversations, and records offers/counter-offers and proposed assignments as drafts. Negotiation limits are configured in PilotNow and enforced by core logic; final assignment follows the draft-and-confirm rules (FR-034–FR-036). Manual assignment (Scenarios 1–5) is a pure core feature.
 
 ## Story
 
@@ -18,7 +20,7 @@
 **I want** to assign one or more officers to a job through PilotNow,
 **so that** officers are notified of their assignment and I can manage staffing.
 
-PilotNow should also support an **AI-assisted assignment mode** where the system can search, contact, negotiate with, and secure an officer within configured business rules.
+An **AI-assisted assignment mode** should also be supported, in which the external agent can search, contact, negotiate with, and secure an officer within configured business rules.
 
 ## Acceptance Criteria
 

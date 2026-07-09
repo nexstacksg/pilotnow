@@ -5,12 +5,14 @@
 | **Story ID** | US-007 |
 | **Epic** | Officer Assignment |
 | **Feature** | Officer Acknowledgement |
-| **PRD Ref** | See PRD v2.0 |
+| **PRD Ref** | PRD v2.2 — see also Section 1.1, FR-032–FR-036 |
 | **Priority** | Must |
 | **Size** | 5 story points |
 | **Sprint** | Sprint 2 |
 
 ---
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). Where Scenario 5 refers to "PilotNow AI" agreeing a rate, read: the **external agent layer** negotiated within configured limits and recorded the agreed rate through the MCP tool surface; core logic enforced the limits and the audit trail attributes the actions to the agent identity (FR-034–FR-036).
 
 ## Story
 

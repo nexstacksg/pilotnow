@@ -14,6 +14,8 @@
 
 Admin sets up weekly recurring jobs so the same site/shift/officer assignments repeat predictably without manual re-creation each week, while still allowing admin review and adjustment. Supports both natural language and structured input.
 
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). Natural-language input in this flow is parsed by the **external agent layer** via the MCP tool surface and lands as a draft for admin confirmation; recurrence generation itself is deterministic core logic (FR-034–FR-036). Structured input is a pure core feature.
+
 ## Entry Points
 
 - Admin sends natural language: "Make this a weekly recurring job"

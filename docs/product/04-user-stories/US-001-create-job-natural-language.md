@@ -5,12 +5,14 @@
 | **Story ID** | US-001 |
 | **Epic** | Job Management |
 | **Feature** | Create Job via Natural Language |
-| **PRD Ref** | See PRD v2.0 |
+| **PRD Ref** | PRD v2.2 — see also Section 1.1, FR-032–FR-036 |
 | **Priority** | Must |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 2 |
 
 ---
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). Every natural-language or AI capability in this story is performed by the **external agent layer** (e.g. Hermes, OpenClaw) connecting through the MCP tool surface over the Web API. Where scenarios say "the LLM parses" or "the AI …", read: the external agent parses the message and calls MCP tools to create a **draft job**; the core validates and stores it, and confirmation stays with the human admin (FR-034–FR-036).
 
 ## Story
 
@@ -18,7 +20,7 @@
 **I want** to create a job using PilotNow natural-language intake, including free-form WhatsApp input and supported admin web workflows,
 **so that** I can create jobs in seconds without filling structured forms.
 
-The same intake capability should also support a **customer-originated WhatsApp order flow** where PilotNow AI parses pasted orders into draft jobs for fulfilment.
+The same intake capability should also support a **customer-originated WhatsApp order flow** where the external agent parses pasted orders into draft jobs for fulfilment.
 
 ## Acceptance Criteria
 
@@ -102,8 +104,9 @@ The same intake capability should also support a **customer-originated WhatsApp 
 
 ## Dependencies
 
-- GreenAPI WhatsApp integration configured and connected
-- LLM service (Gemini/OpenAI) API keys provisioned
+- External agent layer (e.g. Hermes, OpenClaw) connected via the MCP tool surface; the agent runtime owns its own LLM provider — no LLM keys or AI calls inside PilotNow
+- WhatsApp connectivity (direct provider integration or bridged by the agent layer's channel)
+- MCP draft-job tools with agent identity and draft-and-confirm (FR-034–FR-036)
 - Site registry (list of known sites) for fuzzy matching
 - Job data model in PostgreSQL
 

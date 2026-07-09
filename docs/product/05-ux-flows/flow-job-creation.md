@@ -4,7 +4,7 @@
 |-------|-------|
 | **Screen** | Job Creation — Admin Intake Flow |
 | **URL** | Web app intake + WhatsApp-supported intake |
-| **PRD Ref** | See PRD v2.0 |
+| **PRD Ref** | PRD v2.2 — see also Section 1.1, FR-032–FR-036 |
 | **Access** | Admin / Ops Manager |
 | **Date** | 2026-02-23 |
 
@@ -12,9 +12,11 @@
 
 ## Purpose
 
-Admin creates a new security job using PilotNow intake. The flow preserves natural-language WhatsApp intake, while also supporting equivalent admin actions from the web application. The LLM parses the message into structured job data. Admin reviews and confirms before the job is created in the system.
+Admin creates a new security job using PilotNow intake. The flow preserves natural-language WhatsApp intake, while also supporting equivalent admin actions from the web application. The external agent parses the message into structured job data and submits it as a draft via the MCP tool surface. Admin reviews and confirms before the job becomes operational in the system.
 
-The same intake capability also supports a customer-facing WhatsApp order flow where the AI acknowledges the order, creates a draft job, and hands the request into fulfilment.
+The same intake capability also supports a customer-facing WhatsApp order flow where the agent acknowledges the order, creates a draft job, and hands the request into fulfilment.
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). All "LLM parses" / "AI …" steps in this flow are performed by the **external agent layer** (e.g. Hermes, OpenClaw) calling MCP tools over the Web API; the core validates drafts, enforces rules, and owns confirmation (FR-034–FR-036).
 
 ## Entry Points
 

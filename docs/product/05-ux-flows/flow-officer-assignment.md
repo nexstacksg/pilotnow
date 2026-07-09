@@ -14,7 +14,9 @@
 
 Admin assigns one or more officers to a created job. Officers receive WhatsApp notifications with job details and must acknowledge. System enforces one-active-job-per-officer constraint.
 
-Where enabled, the same flow also supports AI-led fulfilment: candidate search, officer outreach, bounded rate negotiation, assignment confirmation, and customer fulfilment update.
+Where enabled, the same flow also supports AI-assisted fulfilment: candidate search, officer outreach, bounded rate negotiation, assignment proposal, and customer fulfilment update.
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). All "AI …" steps in this flow (Step 3b variant and negotiation rules) are performed by the **external agent layer** (e.g. Hermes, OpenClaw) acting through the MCP tool surface: the agent runs the conversations and records offers/counter-offers and proposed assignments as drafts; negotiation limits are configured in PilotNow and enforced by core logic, and finalizing follows draft-and-confirm (FR-034–FR-036).
 
 ## Entry Points
 

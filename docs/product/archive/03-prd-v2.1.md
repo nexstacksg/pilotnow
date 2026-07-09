@@ -7,12 +7,12 @@ AI-Enabled Workforce Operations Platform for Security Manpower Management
 | **Product** | PilotNow |
 | **Vendor** | NEXSTACK PTE. LTD. |
 | **Client** | Kestrel Investigation & Security Pte. Ltd. |
-| **Version** | 2.2 |
+| **Version** | 2.1 |
 | **Status** | Draft — updated for review |
 | **Author** | Aira Ling |
 | **Reviewers** | Ken Ling |
 | **Created** | 2026-02-23 |
-| **Last Updated** | 2026-07-09 |
+| **Last Updated** | 2026-07-07 |
 
 ## Revision History
 
@@ -21,7 +21,6 @@ AI-Enabled Workforce Operations Platform for Security Manpower Management
 | 1.0 | 2026-02-23 | Aira Ling | Initial PRD |
 | 2.0 | 2026-05-12 | Aira Ling | Rewritten as full baseline product requirement and end-to-end operational flow |
 | 2.1 | 2026-07-07 | Aira Ling | Reframed PRD around the approved Kestrel operating flow: customer request → admin job creation → WhatsApp officer sourcing → onboarding/rate agreement → assignment → hourly proof → completion → officer payable computation → customer billing status. AI is positioned as an assisting worker, not the main operational stream. |
-| 2.2 | 2026-07-09 | Ken Ling | Defined the system architecture and AI boundary: PilotNow core is pure software with no embedded AI/LLM components; AI capability is delivered by external agents (e.g. Hermes, OpenClaw) that connect through an MCP tool surface over the single Web API, guided by skills. Added Section 1.1 (architecture), an AI Agent role, and FR-033–FR-036 (pure software core, MCP tool surface, agent identity/permissions/audit, draft-and-confirm). |
 
 ---
 
@@ -33,34 +32,7 @@ Today these steps run through fragmented WhatsApp messages, calls, and manual re
 
 The approved operating model is **admin-led**. Admin users remain responsible for receiving customer requests, creating jobs, posting jobs to WhatsApp groups, onboarding officers, agreeing rates, assigning officers, monitoring proof, closing jobs, and updating payment/billing statuses.
 
-AI agents, code pilots, automation helpers, and future intelligent workflows are treated as **supporting workers** around the system. They may help parse messages, prepare drafts, remind officers, detect missing proof, or suggest next actions, but they do not replace the core admin-led operating stream unless explicitly approved by a later change request.
-
-### 1.1 System Boundary and Architecture
-
-The PilotNow core is **pure software**: a deterministic web application, business logic, and database with **no embedded AI/LLM components**. All AI capability lives outside the system boundary, in external AI agents (e.g. Hermes, OpenClaw) that connect through an **MCP (Model Context Protocol) tool surface**. Agents carry **skills** — workflow knowledge describing how to operate PilotNow (order intake, sourcing, reminders, escalation).
-
-The approved happy flow is one-directional with a single door:
-
-```
-AI Agent (e.g. Hermes / OpenClaw)
-   │  reads Skills (workflow knowledge: intake, sourcing, reminders, escalation)
-   ▼
-MCP Server        — thin adapter: tool call → Web API call; no business logic
-   ▼
-Web API           — the single entry point (the admin web UI uses this same API)
-   ▼
-PilotNow Logic    — validation, status machines, permissions, payable computation, audit
-   ▼
-Database
-```
-
-Architecture rules:
-
-1. **One door.** The admin web UI and AI agents are peers — both are clients of the same Web API and receive identical business-rule enforcement. Nothing above the logic layer writes to the database.
-2. **MCP stays thin.** The MCP server translates tool calls into API calls and API errors into tool results. It contains no validation or business rules of its own.
-3. **Skills advise, the core decides.** Skills define what an agent *should* do; core logic and per-identity permissions define what any caller *can* do. Guardrails are architectural, not prompt-based.
-4. **Errors are the escalation path.** API rejections (validation, permission, conflict) propagate back through MCP to the agent; escalating to a human admin is the agent's standard response to a denied or failed call — no special mechanism is required.
-5. **The core owns time.** Deterministic scheduled behaviour (hourly proof reminders, escalation timers) is owned by the core scheduler. Agents handle the conversation around those events, not the clock.
+AI agents, code pilots, automation helpers, and future intelligent workflows are treated as **supporting workers** inside the system. They may help parse messages, prepare drafts, remind officers, detect missing proof, or suggest next actions, but they do not replace the core admin-led operating stream unless explicitly approved by a later change request.
 
 ## 2. Goals and Non-Goals
 
@@ -86,7 +58,6 @@ The following are out of scope for the current PRD unless approved later:
 - Margin calculation or margin display using customer bill minus officer payout.
 - Full customer self-service portal.
 - Fully autonomous AI-run operations. AI may assist, remind, draft, parse, suggest, or flag exceptions, but the main stream remains admin-led.
-- Embedded AI/LLM features inside the PilotNow core application. All AI capability is delivered by external agents through the MCP tool surface (see Section 1.1 and FR-033).
 
 ## 3. Users and Roles
 
@@ -96,7 +67,6 @@ The following are out of scope for the current PRD unless approved later:
 | **Security Officer** | Responds to job posts, submits IC if new, agrees hourly rate, acknowledges assignment, reports on duty, submits hourly proof photos via WhatsApp. | Clear job details, simple WhatsApp instructions, timely reminders, accurate rate/payment record. |
 | **Management** | Reviews live jobs, completed jobs, proof status, officer payables, unpaid items, billed/unbilled jobs, and audit history. | Oversight, searchable records, exception visibility, finance readiness. |
 | **Finance / Billing User** | Uses completed job summaries and billing status to support customer billing and officer payment follow-up. | Payable totals, Paid/Unpaid status, BILLED/NOT BILLED status, exportable summaries. |
-| **AI Agent (external)** | Connects via MCP under a restricted agent identity, guided by skills. Parses requests into draft jobs, drafts messages, follows up reminders, records responses, flags exceptions, suggests officer candidates. Cannot finalize jobs, onboarding, completion, payment, or billing. | Workflow-level MCP tools, typed errors for retry/escalation, per-identity permissions, draft-and-confirm endpoints. |
 
 ## 4. Product Principles
 
@@ -106,7 +76,7 @@ The following are out of scope for the current PRD unless approved later:
 4. **Rates are assignment-specific** — Different officers on the same job may agree to different hourly rates.
 5. **Proof must be linked and auditable** — Every proof photo should be traceable to job, officer, time, and reminder cycle.
 6. **Completion is not the same as billing or payment** — Job completion, officer payment status, and customer billing status are separate states.
-7. **AI is an external worker, not the main stream** — AI agents run outside PilotNow and act only through the MCP tool surface over the same Web API the admin UI uses. The core stays pure software; it enforces what any caller can do, so agents support the workflow but cannot redefine ownership of it.
+7. **AI is a worker, not the main stream** — Any AI agent, code pilot, or automation should support the workflow, not redefine ownership of the workflow.
 
 ## 5. Approved Core Workflow
 
@@ -162,7 +132,6 @@ flowchart TD
 - Completion triggers pay computation per officer.
 - Customer BILLED / NOT BILLED status is separate from job completion.
 - Officer Paid / Unpaid status is separate from customer billing status.
-- Assisting steps in this flow (request parsing, reminder follow-up, response capture, exception flagging) may be performed by external AI agents through the MCP tool surface, subject to the boundaries in Section 1.1 and FR-032–FR-036. The flow itself is unchanged whether a step is performed by a human admin or an agent.
 
 ## 6. Job Status, Payment Status, and Billing Status Model
 
@@ -559,12 +528,12 @@ Officer IC and identity-related records shall be protected with appropriate acce
 
 Proof photos and related metadata shall be retained according to configured retention policies and remain retrievable for dispute handling.
 
-## 7.8 AI / Automation as Supporting Worker (External Agent Layer)
+## 7.8 AI / Automation as Supporting Worker
 
 ### FR-032 AI Assistance Boundary
 **Priority:** Must
 
-Any AI agent, code pilot, automation assistant, or workflow bot connected to PilotNow shall be positioned as a supporting worker.
+Any AI agent, code pilot, automation assistant, or workflow bot in PilotNow shall be positioned as a supporting worker.
 
 Allowed assistant behaviours:
 - parse pasted customer requests into draft job fields
@@ -583,49 +552,6 @@ Not allowed in baseline without explicit admin confirmation:
 - mark officer payments as PAID without authorized admin action
 - mark customer jobs as BILLED without authorized admin action
 - replace the approved admin-led operating flow
-
-### FR-033 Pure Software Core
-**Priority:** Must
-
-The PilotNow core application (web UI, Web API, business logic, schedulers, database) shall contain no embedded AI/LLM components and shall be fully operable by a human admin without any agent connected.
-
-Minimum requirements:
-- all AI capability is delivered by external agents connecting through the MCP tool surface (FR-034)
-- deterministic time-based behaviour (hourly proof reminders, pre-shift reminders, escalation timers) is owned by the core scheduler, not by agents; agents handle only the conversation around those events
-- removing or disconnecting the agent layer degrades convenience only, never correctness or data integrity
-
-### FR-034 MCP Tool Surface
-**Priority:** Must
-
-PilotNow shall expose an MCP server as a thin adapter over the Web API for external AI agents.
-
-Minimum requirements:
-- tools are defined at workflow-step level (e.g. create draft job, record interested officer, record acknowledgement, record proof photo, flag exception, get payable summary) rather than raw table CRUD
-- the MCP layer contains no business rules; validation, permissions, and status transitions are enforced only in core logic
-- the admin web UI and MCP callers use the same Web API and receive identical rule enforcement
-- API rejections (validation failure, permission denial, conflict) are returned to the agent as typed tool errors so its skills can decide to retry differently or escalate to a human admin
-
-### FR-035 Agent Identity, Permissions, and Audit Attribution
-**Priority:** Must
-
-Each connected agent shall act under its own restricted identity.
-
-Minimum requirements:
-- each agent authenticates with its own credential bound to an agent role; agents never use human admin accounts
-- core logic hard-denies the agent role from the finalizing actions listed in FR-032 (final job confirmation, onboarding approval, rate approval outside configured limits, completion, PAID, BILLED)
-- every agent-initiated mutation records actor as the agent identity plus, where available, a reference to the triggering conversation or message
-- the audit trail (FR-029) distinguishes human actions from agent actions
-
-### FR-036 Draft-and-Confirm for Operational Mutations
-**Priority:** Must
-
-For actions where FR-032 requires admin confirmation, PilotNow shall provide a two-step pattern.
-
-Minimum requirements:
-- agents may create drafts and proposals (draft job, proposed assignment, proposed rate) via MCP tools
-- confirmation is restricted to human admin roles, via the admin UI or human-only endpoints
-- draft/proposed items are visibly separated from confirmed operational records in dashboards and lists
-- confirming or rejecting a draft records actor and timestamp in the audit trail
 
 ## 8. Non-Functional Requirements
 
@@ -666,11 +592,10 @@ The baseline should support growth in:
 
 | Integration | Purpose | Baseline Direction |
 |-------------|---------|--------------------|
-| WhatsApp provider / GreenAPI | Officer sourcing, reminders, acknowledgement, proof photo capture | Required for field workflow; connectivity may be direct (provider integration in core) or bridged by the agent layer's own WhatsApp channel — either way, proof and responses must land in PilotNow as the system of record |
+| WhatsApp provider / GreenAPI | Officer sourcing, reminders, acknowledgement, proof photo capture | Required for field workflow |
 | Email | Customer request intake reference and future finance notifications | Supported where practical |
 | File storage | Proof photos and evidence | Required |
-| MCP tool surface | External AI agent access to PilotNow operations | Required; thin adapter over the Web API (FR-034) |
-| AI agent layer (e.g. Hermes, OpenClaw) | Conversation handling, request parsing, message drafting, reminder follow-up, exception escalation — via skills | External only; connects through MCP under a restricted agent identity (FR-033, FR-035). No AI/LLM provider is called from inside the core |
+| AI / LLM provider | Parsing, drafting, summarisation, exception assistance | Supporting worker only |
 | Reporting/export | Completed job summaries and finance/admin review | Required |
 
 ## 10. Risks and Mitigations
@@ -683,7 +608,7 @@ The baseline should support growth in:
 | Hourly proof missing | Service dispute risk | Automated reminders, missing-proof flags, admin resolution notes. |
 | Completion happens before proof/rates are complete | Inaccurate payable or billing status | Completion warnings and required review checklist. |
 | Billing status confused with payment status | Finance confusion | Separate customer BILLED/NOT BILLED from officer PAID/UNPAID. |
-| AI overreach | Workflow mismatch and operational risk | Enforced architecturally, not by prompt: agents act only through the MCP tool surface under a restricted agent identity; core logic hard-denies finalizing actions and requires draft-and-confirm (FR-033–FR-036). |
+| AI overreach | Workflow mismatch and operational risk | Keep AI as assistant/worker only; admin remains owner of core actions. |
 
 ## 11. Alignment to EDG Deliverable Modules
 
@@ -693,7 +618,7 @@ This PRD maps to the eight named modules Kestrel must demonstrate for EDG delive
 |------------|------------------------------|
 | Operations Core & Master Data | Jobs, customers, sites, officers, onboarding records, assignment records. |
 | Customer Job Intake & Normalisation | Admin-created jobs from WhatsApp/email requests, assisted parsing where useful. |
-| AI Fulfilment & Assignment | External AI agents (via the MCP tool surface) provide suggestions, drafts, and reminder follow-up under FR-032–FR-036 boundaries; the core remains admin-led pure software. |
+| AI Fulfilment & Assignment | AI as supporting worker for suggestions/drafts/reminders, not main operational owner. |
 | Officer WhatsApp Workflows | WhatsApp group sourcing, assignment messages, acknowledgement, hourly proof photos. |
 | Attendance & Field Execution | Report-on-duty tracking, hourly proof reminders, proof photo capture. |
 | Exception Management & Escalation | Missing acknowledgement/proof flags, incomplete onboarding/rate/completion warnings. |
@@ -716,7 +641,6 @@ This PRD maps to the eight named modules Kestrel must demonstrate for EDG delive
 12. Customer BILLED / NOT BILLED status is required per completed job.
 13. Margin display is not required.
 14. AI agent/code pilot capabilities are supporting workers only and are not the main stream.
-15. The PilotNow core contains no embedded AI; AI capability is delivered by external agents (e.g. Hermes, OpenClaw) that connect through an MCP tool surface over the single Web API, guided by skills and governed by agent identity, hard-denied finalizing actions, and draft-and-confirm (Section 1.1, FR-033–FR-036).
 
 ## 13. Baseline Requirement Checklist
 
@@ -744,7 +668,6 @@ This PRD maps to the eight named modules Kestrel must demonstrate for EDG delive
 - [x] No accounting/invoice engine required in baseline
 - [x] No margin calculation required
 - [x] No AI-led main operating stream
-- [x] No embedded AI/LLM components inside the PilotNow core (AI is external, via MCP)
 
 ## 14. Definition of Done for Requirement Sign-Off
 
@@ -758,7 +681,6 @@ This PRD is ready for sign-off when:
 - officer Paid/Unpaid tracking is accepted
 - customer BILLED/NOT BILLED tracking is accepted
 - AI assistant boundaries are accepted
-- the external-agent architecture (pure software core, MCP tool surface, agent identity, draft-and-confirm — Section 1.1, FR-033–FR-036) is accepted
 
 ---
 

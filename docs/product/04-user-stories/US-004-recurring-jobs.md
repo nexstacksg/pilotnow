@@ -5,12 +5,14 @@
 | **Story ID** | US-004 |
 | **Epic** | Job Management |
 | **Feature** | Recurring Jobs |
-| **PRD Ref** | See PRD v2.0 |
+| **PRD Ref** | PRD v2.2 — see also Section 1.1, FR-032–FR-036 |
 | **Priority** | Should |
 | **Size** | 8 story points |
 | **Sprint** | Sprint 2 |
 
 ---
+
+> **Architecture note (PRD v2.2):** The PilotNow software contains **no AI/LLM element** (FR-033). Natural-language recurring-job creation is performed by the **external agent layer** via the MCP tool surface: the agent detects the recurrence pattern and proposes a draft recurring job; the core validates, stores, and generates instances deterministically, and the admin confirms (FR-034–FR-036). Structured input remains a pure core feature.
 
 ## Story
 
