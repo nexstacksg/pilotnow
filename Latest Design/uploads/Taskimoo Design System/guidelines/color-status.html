@@ -1,0 +1,38 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Status & Priority" subtitle="Flat dots for kanban states and priority" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-0); display: flex; flex-direction: column; gap: 14px; }
+  .group { display: flex; gap: 16px; flex-wrap: wrap; }
+  .item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--fg-1); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; }
+  .cap { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-3); width: 56px; }
+  .line { display: flex; align-items: center; gap: 12px; }
+</style>
+</head>
+<body>
+  <div class="line">
+    <span class="cap">Status</span>
+    <div class="group">
+      <span class="item"><span class="dot" style="background:var(--status-backlog)"></span>Backlog</span>
+      <span class="item"><span class="dot" style="background:var(--status-todo)"></span>Todo</span>
+      <span class="item"><span class="dot" style="background:var(--status-progress)"></span>In progress</span>
+      <span class="item"><span class="dot" style="background:var(--status-review)"></span>Review</span>
+      <span class="item"><span class="dot" style="background:var(--status-done)"></span>Done</span>
+      <span class="item"><span class="dot" style="background:var(--status-blocked)"></span>Blocked</span>
+    </div>
+  </div>
+  <div class="line">
+    <span class="cap">Priority</span>
+    <div class="group">
+      <span class="item"><span class="dot" style="background:var(--priority-urgent)"></span>Urgent</span>
+      <span class="item"><span class="dot" style="background:var(--priority-high)"></span>High</span>
+      <span class="item"><span class="dot" style="background:var(--priority-medium)"></span>Medium</span>
+      <span class="item"><span class="dot" style="background:var(--priority-low)"></span>Low</span>
+    </div>
+  </div>
+</body>
+</html>

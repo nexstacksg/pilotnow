@@ -1,0 +1,35 @@
+<!-- @dsCard group="Brand" viewport="700x220" name="Logo" subtitle="Mark + wordmark — checkmark = tasks done, on near-black" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 24px; background: var(--bg-0); display: flex; flex-direction: column; gap: 18px; }
+  .row { display: flex; align-items: center; gap: 28px; }
+  .mark { width: 72px; height: 72px; }
+  .wordmark { height: 56px; }
+  .lockup { display: inline-flex; align-items: center; gap: 9px; }
+  .lockup .lm { width: 26px; height: 26px; }
+  .lockup .txt { font-weight: 800; font-size: 16px; letter-spacing: 0; text-transform: uppercase; color: var(--fg-0); }
+  .lockup .txt .dot { color: var(--brand-orange); }
+  .label { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div style="display:flex; flex-direction:column; gap:8px; align-items:center">
+      <img class="mark" src="../assets/logo-mark.svg" alt="Taskimoo mark">
+      <span class="label">Mark</span>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:8px; align-items:center">
+      <span class="lockup"><img class="lm" src="../assets/logo-mark.svg" alt=""><span class="txt">Taskimoo<span class="dot">.</span></span></span>
+      <span class="label">App lockup</span>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <img class="wordmark" src="../assets/logo-wordmark.svg" alt="Taskimoo">
+    <span class="label">Wordmark (dark)</span>
+  </div>
+</body>
+</html>

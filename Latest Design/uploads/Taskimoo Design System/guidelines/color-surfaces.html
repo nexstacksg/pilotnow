@@ -1,0 +1,24 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Surfaces" subtitle="Paper-to-ink greys — page, rail, hover, pressed" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-0); }
+  .row { display: flex; gap: 0; border: 1px solid var(--border-0); border-radius: var(--radius-md); overflow: hidden; }
+  .sw { flex: 1; height: 88px; display: flex; flex-direction: column; justify-content: flex-end; padding: 8px 10px; border-right: 1px solid var(--border-0); }
+  .sw:last-child { border-right: none; }
+  .name { font-family: var(--font-mono); font-size: 10px; color: var(--fg-1); font-weight: 600; }
+  .val { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw" style="background:var(--bg-0)"><span class="name">--bg-0</span><span class="val">#FFFFFF</span></div>
+    <div class="sw" style="background:var(--bg-1)"><span class="name">--bg-1</span><span class="val">#FAFAFA</span></div>
+    <div class="sw" style="background:var(--bg-2)"><span class="name">--bg-2</span><span class="val">#F4F4F4</span></div>
+    <div class="sw" style="background:var(--bg-3)"><span class="name">--bg-3</span><span class="val">#EBEBEB</span></div>
+  </div>
+</body>
+</html>

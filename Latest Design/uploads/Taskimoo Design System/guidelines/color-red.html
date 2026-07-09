@@ -1,0 +1,31 @@
+<!-- @dsCard group="Colors" viewport="700x170" name="Functional Red" subtitle="The single UI accent — #FF3B30 family, 50→900" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-0); }
+  .ramp { display: flex; gap: 0; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border-0); }
+  .sw { flex: 1; height: 64px; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px; }
+  .lbl { font-family: var(--font-mono); font-size: 9px; font-weight: 600; }
+  .legend { margin-top: 10px; font-family: var(--font-mono); font-size: 10px; color: var(--fg-2); }
+  .legend b { color: var(--red-500); }
+</style>
+</head>
+<body>
+  <div class="ramp">
+    <div class="sw" style="background:var(--red-50)"><span class="lbl" style="color:#B31D15">50</span></div>
+    <div class="sw" style="background:var(--red-100)"><span class="lbl" style="color:#B31D15">100</span></div>
+    <div class="sw" style="background:var(--red-200)"><span class="lbl" style="color:#80140F">200</span></div>
+    <div class="sw" style="background:var(--red-300)"><span class="lbl" style="color:#fff">300</span></div>
+    <div class="sw" style="background:var(--red-400)"><span class="lbl" style="color:#fff">400</span></div>
+    <div class="sw" style="background:var(--red-500)"><span class="lbl" style="color:#fff">500</span></div>
+    <div class="sw" style="background:var(--red-600)"><span class="lbl" style="color:#fff">600</span></div>
+    <div class="sw" style="background:var(--red-700)"><span class="lbl" style="color:#fff">700</span></div>
+    <div class="sw" style="background:var(--red-800)"><span class="lbl" style="color:#fff">800</span></div>
+    <div class="sw" style="background:var(--red-900)"><span class="lbl" style="color:#fff">900</span></div>
+  </div>
+  <div class="legend"><b>--red-500 = #FF3B30</b> is PRIMARY · reserved for urgent / blocked / focus / danger</div>
+</body>
+</html>

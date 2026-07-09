@@ -1,0 +1,26 @@
+<!-- @dsCard group="Brand" viewport="700x180" name="Mark palette" subtitle="Logo only — dark ink + orange/amber. Never a UI accent." -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-0); display: flex; align-items: center; gap: 22px; }
+  .mark { width: 96px; height: 96px; border-radius: 22px; flex-shrink: 0; }
+  .ramp { display: flex; gap: 10px; }
+  .cell { width: 92px; border: 1px solid var(--border-0); border-radius: var(--radius-md); overflow: hidden; }
+  .chip { height: 44px; }
+  .meta { padding: 6px 8px; font-family: var(--font-mono); font-size: 9px; color: var(--fg-2); line-height: 1.5; }
+  .meta b { color: var(--fg-0); display: block; font-size: 10px; }
+</style>
+</head>
+<body>
+  <img class="mark" src="../assets/logo-mark.svg" alt="Taskimoo mark">
+  <div class="ramp">
+    <div class="cell"><div class="chip" style="background:var(--brand-ink)"></div><div class="meta"><b>--brand-ink</b>#07090D</div></div>
+    <div class="cell"><div class="chip" style="background:var(--brand-ink-2)"></div><div class="meta"><b>--brand-ink-2</b>#0D1117</div></div>
+    <div class="cell"><div class="chip" style="background:var(--brand-orange)"></div><div class="meta"><b>--brand-orange</b>#FF7A1A</div></div>
+    <div class="cell"><div class="chip" style="background:var(--brand-amber)"></div><div class="meta"><b>--brand-amber</b>#FFB020</div></div>
+  </div>
+</body>
+</html>

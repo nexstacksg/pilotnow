@@ -1,0 +1,20 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Semantic" subtitle="Muted on purpose — success, warning, danger, info" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--bg-0); display: flex; gap: 10px; }
+  .cell { flex: 1; border: 1px solid var(--border-0); border-radius: var(--radius-md); overflow: hidden; }
+  .top { height: 44px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 600; }
+  .bot { padding: 8px 12px; font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-2); }
+</style>
+</head>
+<body>
+  <div class="cell"><div class="top" style="background:var(--success-bg); color:var(--success)">Success</div><div class="bot">--success</div></div>
+  <div class="cell"><div class="top" style="background:var(--warning-bg); color:var(--warning)">Warning</div><div class="bot">--warning</div></div>
+  <div class="cell"><div class="top" style="background:var(--danger-bg); color:var(--danger)">Danger</div><div class="bot">--danger</div></div>
+  <div class="cell"><div class="top" style="background:var(--info-bg); color:var(--info)">Info</div><div class="bot">--info</div></div>
+</body>
+</html>

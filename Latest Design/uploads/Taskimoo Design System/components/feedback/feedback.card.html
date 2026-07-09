@@ -1,0 +1,74 @@
+<!-- @dsCard group="Components" viewport="760x520" name="Feedback — Banner · Toast · EmptyState · Modal" subtitle="Messaging & overlays with light/dark toggle" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 22px; background: var(--bg-0); }
+  #root { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 20px; max-width: 720px; align-items: start; }
+  .grp { display: flex; flex-direction: column; gap: 10px; }
+  .lbl { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-3); }
+  .toggle-theme { position: fixed; top: 14px; right: 16px; z-index: 5; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border: 1px solid var(--border-1); border-radius: var(--radius-sm); background: var(--bg-0); color: var(--fg-1); cursor: pointer; }
+</style>
+</head>
+<body>
+<button class="toggle-theme" id="tt">◑ Theme</button>
+<div id="root"></div>
+<script type="text/babel">
+  const { Banner, Toast, EmptyState, Modal, Button } = window.TaskimooDesignSystem_da633e;
+  const Alert = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z"/><path d="M12 9v4M12 17h.01"/></svg>);
+  const Sparkle = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8"/></svg>);
+  const Check = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>);
+  const Inbox = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.4 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.4-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.8 1.1Z"/></svg>);
+  const Plus = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>);
+
+  function Demo() {
+    const [open, setOpen] = React.useState(false);
+    return (
+      <React.Fragment>
+        <div className="grp">
+          <span className="lbl">Banner</span>
+          <Banner tone="danger" title="Payment overdue" icon={<Alert/>} actions={<Button size="sm" variant="red">Chase invoice</Button>} onDismiss={()=>{}}>
+            INV-2208 is 12 days past due.
+          </Banner>
+          <Banner tone="ai" title="Delivery agent" icon={<Sparkle/>} onDismiss={()=>{}}>
+            3 tasks look ready to move to QA/QC.
+          </Banner>
+          <Banner tone="success" title="Released to UAT" icon={<Check/>}>
+            Mercury build 1.4 deployed.
+          </Banner>
+        </div>
+        <div className="grp">
+          <span className="lbl">Toast</span>
+          <Toast tone="success" icon={<Check/>} title="Task moved to QA/QC" action={<Button size="sm" variant="ghost">Undo</Button>} onDismiss={()=>{}} />
+          <Toast tone="danger" icon={<Alert/>} title="Couldn't sync with GitHub" message="Retry in a moment." onDismiss={()=>{}} />
+          <Toast title="Draft saved" message="Just now" onDismiss={()=>{}} />
+        </div>
+        <div className="grp">
+          <span className="lbl">Empty state</span>
+          <EmptyState icon={<Inbox/>} title="No work items" description="Nothing assigned to you in this sprint yet." action={<Button variant="primary" icon={<Plus/>}>New task</Button>} />
+        </div>
+        <div className="grp">
+          <span className="lbl">Modal</span>
+          <div><Button variant="secondary" onClick={()=>setOpen(true)}>Open modal</Button></div>
+          <Modal open={open} onClose={()=>setOpen(false)} eyebrow="New work item" title="Create task"
+            footer={<React.Fragment><Button variant="ghost" onClick={()=>setOpen(false)}>Cancel</Button><Button variant="primary" onClick={()=>setOpen(false)}>Create</Button></React.Fragment>}>
+            A modal is the one place the system rounds to 10px and uses elevation. Backdrop is a flat 30% black — no blur.
+          </Modal>
+        </div>
+      </React.Fragment>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  document.getElementById('tt').onclick = () => {
+    const r = document.documentElement;
+    r.setAttribute('data-theme', r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  };
+</script>
+</body>
+</html>

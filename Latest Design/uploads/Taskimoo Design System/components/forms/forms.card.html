@@ -1,0 +1,79 @@
+<!-- @dsCard group="Components" viewport="760x460" name="Forms — Input · Select · Textarea · Checkbox · Toggle" subtitle="Field primitives with light/dark toggle" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 22px; background: var(--bg-0); }
+  .specimen { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; max-width: 700px; }
+  .grp { display: flex; flex-direction: column; gap: 10px; }
+  .lbl { font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-3); }
+  .stack { display: flex; flex-direction: column; gap: 10px; }
+  .toggle-theme { position: fixed; top: 14px; right: 16px; z-index: 5; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border: 1px solid var(--border-1); border-radius: var(--radius-sm); background: var(--bg-0); color: var(--fg-1); cursor: pointer; }
+</style>
+</head>
+<body>
+<button class="toggle-theme" id="tt">◑ Theme</button>
+<div id="root"></div>
+<script type="text/babel">
+  const { Input, Textarea, Select, Checkbox, Toggle } = window.TaskimooDesignSystem_da633e;
+  const Search = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>);
+  const Hash = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>);
+
+  function Demo() {
+    return (
+      <div className="specimen">
+        <div className="grp">
+          <span className="lbl">Input</span>
+          <div className="stack">
+            <Input label="Project name" placeholder="e.g. Mercury" />
+            <Input label="Invoice no." mono defaultValue="INV-2210" icon={<Hash/>} />
+            <Input label="Email" type="email" defaultValue="bad@" invalid hint="Enter a valid address" />
+            <Input label="Search" type="search" size="sm" icon={<Search/>} placeholder="Search tasks…" />
+          </div>
+        </div>
+        <div className="grp">
+          <span className="lbl">Select &amp; Textarea</span>
+          <div className="stack">
+            <Select label="Assignee" placeholder="Unassigned" options={['Maya Chen','Lin Park','Diego R.']} />
+            <Select label="Delivery status" defaultValue="in_progress" options={[
+              { value: 'planned', label: 'Planned' },
+              { value: 'in_progress', label: 'In progress' },
+              { value: 'qa', label: 'QA/QC' },
+            ]} />
+            <Textarea label="Description" rows={3} placeholder="What needs to ship…" />
+          </div>
+        </div>
+        <div className="grp">
+          <span className="lbl">Checkbox &amp; Radio</span>
+          <div className="stack">
+            <Checkbox label="Chargeable" defaultChecked />
+            <Checkbox label="Block on failing tests" description="Pause delivery until QA passes" red defaultChecked />
+            <Checkbox type="radio" name="role" value="ba" label="Business Analyst" defaultChecked />
+            <Checkbox type="radio" name="role" value="dev" label="Developer" />
+          </div>
+        </div>
+        <div className="grp">
+          <span className="lbl">Toggle</span>
+          <div className="stack">
+            <Toggle label="Notify on status change" defaultChecked />
+            <Toggle label="Pause delivery" description="Stops the board moving forward" red defaultChecked />
+            <Toggle size="sm" label="Compact density" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+  document.getElementById('tt').onclick = () => {
+    const r = document.documentElement;
+    r.setAttribute('data-theme', r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  };
+</script>
+</body>
+</html>

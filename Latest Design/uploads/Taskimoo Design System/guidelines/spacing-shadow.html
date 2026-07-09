@@ -1,0 +1,19 @@
+<!-- @dsCard group="Spacing" viewport="700x180" name="Shadows" subtitle="Almost none — hairlines carry structure; shadows for overlays" -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 26px; background: var(--bg-1); display: flex; gap: 26px; align-items: center; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .box { width: 130px; height: 70px; background: var(--bg-0); border-radius: var(--radius-md); }
+  .name { font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-2); }
+</style>
+</head>
+<body>
+  <div class="item"><div class="box" style="box-shadow:var(--shadow-sm)"></div><span class="name">--shadow-sm</span></div>
+  <div class="item"><div class="box" style="box-shadow:var(--shadow-md)"></div><span class="name">--shadow-md</span></div>
+  <div class="item"><div class="box" style="box-shadow:var(--shadow-lg)"></div><span class="name">--shadow-lg</span></div>
+</body>
+</html>
