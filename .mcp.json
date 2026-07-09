@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "openspec": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "openspec-mcp"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,32 @@
+schema: spec-driven
+
+context: |
+  PilotNow — workforce operations platform for security manpower companies in Singapore
+  (web app + WhatsApp-integrated field execution). This repo holds product docs and UI
+  design prototypes only; no application source code yet.
+  Source of truth: docs/product/03-prd.md (v2.2, admin-led Kestrel operating flow;
+  AI is a supporting worker, not the main stream). Architecture boundary: the PilotNow
+  core is pure software with NO embedded AI/LLM; external agents (Hermes/OpenClaw)
+  connect via an MCP tool surface over the single Web API (PRD Section 1.1, FR-033-036).
+  User stories in docs/product/04-user-stories/,
+  UX flows in docs/product/05-ux-flows/. Keep the numbered-doc workflow and revision
+  histories intact; superseded versions go to docs/product/archive/.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
