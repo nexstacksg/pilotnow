@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import './latest.css';
 
 export const metadata: Metadata = {
   title: 'PilotNow',
