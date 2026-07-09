@@ -1,0 +1,55 @@
+import type { Job, JobStatus } from '../types';
+
+export const TODAY = '2026-07-08';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export function money(value: number) {
+  return 'S$' + value.toLocaleString('en-SG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+export function dateLabel(value: string) {
+  const [year, month, day] = value.split('-');
+  return `${day} ${MONTHS[Number(month) - 1]} ${year}`;
+}
+
+export function hours(start: string, end: string) {
+  if (!start || !end) return 0;
+  const [h1 = 0, m1 = 0] = start.split(':').map(Number);
+  const [h2 = 0, m2 = 0] = end.split(':').map(Number);
+  let delta = h2 * 60 + m2 - (h1 * 60 + m1);
+  if (delta < 0) delta += 1440;
+  return Math.round((delta / 60) * 100) / 100;
+}
+
+export function initials(name: string) {
+  return name
+    .split(' ')
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export function nextId(prefix: string, ids: string[], pad = 0) {
+  const next = Math.max(0, ...ids.map((id) => Number(id.replace(prefix, '')) || 0)) + 1;
+  return prefix + String(next).padStart(pad, '0');
+}
+
+export function jobPay(job: Job) {
+  const scheduled = hours(job.start, job.end);
+  return job.officers.reduce((sum, officer) => {
+    const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
+    return sum + worked * officer.rate;
+  }, 0);
+}
+
+export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
+  Draft: 'muted',
+  'Posted to WhatsApp': 'success',
+  'Waiting for Officers': 'warning',
+  Confirmed: 'info',
+  Ongoing: 'info',
+  Completed: 'success',
+  Cancelled: 'danger',
+};
