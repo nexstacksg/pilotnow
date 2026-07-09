@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# builds
+.next/
+dist/
+out/
+
+# turbo
+.turbo/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# local-only settings
+.claude/settings.local.json
+
+# misc
+.DS_Store
+*.log

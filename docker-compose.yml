@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: pilotnow-postgres
+    environment:
+      POSTGRES_USER: pilotnow
+      POSTGRES_PASSWORD: pilotnow
+      POSTGRES_DB: pilotnow
+    ports:
+      - "5432:5432"
+    volumes:
+      - pilotnow-pgdata:/var/lib/postgresql/data
+
+volumes:
+  pilotnow-pgdata:
