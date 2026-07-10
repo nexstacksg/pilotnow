@@ -70,6 +70,7 @@ export function Modal({
   subtitle,
   children,
   footer,
+  headerActions,
   onClose,
   hideHeader = false,
   wide = false,

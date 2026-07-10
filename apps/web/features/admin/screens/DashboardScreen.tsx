@@ -11,7 +11,7 @@ export function DashboardScreen({
   setScreen,
 }: {
   jobs: Job[];
-  stats: { todayJobs: number; waitingJobs: number; ongoingJobs: number; missingPhotos: number; officersNeeded: number; notBilled: number };
+  stats: { todayJobs: number; openJobs: number; ongoingJobs: number; missingPhotos: number; officersNeeded: number; notBilled: number };
   openCreateJob: () => void;
   openJob: (id: string) => void;
   setScreen: (screen: Screen) => void;
@@ -23,9 +23,9 @@ export function DashboardScreen({
   return (
     <div className="pn-stack">
       <div className="pn-stats">
-        <StatCard icon={<CalendarIcon size={16} stroke="#0A0A0A" strokeWidth={2} />} label="Today's jobs" value={stats.todayJobs} hint={`scheduled for ${dateLabel(TODAY)}`} />
-        <StatCard icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Waiting for officers" value={stats.waitingJobs} hint={`${stats.officersNeeded} officers still needed`} tone="warning" />
-        <StatCard icon={<TargetIcon size={16} stroke="#1F4FA3" strokeWidth={2} />} label="Ongoing jobs" value={stats.ongoingJobs} hint="officers on duty now" tone="info" />
+        <StatCard icon={<CalendarIcon size={16} stroke="#0A0A0A" strokeWidth={2} />} label="Today's jobs" value={stats.todayJobs} hint={`scheduled for ${dateLabel(TODAY)}`} tone="muted" />
+        <StatCard icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Waiting for officers" value={stats.openJobs} hint={`${stats.officersNeeded} officers still needed`} tone="warning" />
+        <StatCard icon={<TargetIcon size={16} stroke="#1F4FA3" strokeWidth={2} />} label="Ongoing jobs" value={stats.ongoingJobs} hint="officers on duty now" tone="muted" />
         <StatCard icon={<CameraOffIcon size={16} stroke="#FF3B30" strokeWidth={2} />} label="Missing hourly photos" value={stats.missingPhotos} hint="needs follow-up" tone="danger" />
       </div>
 
@@ -46,7 +46,12 @@ export function DashboardScreen({
             </div>
             {todayJobs.map((job) => (
               <button className="pn-table-row" key={job.id} onClick={() => openJob(job.id)} type="button">
-                <span className="pn-mono">{job.id}</span>
+                <span>
+                  <strong className="pn-mono">{job.id}</strong>
+                  <small>
+                    {job.start}-{job.end}
+                  </small>
+                </span>
                 <span>
                   <strong>{job.location}</strong>
                   <small>{job.customer}</small>
@@ -96,7 +101,7 @@ export function DashboardScreen({
                 <span>
                   <strong>{job.customer}</strong>
                   <small>
-                    {job.id} / expected {photo.time}
+                    {job.id} · expected {photo.time}
                   </small>
                 </span>
                 <Badge tone="danger">Missing</Badge>
@@ -116,7 +121,7 @@ export function DashboardScreen({
                 <span>
                   <strong>{job.customer}</strong>
                   <small>
-                    {job.id} / {dateLabel(job.date)}
+                    {job.id} · {dateLabel(job.date)}
                   </small>
                 </span>
                 <span className="pn-muted-action">Bill now</span>

@@ -9,6 +9,7 @@ import { Hono } from 'hono';
 import { logger } from 'hono/logger';
 import { cors } from 'hono/cors';
 import { StreamableHTTPTransport } from '@hono/mcp';
+import { loadEnv } from './env.js';
 import { identity } from './middleware/identity.js';
 import { createMcpServer } from './mcp/server.js';
 import { health } from './routes/health.js';
@@ -19,12 +20,18 @@ import { proofs } from './routes/proofs.js';
 import { payables } from './routes/payables.js';
 import { billing } from './routes/billing.js';
 
+loadEnv();
+
 // FR-034: MCP tool surface for external AI agents (e.g. Hermes, OpenClaw),
 // served over Streamable HTTP on this same app. Agents authenticate with
 // x-agent-token and act under an AGENT identity (see middleware/identity.ts).
 const mcpServer = createMcpServer();
 
 export const app = new Hono()
+  .onError((err, c) => {
+    console.error(err);
+    return c.json({ error: 'Internal server error' }, 500);
+  })
   .use(logger())
   .use(cors())
   .use(identity()) // FR-035: resolve caller to HUMAN or AGENT identity

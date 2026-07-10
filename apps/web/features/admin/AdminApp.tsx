@@ -3,8 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { jobsSeed, officersSeed, paymentsSeed } from './data';
-import { Badge, Button, Field, Modal } from './components/ui';
 import {
   BillingIcon,
   CheckIcon,
@@ -22,6 +20,11 @@ import {
   ShieldCheckIcon,
   SummaryIcon,
 } from './components/icons';
+import { Badge, Button, Field, Modal } from './components/ui';
+import { screenTitles } from './config';
+import { jobsSeed, officersSeed, paymentsSeed } from './data';
+import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
+import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -84,9 +87,11 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
   const [jobs, setJobs] = useState<Job[]>(jobsSeed);
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
-  const [jobId, setJobId] = useState('PN-2041');
+  const [jobId, setJobId] = useState(initialJobId);
+  const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
   const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
   const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
   const [billId, setBillId] = useState<string | null>(null);
@@ -95,6 +100,7 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
   const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
+  const [savingJob, setSavingJob] = useState(false);
   const [toast, setToast] = useState('');
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -110,7 +116,7 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
     return {
       todayJobs: jobs.filter((job) => job.date === TODAY && job.status !== 'Cancelled').length,
-      waitingJobs: jobs.filter((job) => job.status === 'Waiting for Officers' || job.status === 'Posted to WhatsApp').length,
+      openJobs: jobs.filter((job) => job.status === 'Open').length,
       ongoingJobs: jobs.filter((job) => job.status === 'Ongoing').length,
       missingPhotos: jobs.flatMap((job) => job.photos).filter((photo) => photo.status === 'missing').length,
       officersNeeded: jobs.reduce((sum, job) => sum + Math.max(0, job.required - job.officers.length), 0),
@@ -129,9 +135,28 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     flash(message || 'Copied to clipboard');
   }
 
+  function navigateToScreen(nextScreen: Screen) {
+    setScreen(nextScreen);
+    if (nextScreen === 'summary') setSummaryJobId(null);
+    router.push(routeForScreen(nextScreen, selectedJob.id));
+  }
+
   function openJob(id: string) {
     setJobId(id);
     setScreen('jobDetail');
+    router.push(routeForScreen('jobDetail', id));
+  }
+
+  function openSummaryJob(id: string) {
+    setSummaryJobId(id);
+    setScreen('summary');
+    router.push(`/admin/summary/${encodeURIComponent(id)}`);
+  }
+
+  function closeSummaryJob() {
+    setSummaryJobId(null);
+    setScreen('summary');
+    router.push('/admin/summary');
   }
 
   function navigateToScreen(nextScreen: Screen) {
@@ -149,36 +174,48 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     setJobs((items) => items.map((job) => (job.id === id ? updater(job) : job)));
   }
 
-  function saveJob() {
+  function openCreateJob() {
+    setEditingJobId(null);
+    setJobForm(emptyJobForm);
+    setCreateOpen(true);
+  }
+
+  function openEditJob(job: Job) {
+    setEditingJobId(job.id);
+    setJobForm({
+      customer: job.customer,
+      location: job.location,
+      date: job.date,
+      start: job.start,
+      end: job.end,
+      required: String(job.required),
+      description: job.description,
+      instructions: job.instructions,
+    });
+    setCreateOpen(true);
+  }
+
+  async function saveJob() {
     if (!jobForm.customer.trim() || !jobForm.location.trim()) {
       flash('Enter a customer and location first');
       return;
     }
-    const id = nextId('PN-', jobs.map((job) => job.id));
-    const job: Job = {
-      id,
-      customer: jobForm.customer.trim(),
-      location: jobForm.location.trim(),
-      date: jobForm.date,
-      start: jobForm.start,
-      end: jobForm.end,
-      required: Number(jobForm.required) || 1,
-      status: 'Draft',
-      posted: false,
-      description: jobForm.description.trim() || 'No description provided.',
-      instructions: jobForm.instructions.trim(),
-      cancelReason: '',
-      officers: [],
-      photos: [],
-      billing: 'Not Billed',
-      invoice: '',
-      billedDate: '',
-    };
-    setJobs((items) => [job, ...items]);
-    setCreateOpen(false);
-    setJobForm(emptyJobForm);
-    openJob(id);
-    flash(`Job ${id} created as Draft`);
+    setSavingJob(true);
+    try {
+      const existing = editingJobId ? jobs.find((job) => job.id === editingJobId) : undefined;
+      const job = editingJobId ? await updateJobFromForm(editingJobId, jobForm, existing) : await createJobFromForm(jobForm);
+      setJobs((items) => (editingJobId ? items.map((item) => (item.id === job.id ? job : item)) : [job, ...items.filter((item) => item.id !== job.id)]));
+      setCreateOpen(false);
+      setEditingJobId(null);
+      setJobForm(emptyJobForm);
+      openJob(job.id);
+      flash(editingJobId ? `Job ${job.id} updated` : `Job ${job.id} created`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not ${editingJobId ? 'update' : 'create'} job. ${reason}`);
+    } finally {
+      setSavingJob(false);
+    }
   }
 
   function addOfficerToJob(oid: string) {
@@ -213,22 +250,36 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     }));
   }
 
-  function cancelJob(id: string) {
-    updateJob(id, (job) => ({
-      ...job,
-      status: 'Cancelled',
-      cancelReason: job.cancelReason || 'Cancelled by admin',
-    }));
-    flash('Job cancelled');
+  async function cancelJob(id: string) {
+    const current = jobs.find((job) => job.id === id);
+    try {
+      const job = await cancelJobInApi(id, current);
+      setJobs((items) => items.map((item) => (item.id === id ? job : item)));
+      flash('Job cancelled');
+    } catch {
+      flash('Could not cancel job. Check that the API is running.');
+    }
   }
 
-  function completeJob(id: string) {
-    updateJob(id, (job) => ({
-      ...job,
-      status: 'Completed',
-      officers: job.officers.map((officer) => ({ ...officer, actualStart: officer.actualStart || job.start, actualEnd: officer.actualEnd || job.end })),
-    }));
-    flash('Job marked as completed');
+  async function completeJob(id: string) {
+    const current = jobs.find((job) => job.id === id);
+    try {
+      const job = await completeJobInApi(id, current);
+      setJobs((items) =>
+        items.map((item) =>
+          item.id === id
+            ? {
+                ...job,
+                officers: item.officers.map((officer) => ({ ...officer, actualStart: officer.actualStart || item.start, actualEnd: officer.actualEnd || item.end })),
+                photos: item.photos.length ? item.photos : job.photos,
+              }
+            : item,
+        ),
+      );
+      flash('Job marked as completed');
+    } catch {
+      flash('Could not complete job. Check that it is confirmed in the API.');
+    }
   }
 
   function removeOfficerFromJob(oid: string) {
@@ -286,17 +337,35 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     flash(`Job ${billTarget.id} marked as billed`);
   }
 
-  const titles: Record<Screen, [string, string]> = {
-    dashboard: ['Overview', 'Dashboard'],
-    jobs: ['Operations', 'Jobs'],
-    jobDetail: ['Operations / Jobs', selectedJob.id],
-    officers: ['People', 'Officer Management'],
-    summary: ['Finance', 'Completed Job Summary'],
-    payments: ['Finance', 'Officer Payment'],
-    billing: ['Finance', 'Customer Billing'],
-    reports: ['Insights', 'Reports'],
-  };
-  const [crumb, pageTitle] = titles[screen];
+  const [crumb, title] = screenTitles[screen];
+  const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchJobs(jobsSeed)
+      .then((items) => {
+        if (cancelled || !items.length) return;
+        setJobs((current) =>
+          items.map((item) => {
+            const existing = current.find((job) => job.id === item.id);
+            return {
+              ...item,
+              officers: existing?.officers.length ? existing.officers : item.officers,
+              photos: existing?.photos.length ? existing.photos : item.photos,
+            };
+          }),
+        );
+        setJobId((id) => (items.some((job) => job.id === id) ? id : items[0]?.id ?? id));
+      })
+      .catch(() => {
+        // Keep seeded demo data when the API is not running.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="pn-app">
@@ -347,10 +416,7 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
           </div>
           <Button
             variant="primary"
-            onClick={() => {
-              setJobForm(emptyJobForm);
-              setCreateOpen(true);
-            }}
+            onClick={openCreateJob}
           >
             <PlusIcon size={16} strokeWidth={2.2} />
             Create Job
@@ -362,12 +428,9 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
             <DashboardScreen
               jobs={jobs}
               stats={stats}
-              openCreateJob={() => {
-                setJobForm(emptyJobForm);
-                setCreateOpen(true);
-              }}
+              openCreateJob={openCreateJob}
               openJob={openJob}
-              setScreen={setScreen}
+              setScreen={navigateToScreen}
             />
           ) : null}
           {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} setFilter={setJobFilter} /> : null}
@@ -380,15 +443,15 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
               cancelJob={cancelJob}
               copyText={copyText}
               markPhoto={markPhoto}
-              onEdit={() => flash('Edit mode (demo)')}
+              onEdit={() => openEditJob(selectedJob)}
               openReport={() => setReportJobId(selectedJob.id)}
               removeOfficer={removeOfficerFromJob}
-              setScreen={setScreen}
+              setScreen={navigateToScreen}
               toggleOfficer={toggleOfficer}
             />
           ) : null}
           {screen === 'officers' ? <OfficersScreen officers={officers} openOfficer={() => setOfficerOpen(true)} openOfficerProfile={setOfficerProfileId} /> : null}
-          {screen === 'summary' ? <SummaryScreen jobs={completedJobs} /> : null}
+          {screen === 'summary' ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : null}
           {screen === 'payments' ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : null}
           {screen === 'billing' ? (
             <BillingScreen
@@ -405,14 +468,24 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
 
       {createOpen ? (
         <Modal
-          title="Create new job"
-          subtitle="Saved as a Draft - you can post it to WhatsApp next."
-          onClose={() => setCreateOpen(false)}
+          title={editingJobId ? 'Edit job' : 'Create new job'}
+          subtitle={editingJobId ? 'Update the job details in PilotNow.' : 'Saved in PilotNow - you can post it to WhatsApp next.'}
+          onClose={() => {
+            setCreateOpen(false);
+            setEditingJobId(null);
+          }}
           footer={
             <>
-              <Button onClick={() => setCreateOpen(false)}>Cancel</Button>
-              <Button variant="primary" onClick={saveJob}>
-                Create job
+              <Button
+                onClick={() => {
+                  setCreateOpen(false);
+                  setEditingJobId(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button disabled={savingJob} variant="primary" onClick={saveJob}>
+                {savingJob ? 'Saving...' : editingJobId ? 'Save changes' : 'Create job'}
               </Button>
             </>
           }
@@ -673,31 +746,68 @@ function ProfileCell({ label, value, mono = false }: { label: string; value: Rea
 function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => void; copyText: (text: string, message: string) => void }) {
   const scheduled = hours(job.start, job.end);
   const received = job.photos.filter((photo) => photo.status === 'received');
-  const confirmed = job.officers.filter((officer) => officer.confirmed).length;
-  const totalPay = job.officers.reduce((sum, officer) => {
+  const officerReports = job.officers.map((officer) => {
     const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
-    return sum + worked * officer.rate;
-  }, 0);
-  const reportText = `PilotNow Job Report - ${job.id} - ${job.customer} - ${dateLabel(job.date)} - ${received.length} evidence photos - total payable ${money(totalPay)}`;
+    const actualHours = `${officer.actualStart || job.start} - ${officer.actualEnd || job.end}`;
+    const evidencePhotos = job.photos.filter((photo) => photo.by === officer.name).length;
+    return { officer, worked, actualHours, evidencePhotos, payable: worked * officer.rate };
+  });
+  const totalPay = officerReports.reduce((sum, report) => sum + report.payable, 0);
+  const officerCopy = officerReports.length
+    ? officerReports
+        .map(
+          ({ officer, worked, actualHours, evidencePhotos, payable }) =>
+            `${officer.name}\n${officer.confirmed ? 'Confirmed' : 'Not confirmed'} - ${officer.actualStart ? 'Reported' : 'Not reported'} - IC ${officer.ic ? 'yes' : 'missing'}\nActual hours: ${actualHours}\nEvidence photos: ${evidencePhotos}\nPayable: ${money(payable)} (${worked.toFixed(2)}h x ${money(officer.rate)}/h)`,
+        )
+        .join('\n\n')
+    : 'No participating officers recorded for this job yet.';
+  const reportText = [
+    'PilotNow Security Ops',
+    'Job Completion & Evidence Report',
+    '',
+    `Job ID: ${job.id}`,
+    `Generated: ${dateLabel(TODAY)}`,
+    `Customer: ${job.customer}`,
+    `Status: ${job.status}`,
+    `Location: ${job.location}`,
+    `Date: ${dateLabel(job.date)}`,
+    `Time: ${job.start}-${job.end}`,
+    `Officers: ${job.officers.length} of ${job.required} officers`,
+    '',
+    'Description',
+    job.description || 'No description provided.',
+    '',
+    'Special instructions',
+    job.instructions || 'No special instructions.',
+    '',
+    `Participating officers & evidence photos (${received.length} / ${job.photos.length} photos received)`,
+    officerCopy,
+    '',
+    'TOTAL PAYABLE TO OFFICERS',
+    `Billing status: ${job.billing}`,
+    money(totalPay),
+    '',
+    `This report was generated by PilotNow - ${dateLabel(TODAY)} - Confidential`,
+  ].join('\n');
 
   return (
     <Modal
-      title="Job completion report"
+      title="Job Completion Report"
       onClose={onClose}
       wide
-      footer={<Button variant="primary" onClick={onClose}>Close</Button>}
+      headerActions={
+        <div className="pn-report-header-actions">
+          <button onClick={() => window.print()} type="button">
+            <PrinterIcon size={14} strokeWidth={2} />
+            Print / PDF
+          </button>
+          <button onClick={() => copyText(reportText, 'Job completion report copied')} type="button">
+            <CopyIcon size={14} strokeWidth={2} />
+            Copy
+          </button>
+        </div>
+      }
     >
-      <div className="pn-report-actions">
-        <strong>Job completion report</strong>
-        <button onClick={() => window.print()} type="button">
-          <PrinterIcon size={14} strokeWidth={2} />
-          Print / PDF
-        </button>
-        <button onClick={() => copyText(reportText, 'Job completion report copied')} type="button">
-          <CopyIcon size={14} strokeWidth={2} />
-          Copy
-        </button>
-      </div>
       <div className="pn-report">
         <header className="pn-report-letterhead">
           <span>
@@ -756,7 +866,7 @@ function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => v
             <h3>PARTICIPATING OFFICERS & EVIDENCE PHOTOS</h3>
             <span>{received.length} / {job.photos.length} photos received</span>
           </header>
-          {job.officers.map((officer) => (
+          {officerReports.map(({ officer, worked, actualHours, evidencePhotos, payable }) => (
             <div className="pn-report-officer" key={officer.oid}>
               <div className="pn-report-officer-main">
                 <span className="pn-report-avatar">{initials(officer.name)}</span>
@@ -767,24 +877,26 @@ function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => v
                 <span className="pn-report-ic">IC {officer.ic ? '✓' : 'missing'}</span>
               </div>
               <div className="pn-report-pay">
-                <strong>{money((officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled) * officer.rate)}</strong>
-                <small>{(officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled).toFixed(2)}h x {money(officer.rate)}/h</small>
+                <strong>{money(payable)}</strong>
+                <small>{worked.toFixed(2)}h x {money(officer.rate)}/h</small>
               </div>
               <div className="pn-report-officer-meta">
-                <span>Actual hours: <strong>{officer.actualStart || job.start} - {officer.actualEnd || job.end}</strong></span>
-                <span>Evidence photos: <strong>{job.photos.filter((photo) => photo.by === officer.name).length}</strong></span>
+                <span>Actual hours: <strong>{actualHours}</strong></span>
+                <span>Evidence photos: <strong>{evidencePhotos}</strong></span>
               </div>
             </div>
           ))}
-          {!job.officers.length ? <p className="pn-report-empty">No officers assigned.</p> : null}
+          {!job.officers.length ? <p className="pn-report-empty">No participating officers recorded for this job yet.</p> : null}
         </section>
 
         <footer className="pn-report-footer">
-          <span>Confirmed officers</span>
-          <strong>{confirmed} / {job.required}</strong>
-          <span>Total payable</span>
+          <div>
+            <span>TOTAL PAYABLE TO OFFICERS</span>
+            <small>Billing status: {job.billing}</small>
+          </div>
           <strong>{money(totalPay)}</strong>
         </footer>
+        <p className="pn-report-generated">This report was generated by PilotNow · {dateLabel(TODAY)} · Confidential</p>
       </div>
     </Modal>
   );

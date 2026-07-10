@@ -2,15 +2,14 @@ import { Badge } from '../components/ui';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobStatus } from '../types';
 
-const filters: (JobStatus | 'All')[] = ['All', 'Draft', 'Waiting for Officers', 'Confirmed', 'Ongoing', 'Completed', 'Cancelled'];
-const statusOrder: Record<JobStatus, number> = {
-  'Waiting for Officers': 0,
-  'Posted to WhatsApp': 1,
-  Ongoing: 2,
-  Completed: 3,
-  Confirmed: 4,
+const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
+const statusOrder: Partial<Record<JobStatus, number>> = {
+  Draft: 0,
+  Open: 1,
+  Assigned: 2,
+  Ongoing: 3,
+  Completed: 4,
   Cancelled: 5,
-  Draft: 6,
 };
 
 export function JobsScreen({
@@ -24,12 +23,14 @@ export function JobsScreen({
   setFilter: (filter: JobStatus | 'All') => void;
   openJob: (id: string) => void;
 }) {
-  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter)).slice().sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+  const statusViews = ['All', ...defaultStatusViews, ...jobs.map((job) => job.status)].filter((item, index, list) => list.indexOf(item) === index) as (JobStatus | 'All')[];
+
+  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter)).slice().sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
 
   return (
     <div className="pn-stack">
       <div className="pn-tabs">
-        {filters.map((item) => (
+        {statusViews.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
             {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.status === item).length}
           </button>
@@ -58,16 +59,20 @@ export function JobsScreen({
               </small>
             </span>
             <span>
-              {job.officers.length}/{job.required}
+              <span className={`pn-officers-badge ${job.officers.length >= job.required ? 'is-full' : 'is-short'}`}>
+                {job.officers.length}/{job.required}
+              </span>
             </span>
             <span>{job.billing}</span>
             <span>
               <Badge tone={statusTone[job.status]} dot>
                 {job.status}
               </Badge>
+              {job.posted && job.status !== 'Draft' ? <small>WhatsApp posted</small> : null}
             </span>
           </button>
         ))}
+        {filtered.length === 0 ? <div className="pn-empty">No jobs match these filters.</div> : null}
       </div>
     </div>
   );
