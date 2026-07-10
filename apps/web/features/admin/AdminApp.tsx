@@ -79,13 +79,22 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
-export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041' }: { initialScreen?: Screen; initialJobId?: string }) {
+export function AdminApp({
+  initialScreen = 'dashboard',
+  initialJobId = 'PN-2041',
+  initialSummaryJobId = null,
+}: {
+  initialScreen?: Screen;
+  initialJobId?: string;
+  initialSummaryJobId?: string | null;
+}) {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(jobsSeed);
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
+  const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
   const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -108,7 +117,8 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
   useEffect(() => {
     setScreen(initialScreen);
     if (initialJobId) setJobId(initialJobId);
-  }, [initialJobId, initialScreen]);
+    setSummaryJobId(initialSummaryJobId);
+  }, [initialJobId, initialScreen, initialSummaryJobId]);
 
   const stats = useMemo(() => {
     const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
@@ -135,6 +145,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
 
   function navigateToScreen(nextScreen: Screen) {
     setScreen(nextScreen);
+    if (nextScreen === 'summary') setSummaryJobId(null);
     router.push(routeForScreen(nextScreen, selectedJob.id));
   }
 
@@ -142,6 +153,18 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
     setJobId(id);
     setScreen('jobDetail');
     router.push(routeForScreen('jobDetail', id));
+  }
+
+  function openSummaryJob(id: string) {
+    setSummaryJobId(id);
+    setScreen('summary');
+    router.push(`/admin/summary/${encodeURIComponent(id)}`);
+  }
+
+  function closeSummaryJob() {
+    setSummaryJobId(null);
+    setScreen('summary');
+    router.push('/admin/summary');
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
@@ -245,6 +268,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
             ? {
                 ...job,
                 officers: item.officers.map((officer) => ({ ...officer, actualStart: officer.actualStart || item.start, actualEnd: officer.actualEnd || item.end })),
+                photos: item.photos.length ? item.photos : job.photos,
               }
             : item,
         ),
@@ -316,10 +340,19 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
   useEffect(() => {
     let cancelled = false;
 
-    void fetchJobs([])
+    void fetchJobs(jobsSeed)
       .then((items) => {
         if (cancelled || !items.length) return;
-        setJobs(items);
+        setJobs((current) =>
+          items.map((item) => {
+            const existing = current.find((job) => job.id === item.id);
+            return {
+              ...item,
+              officers: existing?.officers.length ? existing.officers : item.officers,
+              photos: existing?.photos.length ? existing.photos : item.photos,
+            };
+          }),
+        );
         setJobId((id) => (items.some((job) => job.id === id) ? id : items[0]?.id ?? id));
       })
       .catch(() => {
@@ -415,7 +448,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
             />
           ) : null}
           {screen === 'officers' ? <OfficersScreen officers={officers} openOfficer={() => setOfficerOpen(true)} openOfficerProfile={setOfficerProfileId} /> : null}
-          {screen === 'summary' ? <SummaryScreen jobs={completedJobs} /> : null}
+          {screen === 'summary' ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : null}
           {screen === 'payments' ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : null}
           {screen === 'billing' ? (
             <BillingScreen

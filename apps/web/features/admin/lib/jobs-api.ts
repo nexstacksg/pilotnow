@@ -72,8 +72,8 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     description: apiJob.requestRaw || previous?.description || 'No description provided.',
     instructions: apiJob.instructions || '',
     cancelReason: apiJob.status === 'CANCELLED' ? previous?.cancelReason || 'Cancelled by admin' : '',
-    officers: previous?.officers ?? [],
-    photos: previous?.photos ?? [],
+    officers: previous?.officers.length ? previous.officers : [],
+    photos: previous?.photos.length ? previous.photos : [],
     billing: apiJob.billingStatus === 'BILLED' ? 'Billed' : 'Not Billed',
     invoice: previous?.invoice ?? '',
     billedDate: previous?.billedDate ?? '',
@@ -82,6 +82,11 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
 
 export async function fetchJobs(current: Job[]) {
   const payload = await withServerMessage(http.get<{ items: ApiJob[] }>('/jobs'));
+  return payload.items.map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
+}
+
+export async function fetchCompletedJobs(current: Job[]) {
+  const payload = await withServerMessage(http.get<{ items: ApiJob[] }>('/jobs?status=COMPLETED'));
   return payload.items.map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
 }
 
