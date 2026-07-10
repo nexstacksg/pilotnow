@@ -17,6 +17,8 @@ type ApiJob = {
   requestRaw: string | null;
   status: ApiJobStatus;
   billingStatus: ApiBillingStatus;
+  invoiceNumber: string | null;
+  billedAt: string | null;
   recordState: ApiRecordState;
   postedToGroupAt: string | null;
   createdAt: string;
@@ -75,8 +77,8 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     officers: previous?.officers.length ? previous.officers : [],
     photos: previous?.photos.length ? previous.photos : [],
     billing: apiJob.billingStatus === 'BILLED' ? 'Billed' : 'Not Billed',
-    invoice: previous?.invoice ?? '',
-    billedDate: previous?.billedDate ?? '',
+    invoice: apiJob.invoiceNumber ?? previous?.invoice ?? '',
+    billedDate: apiJob.billedAt ? apiJob.billedAt.slice(0, 10) : previous?.billedDate ?? '',
   };
 }
 
