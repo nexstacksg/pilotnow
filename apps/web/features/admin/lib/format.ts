@@ -44,6 +44,29 @@ export function jobPay(job: Job) {
   }, 0);
 }
 
+export function scheduledStatus(job: Job, now = new Date()): JobStatus {
+  if (job.status === 'Cancelled' || job.status === 'Completed' || job.status === 'Draft') return job.status;
+  const start = new Date(`${job.date}T${job.start}:00`);
+  const end = new Date(`${job.date}T${job.end}:00`);
+  if (end <= start) end.setDate(end.getDate() + 1);
+  if (now >= end) return 'Completed';
+  if (now >= start) return 'Ongoing';
+  return job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed) ? 'Assigned' : 'Open';
+}
+
+export function normalizeJobStage(job: Job, now = new Date()): Job {
+  const status = scheduledStatus(job, now);
+  if (status !== 'Completed') return status === job.status ? job : { ...job, status };
+  const officers = job.officers.map((officer) => ({
+    ...officer,
+    confirmed: true,
+    onDuty: true,
+    actualStart: officer.actualStart || job.start,
+    actualEnd: officer.actualEnd || job.end,
+  }));
+  return { ...job, status, officers };
+}
+
 export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
   Draft: 'muted',
   Open: 'warning',

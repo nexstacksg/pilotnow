@@ -3,6 +3,8 @@
 
 import { createHttpClient } from '@pilotnow/api-client';
 
+const publicApiUrl = process.env.NEXT_PUBLIC_API_URL;
+
 export const http = createHttpClient({
-  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  baseUrl: publicApiUrl && !/^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::|\/|$)/.test(publicApiUrl) ? publicApiUrl : '/api',
 });

@@ -1702,6 +1702,7 @@ button {
 .pn-summary-detail-card {
   overflow: hidden;
   padding: 0;
+  border-radius: 6px;
 }
 
 .pn-summary-detail-hero {
@@ -1709,14 +1710,14 @@ button {
   align-items: flex-start;
   justify-content: space-between;
   gap: 14px;
-  padding: 16px 20px 18px;
+  padding: 14px 20px 16px;
   border-bottom: 1px solid #E5E5E5;
 }
 
 .pn-summary-detail-hero h2 {
-  margin: 8px 0 3px;
+  margin: 8px 0 2px;
   color: #0A0A0A;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
 }
 
@@ -1728,8 +1729,8 @@ button {
 
 .pn-summary-detail-hero .pn-btn {
   margin-top: 0;
-  padding: 7px 10px;
-  font-size: 12px;
+  padding: 8px 12px;
+  font-size: 12.5px;
 }
 
 .pn-summary-pay-table {
@@ -1739,9 +1740,9 @@ button {
 .pn-summary-pay-head,
 .pn-summary-pay-row {
   display: grid;
-  grid-template-columns: minmax(200px, 1.4fr) minmax(150px, .8fr) 80px 100px 112px;
+  grid-template-columns: minmax(260px, 1.6fr) minmax(170px, .8fr) 72px 92px 105px;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 11px 20px;
   border-bottom: 1px solid #E5E5E5;
 }
@@ -1759,11 +1760,11 @@ button {
 }
 
 .pn-summary-pay-row {
-  min-height: 46px;
+  min-height: 44px;
   width: 100%;
   background: #fff;
   color: #262626;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
 .pn-summary-pay-row > span:first-child {
@@ -1944,10 +1945,10 @@ button {
 
 .pn-summary-detail-total {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 16px;
   align-items: center;
-  padding: 14px 20px 16px;
+  padding: 14px 20px;
 }
 
 .pn-summary-detail-total > div {
@@ -1973,7 +1974,6 @@ button {
 }
 
 .pn-summary-detail-total aside {
-  min-width: 145px;
   text-align: right;
 }
 
