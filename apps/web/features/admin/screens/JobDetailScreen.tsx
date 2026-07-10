@@ -4,19 +4,18 @@ import { Badge, Button, Card } from '../components/ui';
 import { dateLabel, hours, initials, money, statusTone } from '../lib/format';
 import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } from '../types';
 
-const lifecycleSteps: { key: JobStatus | 'posted'; label: string }[] = [
+const lifecycleSteps: { key: JobStatus; label: string }[] = [
   { key: 'Draft', label: 'Draft created' },
-  { key: 'posted', label: 'Posted / Waiting' },
-  { key: 'Confirmed', label: 'Officers confirmed' },
+  { key: 'Open', label: 'Open' },
+  { key: 'Assigned', label: 'Job assigned' },
   { key: 'Ongoing', label: 'Job ongoing' },
   { key: 'Completed', label: 'Completed' },
 ];
 
 const lifecycleIndex: Record<JobStatus, number> = {
   Draft: 0,
-  'Posted to WhatsApp': 1,
-  'Waiting for Officers': 1,
-  Confirmed: 2,
+  Open: 1,
+  Assigned: 2,
   Ongoing: 3,
   Completed: 4,
   Cancelled: 0,
@@ -271,7 +270,7 @@ export function JobDetailScreen({
               </span>
               <div>
                 <h2>WhatsApp workflow</h2>
-                <small>{job.posted ? 'Posted to WhatsApp group' : 'Not posted yet'}</small>
+                <small>{job.posted ? 'Group post sent' : 'Not posted yet'}</small>
               </div>
             </div>
             <div className="pn-wa-actions">

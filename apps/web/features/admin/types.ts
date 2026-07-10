@@ -10,9 +10,8 @@ export type Screen =
 
 export type JobStatus =
   | 'Draft'
-  | 'Posted to WhatsApp'
-  | 'Waiting for Officers'
-  | 'Confirmed'
+  | 'Open'
+  | 'Assigned'
   | 'Ongoing'
   | 'Completed'
   | 'Cancelled';
