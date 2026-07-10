@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   BillingIcon,
@@ -22,6 +22,7 @@ import { Badge, Button, Field, Modal } from './components/ui';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
+import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
@@ -107,6 +108,8 @@ export function AdminApp({
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
   const [savingJob, setSavingJob] = useState(false);
+  const [jobsReady, setJobsReady] = useState(false);
+  const [paymentsReady, setPaymentsReady] = useState(false);
   const [toast, setToast] = useState('');
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -114,7 +117,7 @@ export function AdminApp({
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setScreen(initialScreen);
     if (initialJobId) setJobId(initialJobId);
     setSummaryJobId(initialSummaryJobId);
@@ -144,6 +147,10 @@ export function AdminApp({
   }
 
   function navigateToScreen(nextScreen: Screen) {
+    setBillId(null);
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
     setScreen(nextScreen);
     if (nextScreen === 'summary') setSummaryJobId(null);
     router.push(routeForScreen(nextScreen, selectedJob.id));
@@ -318,9 +325,16 @@ export function AdminApp({
     flash(`Officer ${officer.name} added`);
   }
 
-  function markPaid(id: string) {
+  async function markPaid(id: string) {
     setPayments((items) => items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment)));
-    flash('Payment marked as paid');
+
+    try {
+      const updated = await markOfficerPaymentPaid(id);
+      setPayments((items) => items.map((payment) => (payment.id === id ? updated : payment)));
+      flash('Payment marked as paid');
+    } catch {
+      flash('Payment marked as paid locally - API unavailable');
+    }
   }
 
   function confirmBill() {
@@ -342,7 +356,7 @@ export function AdminApp({
 
     void fetchJobs(jobsSeed)
       .then((items) => {
-        if (cancelled || !items.length) return;
+        if (cancelled) return;
         setJobs((current) =>
           items.map((item) => {
             const existing = current.find((job) => job.id === item.id);
@@ -353,10 +367,34 @@ export function AdminApp({
             };
           }),
         );
-        setJobId((id) => (items.some((job) => job.id === id) ? id : items[0]?.id ?? id));
+        if (items.length) {
+          setJobId((id) => (items.some((job) => job.id === id) ? id : items[0]?.id ?? id));
+        }
+        setJobsReady(true);
       })
       .catch(() => {
         // Keep seeded demo data when the API is not running.
+        setJobsReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchOfficerPayments()
+      .then((items) => {
+        if (!cancelled) {
+          setPayments(items);
+          setPaymentsReady(true);
+        }
+      })
+      .catch(() => {
+        // Keep seeded demo payments when the API is not running.
+        setPaymentsReady(true);
       });
 
     return () => {
@@ -448,18 +486,24 @@ export function AdminApp({
             />
           ) : null}
           {screen === 'officers' ? <OfficersScreen officers={officers} openOfficer={() => setOfficerOpen(true)} openOfficerProfile={setOfficerProfileId} /> : null}
-          {screen === 'summary' ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : null}
-          {screen === 'payments' ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : null}
-          {screen === 'billing' ? (
-            <BillingScreen
-              jobs={completedJobs}
-              openBill={(id) => {
-                setBillId(id);
-                setBillForm({ invoice: '', billedDate: TODAY });
-              }}
-            />
+          {screen === 'summary' ? (
+            jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
-          {screen === 'reports' ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} /> : null}
+          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
+          {screen === 'billing' ? (
+            jobsReady ? (
+              <BillingScreen
+                jobs={completedJobs}
+                openBill={(id) => {
+                  setBillId(id);
+                  setBillForm({ invoice: '', billedDate: TODAY });
+                }}
+              />
+            ) : (
+              <LoadingPanel />
+            )
+          ) : null}
+          {screen === 'reports' ? (jobsReady && paymentsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} /> : <LoadingPanel />) : null}
         </div>
       </main>
 
@@ -548,6 +592,10 @@ export function AdminApp({
       {toast ? <div className="pn-toast">{toast}</div> : null}
     </div>
   );
+}
+
+function LoadingPanel() {
+  return <div className="pn-empty">Loading...</div>;
 }
 
 function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (form: JobForm) => JobForm) => void }) {
