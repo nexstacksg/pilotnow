@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { ChevronLeftIcon, CopyIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
+import { fetchCompletedJobs } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, jobPay, money } from '../lib/format';
 import type { Job } from '../types';
 
@@ -179,11 +181,13 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
               <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
             </span>
           </div>
-          <aside>
-            <span>Total payable</span>
-            <strong>{money(total)}</strong>
-          </aside>
-        </div>
+        ))}
+      </div>
+
+      <aside className="pn-summary-total">
+        <span>Total payable</span>
+        <strong>{money(total)}</strong>
+      </aside>
       </Card>
     </div>
   );

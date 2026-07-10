@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
-import { dateLabel, hours, icDocumentLabel, money, statusTone } from '../lib/format';
-import type { Job, JobStatus, Officer, Screen } from '../types';
+import { dateLabel, hours, icDocumentLabel, initials, money, statusTone } from '../lib/format';
+import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } from '../types';
 
 const lifecycleSteps: { key: JobStatus; label: string }[] = [
   { key: 'Draft', label: 'Draft created' },
