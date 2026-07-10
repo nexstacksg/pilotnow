@@ -103,14 +103,6 @@ export function BellIcon(props: IconProps) {
   );
 }
 
-export function MessageIcon(props: IconProps) {
-  return (
-    <Svg {...props}>
-      <path d="M21 12a8 8 0 0 1-8 8H6l-3 2 1.2-4.2A8 8 0 1 1 21 12Z" />
-    </Svg>
-  );
-}
-
 export function PencilIcon(props: IconProps) {
   return (
     <Svg {...props}>

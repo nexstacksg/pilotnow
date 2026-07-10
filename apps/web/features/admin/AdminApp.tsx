@@ -25,9 +25,8 @@ import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
-import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
-import { fetchOperationsReport } from './lib/reports-api';
-import type { OperationsReport } from './lib/reports-api';
+import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
+import { routeForScreen } from './routes';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -36,8 +35,6 @@ import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import { routeForScreen } from './routes';
-import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
 import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
@@ -127,7 +124,7 @@ export function AdminApp({
 
   useLayoutEffect(() => {
     setScreen(initialScreen);
-    if (initialJobId) setJobId(initialJobId);
+    setJobId(initialJobId);
     setSummaryJobId(initialSummaryJobId);
   }, [initialJobId, initialScreen, initialSummaryJobId]);
 

@@ -170,24 +170,24 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
           <span>Pay</span>
           <span>Identity docs</span>
         </div>
-        {rows.map(({ officer, worked, pay }) => (
-          <div className="pn-table-row" key={officer.oid}>
-            <span>{officer.name}</span>
-            <span>{officer.actualStart || '-'} - {officer.actualEnd || '-'}</span>
-            <span>{worked.toFixed(2)}h</span>
-            <span>{money(officer.rate)}/h</span>
-            <span>{money(pay)}</span>
-            <span>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
-            </span>
-          </div>
-        ))}
-      </div>
+          {rows.map(({ officer, worked, pay }) => (
+            <div className="pn-table-row" key={officer.oid}>
+              <span>{officer.name}</span>
+              <span>{officer.actualStart || '-'} - {officer.actualEnd || '-'}</span>
+              <span>{worked.toFixed(2)}h</span>
+              <span>{money(officer.rate)}/h</span>
+              <span>{money(pay)}</span>
+              <span>
+                <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
+              </span>
+            </div>
+          ))}
 
-      <aside className="pn-summary-total">
-        <span>Total payable</span>
-        <strong>{money(total)}</strong>
-      </aside>
+          <aside>
+            <span>Total payable</span>
+            <strong>{money(total)}</strong>
+          </aside>
+        </div>
       </Card>
     </div>
   );
