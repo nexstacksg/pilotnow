@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { ChevronLeftIcon, CopyIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
+import { fetchCompletedJobs } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, jobPay, money } from '../lib/format';
 import type { Job } from '../types';
 
@@ -168,17 +170,19 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
           <span>Pay</span>
           <span>Identity docs</span>
         </div>
-        {rows.map(({ officer, worked, pay }) => (
-          <div className="pn-table-row" key={officer.oid}>
-            <span>{officer.name}</span>
-            <span>{officer.actualStart || '-'} - {officer.actualEnd || '-'}</span>
-            <span>{worked.toFixed(2)}h</span>
-            <span>{money(officer.rate)}/h</span>
-            <span>{money(pay)}</span>
-            <span>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
-            </span>
-          </div>
+          {rows.map(({ officer, worked, pay }) => (
+            <div className="pn-table-row" key={officer.oid}>
+              <span>{officer.name}</span>
+              <span>{officer.actualStart || '-'} - {officer.actualEnd || '-'}</span>
+              <span>{worked.toFixed(2)}h</span>
+              <span>{money(officer.rate)}/h</span>
+              <span>{money(pay)}</span>
+              <span>
+                <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
+              </span>
+            </div>
+          ))}
+
           <aside>
             <span>Total payable</span>
             <strong>{money(total)}</strong>

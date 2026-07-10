@@ -3,7 +3,7 @@ import type { Screen } from './types';
 export const adminRoutes: Record<Exclude<Screen, 'jobDetail'>, string> = {
   dashboard: '/',
   jobs: '/admin/job',
-  officers: '/officers',
+  officers: '/admin/officers',
   summary: '/admin/summary',
   payments: '/payments',
   billing: '/billing',

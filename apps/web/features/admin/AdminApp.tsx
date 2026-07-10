@@ -24,7 +24,8 @@ import { Badge, Button, Field, Modal } from './components/ui';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
-import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
+import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
+import { routeForScreen } from './routes';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -33,7 +34,6 @@ import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
 import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
@@ -81,7 +81,15 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
-export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Screen }) {
+export function AdminApp({
+  initialScreen = 'dashboard',
+  initialJobId = 'PN-2041',
+  initialSummaryJobId = null,
+}: {
+  initialScreen?: Screen;
+  initialJobId?: string;
+  initialSummaryJobId?: string | null;
+}) {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(jobsSeed);
@@ -110,7 +118,9 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
 
   useEffect(() => {
     setScreen(initialScreen);
-  }, [initialScreen]);
+    setJobId(initialJobId);
+    setSummaryJobId(initialSummaryJobId);
+  }, [initialJobId, initialScreen, initialSummaryJobId]);
 
   const stats = useMemo(() => {
     const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
@@ -157,17 +167,6 @@ export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Scre
     setSummaryJobId(null);
     setScreen('summary');
     router.push('/admin/summary');
-  }
-
-  function navigateToScreen(nextScreen: Screen) {
-    setScreen(nextScreen);
-    if (nextScreen === 'officers') {
-      router.push('/admin/officers');
-      return;
-    }
-    if (nextScreen === 'dashboard') {
-      router.push('/');
-    }
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
