@@ -46,9 +46,8 @@ export function jobPay(job: Job) {
 
 export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
   Draft: 'muted',
-  'Posted to WhatsApp': 'success',
-  'Waiting for Officers': 'warning',
-  Confirmed: 'info',
+  Open: 'warning',
+  Assigned: 'info',
   Ongoing: 'info',
   Completed: 'success',
   Cancelled: 'danger',

@@ -498,12 +498,14 @@ button {
 
 .pn-officers-badge {
   display: inline-flex;
+  width: fit-content;
   align-items: center;
   gap: 5px;
   border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 11.5px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .pn-officers-badge.is-full {
@@ -533,6 +535,20 @@ button {
 .pn-table-jobs .pn-mono {
   color: #0A0A0A;
   font-weight: 700;
+}
+
+.pn-table-jobs .pn-table-head span:nth-child(4),
+.pn-table-jobs .pn-table-row > span:nth-child(4) {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.pn-table-4 .pn-table-head span:nth-child(3),
+.pn-table-4 .pn-table-row > span:nth-child(3) {
+  display: flex;
+  justify-content: center;
+  text-align: center;
 }
 
 .pn-table-4 .pn-table-head span:last-child,

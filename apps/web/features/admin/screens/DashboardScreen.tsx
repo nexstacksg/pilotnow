@@ -11,7 +11,7 @@ export function DashboardScreen({
   setScreen,
 }: {
   jobs: Job[];
-  stats: { todayJobs: number; waitingJobs: number; ongoingJobs: number; missingPhotos: number; officersNeeded: number; notBilled: number };
+  stats: { todayJobs: number; openJobs: number; ongoingJobs: number; missingPhotos: number; officersNeeded: number; notBilled: number };
   openCreateJob: () => void;
   openJob: (id: string) => void;
   setScreen: (screen: Screen) => void;
@@ -24,7 +24,7 @@ export function DashboardScreen({
     <div className="pn-stack">
       <div className="pn-stats">
         <StatCard icon={<CalendarIcon size={16} stroke="#0A0A0A" strokeWidth={2} />} label="Today's jobs" value={stats.todayJobs} hint={`scheduled for ${dateLabel(TODAY)}`} />
-        <StatCard icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Waiting for officers" value={stats.waitingJobs} hint={`${stats.officersNeeded} officers still needed`} tone="warning" />
+        <StatCard icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Open jobs" value={stats.openJobs} hint={`${stats.officersNeeded} officers still needed`} tone="warning" />
         <StatCard icon={<TargetIcon size={16} stroke="#1F4FA3" strokeWidth={2} />} label="Ongoing jobs" value={stats.ongoingJobs} hint="officers on duty now" tone="info" />
         <StatCard icon={<CameraOffIcon size={16} stroke="#FF3B30" strokeWidth={2} />} label="Missing hourly photos" value={stats.missingPhotos} hint="needs follow-up" tone="danger" />
       </div>
@@ -106,7 +106,7 @@ export function DashboardScreen({
 
           <Card className="pn-table-card pn-rail-card">
             <div className="pn-section-head">
-              <h2>Completed · not billed</h2>
+              <h2>Not billed</h2>
               <span aria-disabled="true" className="pn-rail-count">
                 {notBilled.length}
               </span>
@@ -116,7 +116,7 @@ export function DashboardScreen({
                 <span>
                   <strong>{job.customer}</strong>
                   <small>
-                    {job.id} / {dateLabel(job.date)}
+                    {job.id} / Completed / {dateLabel(job.date)}
                   </small>
                 </span>
                 <span className="pn-muted-action">Bill now</span>
