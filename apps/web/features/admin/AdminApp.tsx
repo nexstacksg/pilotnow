@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { Badge, Button, Field, Modal } from './components/ui';
@@ -77,8 +78,9 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
-export function AdminApp() {
-  const [screen, setScreen] = useState<Screen>('dashboard');
+export function AdminApp({ initialScreen = 'dashboard' }: { initialScreen?: Screen }) {
+  const router = useRouter();
+  const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(jobsSeed);
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
@@ -99,6 +101,10 @@ export function AdminApp() {
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
+
+  useEffect(() => {
+    setScreen(initialScreen);
+  }, [initialScreen]);
 
   const stats = useMemo(() => {
     const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
@@ -126,6 +132,17 @@ export function AdminApp() {
   function openJob(id: string) {
     setJobId(id);
     setScreen('jobDetail');
+  }
+
+  function navigateToScreen(nextScreen: Screen) {
+    setScreen(nextScreen);
+    if (nextScreen === 'officers') {
+      router.push('/admin/officers');
+      return;
+    }
+    if (nextScreen === 'dashboard') {
+      router.push('/');
+    }
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
@@ -298,7 +315,7 @@ export function AdminApp() {
             <div key={group.label} className="pn-nav-group">
               <p>{group.label}</p>
               {group.items.map((item) => (
-                <button className={screen === item.screen ? 'active' : ''} key={item.screen} onClick={() => setScreen(item.screen)} type="button">
+                <button className={screen === item.screen ? 'active' : ''} key={item.screen} onClick={() => navigateToScreen(item.screen)} type="button">
                   {navIcons[item.screen]}
                   <span>{item.label}</span>
                   {item.screen === 'payments' && stats.pendingPayments ? <b>{stats.pendingPayments}</b> : null}
