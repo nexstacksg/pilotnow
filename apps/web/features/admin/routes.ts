@@ -2,7 +2,7 @@ import type { Screen } from './types';
 
 export const adminRoutes: Record<Exclude<Screen, 'jobDetail'>, string> = {
   dashboard: '/',
-  jobs: '/jobs',
+  jobs: '/admin/job',
   officers: '/officers',
   summary: '/summary',
   payments: '/payments',
@@ -11,6 +11,6 @@ export const adminRoutes: Record<Exclude<Screen, 'jobDetail'>, string> = {
 };
 
 export function routeForScreen(screen: Screen, jobId = 'PN-2041') {
-  if (screen === 'jobDetail') return `/jobs/${encodeURIComponent(jobId)}`;
+  if (screen === 'jobDetail') return `/admin/job/${encodeURIComponent(jobId)}`;
   return adminRoutes[screen];
 }

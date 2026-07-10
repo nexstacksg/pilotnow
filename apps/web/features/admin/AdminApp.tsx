@@ -3,9 +3,26 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  BillingIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  DashboardIcon,
+  JobsIcon,
+  OfficersIcon,
+  PaymentIcon,
+  PlusIcon,
+  PrinterIcon,
+  ReportsIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  SummaryIcon,
+} from './components/icons';
+import { Badge, Button, Field, Modal } from './components/ui';
+import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
-import { TODAY, nextId } from './lib/format';
-import { routeForScreen } from './routes';
+import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
+import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -14,8 +31,7 @@ import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
-import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
+import { routeForScreen } from './routes';
 import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
@@ -125,14 +141,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
   function openJob(id: string) {
     setJobId(id);
     setScreen('jobDetail');
-    router.push(`/admin/job/${encodeURIComponent(id)}`);
-  }
-
-  function navigate(screenValue: Screen) {
-    setScreen(screenValue);
-    if (screenValue === 'jobs') {
-      router.push('/admin/job');
-    }
+    router.push(routeForScreen('jobDetail', id));
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
@@ -339,7 +348,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
             <div key={group.label} className="pn-nav-group">
               <p>{group.label}</p>
               {group.items.map((item) => (
-                <button className={screen === item.screen ? 'active' : ''} key={item.screen} onClick={() => navigate(item.screen)} type="button">
+                <button className={screen === item.screen ? 'active' : ''} key={item.screen} onClick={() => navigateToScreen(item.screen)} type="button">
                   {navIcons[item.screen]}
                   <span>{item.label}</span>
                   {item.screen === 'payments' && stats.pendingPayments ? <b>{stats.pendingPayments}</b> : null}
@@ -385,7 +394,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
               stats={stats}
               openCreateJob={openCreateJob}
               openJob={openJob}
-              setScreen={navigate}
+              setScreen={navigateToScreen}
             />
           ) : null}
           {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} setFilter={setJobFilter} /> : null}
@@ -401,7 +410,7 @@ export function AdminApp({ initialScreen = 'dashboard', initialJobId = 'PN-2041'
               onEdit={() => openEditJob(selectedJob)}
               openReport={() => setReportJobId(selectedJob.id)}
               removeOfficer={removeOfficerFromJob}
-              setScreen={navigate}
+              setScreen={navigateToScreen}
               toggleOfficer={toggleOfficer}
             />
           ) : null}

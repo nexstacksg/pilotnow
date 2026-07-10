@@ -1,5 +1,1 @@
-import { AdminApp } from '../../../features/admin/AdminApp';
-
-export default function JobsPage() {
-  return <AdminApp initialScreen="jobs" />;
-}
+export { default } from '../../jobs/page';
