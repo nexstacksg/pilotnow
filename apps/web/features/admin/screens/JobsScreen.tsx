@@ -2,15 +2,14 @@ import { Badge } from '../components/ui';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobStatus } from '../types';
 
-const defaultStatusViews: JobStatus[] = ['Draft', 'Waiting for Officers', 'Confirmed', 'Ongoing', 'Completed', 'Cancelled'];
+const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
 const statusOrder: Partial<Record<JobStatus, number>> = {
-  'Waiting for Officers': 0,
-  'Posted to WhatsApp': 1,
-  Ongoing: 2,
-  Completed: 3,
-  Confirmed: 4,
+  Draft: 0,
+  Open: 1,
+  Assigned: 2,
+  Ongoing: 3,
+  Completed: 4,
   Cancelled: 5,
-  Draft: 6,
 };
 
 export function JobsScreen({
@@ -60,13 +59,16 @@ export function JobsScreen({
               </small>
             </span>
             <span>
-              {job.officers.length}/{job.required}
+              <span className={`pn-officers-badge ${job.officers.length >= job.required ? 'is-full' : 'is-short'}`}>
+                {job.officers.length}/{job.required}
+              </span>
             </span>
             <span>{job.billing}</span>
             <span>
               <Badge tone={statusTone[job.status]} dot>
                 {job.status}
               </Badge>
+              {job.posted && job.status !== 'Draft' ? <small>WhatsApp posted</small> : null}
             </span>
           </button>
         ))}
