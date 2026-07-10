@@ -28,8 +28,6 @@ import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJ
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
 import type { OperationsReport } from './lib/reports-api';
-import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
-import { routeForScreen } from './routes';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
