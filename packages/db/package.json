@@ -24,6 +24,7 @@
   "devDependencies": {
     "@pilotnow/typescript-config": "workspace:*",
     "@types/pg": "^8.11.0",
+    "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.0",
     "typescript": "^5.8.0"
   }
