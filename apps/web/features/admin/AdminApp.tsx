@@ -21,9 +21,12 @@ import {
 import { Badge, Button, Field, Modal } from './components/ui';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
+import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
+import { fetchOperationsReport } from './lib/reports-api';
+import type { OperationsReport } from './lib/reports-api';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -110,6 +113,9 @@ export function AdminApp({
   const [savingJob, setSavingJob] = useState(false);
   const [jobsReady, setJobsReady] = useState(false);
   const [paymentsReady, setPaymentsReady] = useState(false);
+  const [billingReady, setBillingReady] = useState(false);
+  const [reportsReady, setReportsReady] = useState(false);
+  const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [toast, setToast] = useState('');
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -337,15 +343,21 @@ export function AdminApp({
     }
   }
 
-  function confirmBill() {
+  async function confirmBill() {
     if (!billTarget || !billForm.invoice.trim() || !billForm.billedDate) {
       flash('Enter invoice number and billed date');
       return;
     }
-    updateJob(billTarget.id, (job) => ({ ...job, billing: 'Billed', invoice: billForm.invoice.trim(), billedDate: billForm.billedDate }));
-    setBillId(null);
-    setBillForm({ invoice: '', billedDate: TODAY });
-    flash(`Job ${billTarget.id} marked as billed`);
+    try {
+      const updated = await markJobBilled(billTarget.id, billForm, billTarget);
+      setJobs((items) => items.map((job) => (job.id === updated.id ? { ...job, ...updated } : job)));
+      setBillId(null);
+      setBillForm({ invoice: '', billedDate: TODAY });
+      flash(`Job ${billTarget.id} marked as billed`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not mark billed. ${reason}`);
+    }
   }
 
   const [crumb, title] = screenTitles[screen];
@@ -395,6 +407,52 @@ export function AdminApp({
       .catch(() => {
         // Keep seeded demo payments when the API is not running.
         setPaymentsReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchBillingJobs(jobsSeed)
+      .then((items) => {
+        if (cancelled) return;
+        setJobs((current) => {
+          const merged = current.map((job) => {
+            const billingJob = items.find((item) => item.id === job.id);
+            return billingJob ? { ...job, ...billingJob, officers: job.officers, photos: job.photos } : job;
+          });
+          const missing = items.filter((item) => !merged.some((job) => job.id === item.id));
+          return [...merged, ...missing];
+        });
+        setBillingReady(true);
+      })
+      .catch(() => {
+        // Keep current billing data when the API is not running.
+        setBillingReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchOperationsReport()
+      .then((report) => {
+        if (!cancelled) {
+          setOperationsReport(report);
+          setReportsReady(true);
+        }
+      })
+      .catch(() => {
+        // Fall back to client-side reports when the API is not running.
+        setReportsReady(true);
       });
 
     return () => {
@@ -491,7 +549,7 @@ export function AdminApp({
           ) : null}
           {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
-            jobsReady ? (
+            jobsReady && billingReady ? (
               <BillingScreen
                 jobs={completedJobs}
                 openBill={(id) => {
@@ -503,7 +561,7 @@ export function AdminApp({
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && paymentsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} report={operationsReport} /> : <LoadingPanel />) : null}
         </div>
       </main>
 
