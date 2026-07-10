@@ -28,49 +28,118 @@ The repo originally started from an MVP framing. Current direction is to documen
 
 Previous MVP pricing/budget references are no longer used as product framing.
 
-## Which Folder To Run
+## Monorepo Structure
 
-Run the project from the repository root folder:
+```
+pilotnow/
+├── apps/
+│   ├── web/                  # Admin web UI (Next.js, port 3000)
+│   └── api/                  # Web API + MCP endpoint (Hono, port 4000)
+├── packages/
+│   ├── api-client/           # Shared HTTP client wrapper
+│   ├── db/                   # Drizzle ORM, Postgres schema, migrations
+│   ├── shared/               # Shared status models and actor types
+│   └── typescript-config/    # Shared TypeScript config
+├── docs/                     # Product documentation
+├── design/                   # Static admin prototype
+└── docker-compose.yml        # Local Postgres service
+```
+
+This is a **Turbo-powered monorepo** using pnpm workspaces. Run project commands from the repository root folder:
 
 ```bash
 cd pilotnow
 ```
 
-This is a pnpm/Turborepo workspace. You usually do not need to run commands inside each app folder.
+## Quick Start
 
-```
-apps/web      Next.js admin UI, runs on http://localhost:3000
-apps/api      Hono Web API, runs on http://localhost:4000
-packages/db   Drizzle/Postgres schema and DB client
-```
+### Prerequisites
 
-`pnpm dev` starts these app entry points:
+- Node.js 20+
+- pnpm 10+
+- Docker
 
-- `apps/web` → `next dev --port 3000`
-- `apps/api/src/index.ts` → API server entry point
+### Installation
 
-## Run Locally
+1. **Install dependencies**
 
-Requirements: Node 20+, pnpm 10, and Docker.
+   ```bash
+   pnpm install
+   ```
+
+2. **Set up environment variables**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Start Postgres**
+
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Push the database schema**
+
+   ```bash
+   pnpm db:push
+   ```
+
+## Running The Project
+
+### Run All Applications From Root
 
 ```bash
-cp .env.example .env
-pnpm install
-docker-compose up -d
-pnpm db:push
 pnpm dev
 ```
 
-Open:
+This starts:
+
+- `apps/web` → Next.js admin UI at `http://localhost:3000`
+- `apps/api/src/index.ts` → Hono API at `http://localhost:4000`
+
+### Run Individual Applications
+
+1. **Web App** (Port 3000)
+
+   ```bash
+   # From root directory
+   pnpm --filter @pilotnow/web dev
+   ```
+
+2. **API Server** (Port 4000)
+
+   ```bash
+   # From root directory
+   pnpm --filter @pilotnow/api dev
+   ```
+
+3. **Database Studio**
+
+   ```bash
+   # From root directory
+   pnpm db:studio
+   ```
+
+### Local URLs
 
 - Web app: `http://localhost:3000`
 - API health check: `http://localhost:4000/health`
+- MCP endpoint: `http://localhost:4000/mcp`
 
-Useful commands:
+## Development Commands
 
 ```bash
+# Build all apps and packages
 pnpm build
+
+# Typecheck all apps and packages
 pnpm typecheck
+
+# Push Drizzle schema to local Postgres
+pnpm db:push
+
+# Open Drizzle Studio
 pnpm db:studio
 ```
 
