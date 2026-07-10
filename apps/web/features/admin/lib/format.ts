@@ -1,4 +1,4 @@
-import type { Job, JobStatus } from '../types';
+import type { Job, JobStatus, OfficerStatus } from '../types';
 
 export const TODAY = '2026-07-08';
 
@@ -53,3 +53,21 @@ export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'in
   Completed: 'success',
   Cancelled: 'danger',
 };
+
+export const officerStatusLabel: Record<OfficerStatus, string> = {
+  New: 'Onboarding',
+  Active: 'Active',
+  Inactive: 'Inactive',
+  Blocked: 'Blocked',
+};
+
+export const officerStatusTone: Record<OfficerStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
+  New: 'warning',
+  Active: 'success',
+  Inactive: 'muted',
+  Blocked: 'danger',
+};
+
+export function icDocumentLabel(hasIc: boolean) {
+  return hasIc ? 'IC verified' : 'IC missing';
+}

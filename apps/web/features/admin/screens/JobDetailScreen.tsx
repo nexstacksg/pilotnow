@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
-import { dateLabel, hours, money, statusTone } from '../lib/format';
+import { dateLabel, hours, icDocumentLabel, money, statusTone } from '../lib/format';
 import type { Job, JobStatus, Officer, Screen } from '../types';
 
 const lifecycleSteps: { key: JobStatus | 'posted'; label: string }[] = [
@@ -147,7 +147,7 @@ export function JobDetailScreen({
             <div className="pn-table pn-table-officers">
               <div className="pn-table-head">
                 <span>Officer</span>
-                <span>IC</span>
+                <span>Identity docs</span>
                 <span>Rate</span>
                 <span>Confirm</span>
                 <span>On duty</span>
@@ -160,7 +160,7 @@ export function JobDetailScreen({
                     <small>{officer.actualStart || '—'} – {officer.actualEnd || '—'}</small>
                   </span>
                   <span>
-                    <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC' : 'No IC'}</Badge>
+                    <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
                   </span>
                   <span>{money(officer.rate)}/h</span>
                   <span>
@@ -186,7 +186,7 @@ export function JobDetailScreen({
                 <option value="">Add participating officer...</option>
                 {available.map((officer) => (
                   <option key={officer.id} value={officer.id}>
-                    {officer.name} · {money(officer.rate)}/h{officer.ic ? '' : ' · no IC'}
+                    {officer.name} · {money(officer.rate)}/h{officer.ic ? '' : ' · IC missing'}
                   </option>
                 ))}
               </select>
@@ -268,7 +268,7 @@ export function JobDetailScreen({
           </Card>
 
           <Card className="pn-side-panel">
-            <h2>Officer status</h2>
+            <h2>Staffing status</h2>
             <div className="pn-side-list">
               <span>Required</span>
               <strong>

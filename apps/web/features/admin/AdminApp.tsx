@@ -6,10 +6,12 @@ import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { Badge, Button, Field, Modal } from './components/ui';
 import {
   BillingIcon,
+  CheckIcon,
   ChevronDownIcon,
   CopyIcon,
   DashboardIcon,
   JobsIcon,
+  MessageIcon,
   OfficersIcon,
   PaymentIcon,
   PlusIcon,
@@ -27,7 +29,7 @@ import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import { TODAY, dateLabel, hours, money, nextId, statusTone } from './lib/format';
+import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
 import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
@@ -513,10 +515,12 @@ function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: (upd
         <Field label="Default hourly rate (S$)">
           <input className="pn-mono-input" max="40" min="10" type="number" value={form.rate} onChange={(event) => setForm((item) => ({ ...item, rate: event.target.value }))} />
         </Field>
-        <Field label="Officer status">
+        <Field label="Account status">
           <select value={form.status} onChange={(event) => setForm((item) => ({ ...item, status: event.target.value as OfficerForm['status'] }))}>
             {['New', 'Active', 'Inactive', 'Blocked'].map((status) => (
-              <option key={status}>{status}</option>
+              <option key={status} value={status}>
+                {officerStatusLabel[status as OfficerForm['status']]}
+              </option>
             ))}
           </select>
         </Field>
@@ -524,8 +528,8 @@ function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: (upd
       <label className="pn-check">
         <input checked={form.ic} onChange={(event) => setForm((item) => ({ ...item, ic: event.target.checked }))} type="checkbox" />
         <span>
-          <strong>IC received</strong>
-          <small>Tick if the officer's IC copy has been received.</small>
+          <strong>IC document verified</strong>
+          <small>Tick only after the officer's IC copy has been checked.</small>
         </span>
       </label>
       <Field label="Notes">
@@ -543,39 +547,60 @@ function OfficerProfileModal({ officer, jobs, onClose, openJob }: { officer?: Of
       const assigned = job.officers.find((item) => item.oid === officer.id);
       if (!assigned) return null;
       const scheduled = hours(job.start, job.end);
-      const worked = assigned.actualStart && assigned.actualEnd ? hours(assigned.actualStart, assigned.actualEnd) : job.status === 'Completed' ? scheduled : 0;
+      const worked = assigned.actualStart && assigned.actualEnd ? hours(assigned.actualStart, assigned.actualEnd) : job.status === 'Completed' || assigned.actualStart ? scheduled : 0;
       return {
         job,
         worked,
         pay: worked * assigned.rate,
       };
     })
-    .filter((item): item is { job: Job; worked: number; pay: number } => Boolean(item));
+    .filter((item): item is { job: Job; worked: number; pay: number } => Boolean(item))
+    .sort((a, b) => b.job.date.localeCompare(a.job.date) || b.job.id.localeCompare(a.job.id));
   const completed = history.filter((item) => item.job.status === 'Completed');
   const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
   const totalPay = completed.reduce((sum, item) => sum + item.pay, 0);
-  const officerTone = officer.status === 'Active' ? 'success' : officer.status === 'Blocked' ? 'danger' : 'muted';
+  const officerTone = officerStatusTone[officer.status];
 
   return (
-    <Modal title={officer.name} subtitle={`${officer.id} / ${officer.phone} / ${money(officer.rate)}/h`} onClose={onClose} wide footer={<Button onClick={onClose}>Close</Button>}>
+    <Modal title={officer.name} onClose={onClose} wide hideHeader>
       <div className="pn-profile-head">
-        <span>{initials(officer.name)}</span>
-        <div>
-          <strong>{officer.name}</strong>
+        <span className="pn-profile-avatar">{initials(officer.name)}</span>
+        <div className="pn-profile-title">
+          <div className="pn-profile-name-row">
+            <strong>{officer.name}</strong>
+            <div className="pn-profile-badges">
+              <Badge tone={officerTone}>{officer.status}</Badge>
+              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge>
+            </div>
+          </div>
           <small>{officer.id} / {officer.phone} / {money(officer.rate)}/h</small>
         </div>
-        <Badge tone={officerTone}>{officer.status}</Badge>
-        <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC received' : 'IC missing'}</Badge>
+        <div className="pn-profile-actions">
+          <button className="pn-icon-btn" type="button" aria-label={`Message ${officer.name}`}>
+            <MessageIcon size={16} strokeWidth={2} />
+          </button>
+          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
+            x
+          </button>
+        </div>
       </div>
 
-      <div className="pn-profile-label">Officer details</div>
+      <div className="pn-profile-label pn-profile-details-label">Officer details</div>
       <div className="pn-profile-grid">
         <ProfileCell label="OFFICER ID" value={officer.id} mono />
         <ProfileCell label="FULL NAME" value={officer.name} />
         <ProfileCell label="WHATSAPP NUMBER" value={officer.phone} mono />
         <ProfileCell label="DEFAULT HOURLY RATE" value={`${money(officer.rate)}/h`} mono />
-        <ProfileCell label="IC STATUS" value={officer.ic ? 'Received' : 'Not received'} />
-        <ProfileCell label="OFFICER STATUS" value={officer.status} />
+        <ProfileCell
+          label="IC STATUS"
+          value={
+            <span className="pn-profile-cell-inline">
+              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? <><span>IC</span><CheckIcon size={13} strokeWidth={2.4} /></> : 'No IC'}</Badge>
+              {officer.ic ? 'Received' : 'Not received'}
+            </span>
+          }
+        />
+        <ProfileCell label="OFFICER STATUS" value={<Badge tone={officerTone}>{officer.status}</Badge>} />
       </div>
 
       <div className="pn-profile-stats">
@@ -585,7 +610,7 @@ function OfficerProfileModal({ officer, jobs, onClose, openJob }: { officer?: Of
         <ProfileCell label="TOTAL EARNED" value={money(totalPay)} mono />
       </div>
 
-      <div className="pn-profile-label">Job history</div>
+      <div className="pn-profile-label pn-profile-label-line">Job history</div>
       {history.length ? (
         <div className="pn-table pn-table-profile-history">
           <div className="pn-table-head">
@@ -619,7 +644,7 @@ function OfficerProfileModal({ officer, jobs, onClose, openJob }: { officer?: Of
   );
 }
 
-function ProfileCell({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function ProfileCell({ label, value, mono = false }: { label: string; value: ReactNode; mono?: boolean }) {
   return (
     <div className="pn-profile-cell">
       <span>{label}</span>

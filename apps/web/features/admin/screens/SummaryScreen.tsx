@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Badge, Button, Card } from '../components/ui';
-import { dateLabel, hours, jobPay, money } from '../lib/format';
+import { dateLabel, hours, icDocumentLabel, jobPay, money } from '../lib/format';
 import type { Job } from '../types';
 
 export function SummaryScreen({ jobs }: { jobs: Job[] }) {
@@ -102,7 +102,7 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
           <span>Hours</span>
           <span>Rate</span>
           <span>Pay</span>
-          <span>IC</span>
+          <span>Identity docs</span>
         </div>
         {rows.map(({ officer, worked, pay }) => (
           <div className="pn-table-row" key={officer.oid}>
@@ -112,7 +112,7 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
             <span>{money(officer.rate)}/h</span>
             <span>{money(pay)}</span>
             <span>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC' : 'No IC'}</Badge>
+              <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
             </span>
           </div>
         ))}

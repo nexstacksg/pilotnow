@@ -71,29 +71,33 @@ export function Modal({
   children,
   footer,
   onClose,
+  hideHeader = false,
   wide = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  footer: ReactNode;
+  footer?: ReactNode;
   onClose: () => void;
+  hideHeader?: boolean;
   wide?: boolean;
 }) {
   return (
     <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={title}>
-      <section className={`pn-modal ${wide ? 'pn-modal-wide' : ''}`}>
-        <header className="pn-modal-header">
-          <div>
-            <h2>{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
-          </div>
-          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
-            x
-          </button>
-        </header>
+      <section className={`pn-modal ${wide ? 'pn-modal-wide' : ''} ${hideHeader ? 'pn-modal-chromeless' : ''}`}>
+        {hideHeader ? null : (
+          <header className="pn-modal-header">
+            <div>
+              <h2>{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
+            <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
+              x
+            </button>
+          </header>
+        )}
         <div className="pn-modal-body">{children}</div>
-        <footer className="pn-modal-footer">{footer}</footer>
+        {footer ? <footer className="pn-modal-footer">{footer}</footer> : null}
       </section>
     </div>
   );
