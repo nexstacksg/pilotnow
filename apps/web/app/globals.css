@@ -500,6 +500,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  width: fit-content;
   border-radius: 999px;
   padding: 2px 9px;
   font-size: 12px;
@@ -512,7 +513,7 @@ button {
 }
 
 .pn-officers-badge.is-short {
-  background: #FFF4D6;
+  background: #FFF0C7;
   color: #8A5A00;
 }
 
@@ -533,6 +534,11 @@ button {
 .pn-table-jobs .pn-mono {
   color: #0A0A0A;
   font-weight: 700;
+}
+
+.pn-table-jobs .pn-table-row > span:nth-child(4) {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .pn-table-4 .pn-table-head span:last-child,
@@ -565,7 +571,7 @@ button {
 
 .pn-table-summary .pn-table-head,
 .pn-table-summary .pn-table-row {
-  grid-template-columns: 86px minmax(0, 1.2fr) minmax(0, 1.4fr) 100px 76px 76px 120px 120px;
+  grid-template-columns: 96px minmax(260px, 1fr) 110px 90px 90px 130px 130px 26px;
 }
 
 .pn-table-summary-detail .pn-table-head,
@@ -586,6 +592,52 @@ button {
 .pn-table-billing .pn-table-head,
 .pn-table-billing .pn-table-row {
   grid-template-columns: 90px minmax(0, 1fr) 110px 130px 120px 130px;
+}
+
+.pn-summary-intro {
+  margin: 0;
+  color: #525252;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pn-table-summary .pn-table-head,
+.pn-table-summary .pn-table-row {
+  padding: 11px 18px;
+}
+
+.pn-table-summary .pn-table-row {
+  min-height: 52px;
+}
+
+.pn-table-summary .pn-table-row > span:first-child {
+  color: #0A0A0A;
+  font-weight: 800;
+}
+
+.pn-table-summary .pn-table-head span:nth-child(n+3),
+.pn-table-summary .pn-table-row > span:nth-child(n+3) {
+  text-align: center;
+}
+
+.pn-table-summary .pn-table-head span:nth-child(6),
+.pn-table-summary .pn-table-row > span:nth-child(6),
+.pn-table-summary .pn-table-head span:nth-child(7),
+.pn-table-summary .pn-table-row > span:nth-child(7) {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.pn-table-summary .pn-table-row > span:nth-child(4),
+.pn-table-summary .pn-table-row > span:nth-child(6) {
+  color: #0A0A0A;
+  font-weight: 800;
+}
+
+.pn-row-chevron {
+  color: #D4D4D4;
+  font-size: 24px;
+  line-height: 1;
 }
 
 .pn-list-row,
@@ -938,6 +990,32 @@ button {
 
 .pn-job-detail .pn-table-officers .pn-table-row small {
   font-size: 11px;
+}
+
+.pn-officer-cell-button {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: #0A0A0A;
+  padding: 0;
+  text-align: left;
+}
+
+.pn-officer-cell-button strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pn-officer-cell-button b {
+  color: #BDBDBD;
+  font-size: 17px;
+  line-height: 1;
+}
+
+.pn-officer-cell-button:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .pn-job-detail .pn-table-officers .pn-btn,
@@ -1510,6 +1588,290 @@ button {
   font-size: 22px;
 }
 
+.pn-summary-detail-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.pn-summary-detail-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 20px 18px;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.pn-summary-detail-hero h2 {
+  margin: 8px 0 3px;
+  color: #0A0A0A;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.pn-summary-detail-hero p {
+  margin: 0;
+  color: #525252;
+  font-size: 12.5px;
+}
+
+.pn-summary-detail-hero .pn-btn {
+  margin-top: 0;
+  padding: 7px 10px;
+  font-size: 12px;
+}
+
+.pn-summary-pay-table {
+  width: 100%;
+}
+
+.pn-summary-pay-head,
+.pn-summary-pay-row {
+  display: grid;
+  grid-template-columns: minmax(200px, 1.4fr) minmax(150px, .8fr) 80px 100px 112px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 20px;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.pn-summary-pay-head {
+  color: #A3A3A3;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pn-summary-pay-head span:nth-child(n+3),
+.pn-summary-pay-row > span:nth-child(n+3) {
+  text-align: right;
+}
+
+.pn-summary-pay-row {
+  min-height: 46px;
+  width: 100%;
+  background: #fff;
+  color: #262626;
+  font-size: 12.5px;
+}
+
+.pn-summary-pay-row > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pn-summary-pay-row strong {
+  color: #0A0A0A;
+  font-weight: 800;
+}
+
+.pn-officer-assignment-modal {
+  width: min(600px, 100%);
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 22px 70px rgb(0 0 0 / 24%);
+}
+
+.pn-officer-assignment-head {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid #E5E5E5;
+}
+
+.pn-officer-assignment-avatar {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 999px;
+  background: #F4F4F4;
+  color: #262626;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pn-officer-assignment-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: #0A0A0A;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.pn-officer-assignment-head p {
+  margin: 3px 0 0;
+  color: #A3A3A3;
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+}
+
+.pn-officer-assignment-body {
+  padding: 16px 18px 18px;
+}
+
+.pn-assignment-label,
+.pn-assignment-proof-head h3,
+.pn-assignment-metrics span {
+  color: #A3A3A3;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.pn-assignment-title {
+  margin: 8px 0 14px;
+  color: #262626;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.pn-assignment-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+}
+
+.pn-assignment-metrics div {
+  min-height: 56px;
+  padding: 12px 14px;
+  border-right: 1px solid #E5E5E5;
+}
+
+.pn-assignment-metrics div:last-child {
+  border-right: 0;
+}
+
+.pn-assignment-metrics strong {
+  display: block;
+  margin-top: 8px;
+  color: #0A0A0A;
+  font-family: 'Geist Mono', monospace;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.pn-assignment-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #A3A3A3;
+  font-size: 13px;
+}
+
+.pn-assignment-pay-row > span {
+  border-radius: 999px;
+  background: #F4F4F4;
+  color: #525252;
+  padding: 5px 10px;
+  font-weight: 700;
+}
+
+.pn-assignment-pay-row > span.is-on {
+  background: #E8F5EC;
+  color: #0A7A3B;
+}
+
+.pn-assignment-pay-row strong {
+  margin-left: auto;
+  color: #A3A3A3;
+  font-weight: 500;
+}
+
+.pn-assignment-pay-row b {
+  color: #0A0A0A;
+  font-family: 'Geist Mono', monospace;
+  font-size: 16px;
+}
+
+.pn-assignment-proof-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pn-assignment-proof-head::before {
+  content: '';
+  order: 2;
+  flex: 1;
+  height: 1px;
+  background: #E5E5E5;
+}
+
+.pn-assignment-proof-head h3 {
+  margin: 0;
+}
+
+.pn-assignment-proof-head span {
+  order: 3;
+  color: #525252;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pn-assignment-empty {
+  margin-top: 12px;
+  border: 1px dashed #D4D4D4;
+  border-radius: 8px;
+  color: #A3A3A3;
+  font-size: 14px;
+  padding: 22px 14px;
+  text-align: center;
+}
+
+.pn-summary-detail-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 20px 16px;
+}
+
+.pn-summary-detail-total > div {
+  border-radius: 6px;
+  background: #F4F4F4;
+  padding: 12px 14px;
+}
+
+.pn-summary-detail-total span {
+  display: block;
+  color: #A3A3A3;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pn-summary-detail-total strong {
+  display: block;
+  margin-top: 3px;
+  color: #0A0A0A;
+  font-size: 13.5px;
+  font-weight: 800;
+}
+
+.pn-summary-detail-total aside {
+  min-width: 145px;
+  text-align: right;
+}
+
+.pn-summary-detail-total aside strong {
+  font-family: 'Geist Mono', monospace;
+  font-size: 22px;
+  line-height: 1;
+}
+
 .pn-link-btn {
   border: 0;
   background: transparent;
@@ -1538,11 +1900,11 @@ button {
   display: grid;
   place-items: center;
   background: rgb(0 0 0 / 30%);
-  padding: 24px;
+  padding: 16px;
 }
 
 .pn-modal {
-  width: min(560px, 100%);
+  width: min(520px, 100%);
   max-height: 92vh;
   overflow: auto;
   border-radius: 6px;
@@ -1551,7 +1913,7 @@ button {
 }
 
 .pn-modal-wide {
-  width: min(860px, 100%);
+  width: min(760px, 100%);
 }
 
 .pn-modal-header,
@@ -1559,8 +1921,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 20px 24px;
+  gap: 10px;
+  padding: 14px 18px;
   border-bottom: 1px solid #E5E5E5;
 }
 
@@ -1583,7 +1945,7 @@ button {
   border-top: 1px solid #E5E5E5;
   border-bottom: 0;
   background: #fff;
-  padding: 16px 24px;
+  padding: 12px 18px;
 }
 
 .pn-modal-header h2,
@@ -1594,7 +1956,7 @@ button {
 .pn-modal-header h2 {
   overflow: hidden;
   color: #0A0A0A;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1602,7 +1964,7 @@ button {
 
 .pn-modal-header p {
   color: #A3A3A3;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .pn-icon-btn {
@@ -1616,13 +1978,13 @@ button {
 }
 
 .pn-modal-body {
-  padding: 20px 24px;
+  padding: 16px 18px;
 }
 
 .pn-form-grid {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .pn-form-row {
@@ -2129,6 +2491,26 @@ button {
 
   .pn-report-grid > div:last-child {
     border-bottom: 0;
+  }
+
+  .pn-summary-detail-hero,
+  .pn-summary-detail-total {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .pn-summary-detail-total aside {
+    text-align: left;
+  }
+
+  .pn-summary-pay-table {
+    overflow-x: auto;
+  }
+
+  .pn-summary-pay-head,
+  .pn-summary-pay-row {
+    min-width: 760px;
   }
 
   .pn-report-officer {

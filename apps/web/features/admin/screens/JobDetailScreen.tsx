@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
+import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
-import { dateLabel, hours, money, statusTone } from '../lib/format';
-import type { Job, JobStatus, Officer, Screen } from '../types';
+import { dateLabel, hours, initials, money, statusTone } from '../lib/format';
+import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } from '../types';
 
 const lifecycleSteps: { key: JobStatus | 'posted'; label: string }[] = [
   { key: 'Draft', label: 'Draft created' },
@@ -50,8 +50,26 @@ export function JobDetailScreen({
   copyText: (text: string, message: string) => void;
 }) {
   const [addPick, setAddPick] = useState('');
+  const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
   const available = officers.filter((officer) => officer.status !== 'Blocked' && !job.officers.some((assigned) => assigned.oid === officer.id));
   const scheduled = hours(job.start, job.end);
+  const selectedOfficer = job.officers.find((officer) => officer.oid === selectedOfficerId);
+  const selectedWorked = selectedOfficer
+    ? selectedOfficer.actualStart && selectedOfficer.actualEnd
+      ? hours(selectedOfficer.actualStart, selectedOfficer.actualEnd)
+      : selectedOfficer.onDuty
+        ? scheduled
+        : 0
+    : 0;
+  const selectedRow = selectedOfficer
+    ? {
+        officer: selectedOfficer,
+        evidencePhotos: job.photos.filter((photo) => photo.by === selectedOfficer.name),
+        profile: officers.find((officer) => officer.id === selectedOfficer.oid),
+        worked: selectedWorked,
+        pay: selectedWorked * selectedOfficer.rate,
+      }
+    : null;
   const totalPay = job.officers.reduce((sum, officer) => {
     const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : officer.onDuty ? scheduled : 0;
     return sum + worked * officer.rate;
@@ -156,7 +174,12 @@ export function JobDetailScreen({
               {job.officers.map((officer) => (
                 <div className="pn-table-row" key={officer.oid}>
                   <span>
-                    <strong>{officer.name}</strong>
+                    <button className="pn-officer-cell-button" onClick={() => setSelectedOfficerId(officer.oid)} type="button">
+                      <strong>
+                        {officer.name}
+                        <b>›</b>
+                      </strong>
+                    </button>
                     <small>{officer.actualStart || '—'} – {officer.actualEnd || '—'}</small>
                   </span>
                   <span>
@@ -325,6 +348,7 @@ export function JobDetailScreen({
           </Card>
         </div>
       </div>
+      {selectedRow ? <OfficerAssignmentModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
     </div>
   );
 }
@@ -334,6 +358,77 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div>
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function OfficerAssignmentModal({
+  copyText,
+  job,
+  onClose,
+  row,
+}: {
+  copyText: (text: string, message: string) => void;
+  job: Job;
+  onClose: () => void;
+  row: { officer: JobOfficer; evidencePhotos: PhotoCheckpoint[]; profile?: Officer; worked: number; pay: number };
+}) {
+  const { officer, profile } = row;
+  const workedLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '-';
+  const officerMsg = `Hi ${officer.name}, PilotNow Ops here.\n\nAssignment ${job.id}: ${job.customer} at ${job.location}\nDate: ${dateLabel(job.date)}\nTime: ${job.start}-${job.end}\n\nPlease confirm your availability and remember to post evidence photos during the job.`;
+
+  return (
+    <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={`${officer.name} assignment`}>
+      <section className="pn-officer-assignment-modal">
+        <header className="pn-officer-assignment-head">
+          <span className="pn-officer-assignment-avatar">{initials(officer.name)}</span>
+          <div>
+            <h2>
+              {officer.name}
+              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge>
+            </h2>
+            <p>{profile?.phone ?? 'No phone recorded'} · {officer.confirmed ? 'Confirmed' : 'Not confirmed'} - {officer.onDuty ? 'on duty' : 'not on duty'}</p>
+          </div>
+          <button className="pn-icon-btn" onClick={() => copyText(officerMsg, 'WhatsApp message copied')} type="button" aria-label="Copy WhatsApp message">
+            <MessageIcon size={18} strokeWidth={2} />
+          </button>
+          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">x</button>
+        </header>
+
+        <div className="pn-officer-assignment-body">
+          <span className="pn-assignment-label">Assignment · {job.id}</span>
+          <p className="pn-assignment-title">{job.customer} · {job.location} · {dateLabel(job.date)}</p>
+
+          <div className="pn-assignment-metrics">
+            <div>
+              <span>Check-in</span>
+              <strong>{officer.actualStart || '-'}</strong>
+            </div>
+            <div>
+              <span>Check-out</span>
+              <strong>{officer.actualEnd || '-'}</strong>
+            </div>
+            <div>
+              <span>Hours</span>
+              <strong>{workedLabel}</strong>
+            </div>
+          </div>
+
+          <div className="pn-assignment-pay-row">
+            <span className={officer.confirmed ? 'is-on' : ''}>{officer.confirmed ? 'Confirmed' : 'Not confirmed'}</span>
+            <span>{officer.onDuty ? 'On duty' : 'Off duty'}</span>
+            <strong>Scheduled {job.start}-{job.end}</strong>
+            <b>{money(row.pay)}</b>
+            <small>· {money(officer.rate)}/h</small>
+          </div>
+
+          <div className="pn-assignment-proof-head">
+            <h3>Evidence photos posted</h3>
+            <span>{row.evidencePhotos.length} of {job.photos.length}</span>
+          </div>
+          <div className="pn-assignment-empty">No evidence photos posted by this officer yet.</div>
+        </div>
+      </section>
     </div>
   );
 }

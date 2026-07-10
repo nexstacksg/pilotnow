@@ -60,7 +60,9 @@ export function JobsScreen({
               </small>
             </span>
             <span>
-              {job.officers.length}/{job.required}
+              <span className={`pn-officers-badge ${job.officers.length >= job.required ? 'is-full' : 'is-short'}`}>
+                {job.officers.length}/{job.required}
+              </span>
             </span>
             <span>{job.billing}</span>
             <span>

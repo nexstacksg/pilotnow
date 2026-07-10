@@ -4,7 +4,7 @@ export const adminRoutes: Record<Exclude<Screen, 'jobDetail'>, string> = {
   dashboard: '/',
   jobs: '/admin/job',
   officers: '/officers',
-  summary: '/summary',
+  summary: '/admin/summary',
   payments: '/payments',
   billing: '/billing',
   reports: '/reports',
