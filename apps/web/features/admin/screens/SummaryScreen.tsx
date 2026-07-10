@@ -161,33 +161,16 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
           ))}
         </div>
 
-      <div className="pn-table pn-table-summary-detail">
-        <div className="pn-table-head">
-          <span>Officer</span>
-          <span>Actual</span>
-          <span>Hours</span>
-          <span>Rate</span>
-          <span>Pay</span>
-          <span>Identity docs</span>
-        </div>
-        {rows.map(({ officer, worked, pay }) => (
-          <div className="pn-table-row" key={officer.oid}>
-            <span>{officer.name}</span>
-            <span>{officer.actualStart || '-'} - {officer.actualEnd || '-'}</span>
-            <span>{worked.toFixed(2)}h</span>
-            <span>{money(officer.rate)}/h</span>
-            <span>{money(pay)}</span>
-            <span>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
-            </span>
+        <div className="pn-summary-detail-total">
+          <div>
+            <span>Photo proof</span>
+            <strong>{photoCount} / {job.photos.length} received</strong>
           </div>
-        ))}
-      </div>
-
-      <aside className="pn-summary-total">
-        <span>Total payable</span>
-        <strong>{money(total)}</strong>
-      </aside>
+          <aside>
+            <span>Total payable</span>
+            <strong>{money(total)}</strong>
+          </aside>
+        </div>
       </Card>
     </div>
   );

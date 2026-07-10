@@ -23,7 +23,7 @@ export function JobsScreen({
   setFilter: (filter: JobStatus | 'All') => void;
   openJob: (id: string) => void;
 }) {
-  const statusViews = ['All', ...defaultStatusViews, ...jobs.map((job) => job.status)].filter((item, index, list) => list.indexOf(item) === index) as (JobStatus | 'All')[];
+  const statusViews = ['All', ...defaultStatusViews] as (JobStatus | 'All')[];
 
   const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter)).slice().sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
 
@@ -68,7 +68,7 @@ export function JobsScreen({
               <Badge tone={statusTone[job.status]} dot>
                 {job.status}
               </Badge>
-              {job.posted && job.status !== 'Draft' ? <small>WhatsApp posted</small> : null}
+              {/* {job.posted && job.status !== 'Draft' ? <small>WhatsApp posted</small> : null} */}
             </span>
           </button>
         ))}

@@ -37,7 +37,7 @@ import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
-import { TODAY, dateLabel, hours, money, nextId, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
+import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
 import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
@@ -64,6 +64,8 @@ const navGroups: { label: string; items: { screen: Screen; label: string }[] }[]
   },
   { label: 'Insights', items: [{ screen: 'reports', label: 'Reports' }] },
 ];
+
+const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
 
 const emptyJobForm: JobForm = {
   customer: '',
@@ -96,7 +98,7 @@ export function AdminApp({
 }) {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>(initialScreen);
-  const [jobs, setJobs] = useState<Job[]>(jobsSeed);
+  const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
@@ -117,6 +119,7 @@ export function AdminApp({
   const [paymentsReady, setPaymentsReady] = useState(false);
   const [billingReady, setBillingReady] = useState(false);
   const [reportsReady, setReportsReady] = useState(false);
+  const [jobsHydrated, setJobsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [toast, setToast] = useState('');
 
@@ -183,7 +186,7 @@ export function AdminApp({
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
-    setJobs((items) => items.map((job) => (job.id === id ? updater(job) : job)));
+    setJobs((items) => items.map((job) => (job.id === id ? normalizeJobStage(updater(job)) : normalizeJobStage(job))));
   }
 
   function openCreateJob() {
@@ -216,7 +219,7 @@ export function AdminApp({
     try {
       const existing = editingJobId ? jobs.find((job) => job.id === editingJobId) : undefined;
       const job = editingJobId ? await updateJobFromForm(editingJobId, jobForm, existing) : await createJobFromForm(jobForm);
-      setJobs((items) => (editingJobId ? items.map((item) => (item.id === job.id ? job : item)) : [job, ...items.filter((item) => item.id !== job.id)]));
+      setJobs((items) => (editingJobId ? items.map((item) => normalizeJobStage(item.id === job.id ? job : item)) : [normalizeJobStage(job), ...items.filter((item) => item.id !== job.id).map((item) => normalizeJobStage(item))]));
       setCreateOpen(false);
       setEditingJobId(null);
       setJobForm(emptyJobForm);
@@ -266,7 +269,7 @@ export function AdminApp({
     const current = jobs.find((job) => job.id === id);
     try {
       const job = await cancelJobInApi(id, current);
-      setJobs((items) => items.map((item) => (item.id === id ? job : item)));
+      setJobs((items) => items.map((item) => normalizeJobStage(item.id === id ? job : item)));
       flash('Job cancelled');
     } catch {
       flash('Could not cancel job. Check that the API is running.');
@@ -280,12 +283,18 @@ export function AdminApp({
       setJobs((items) =>
         items.map((item) =>
           item.id === id
-            ? {
+            ? normalizeJobStage({
                 ...job,
-                officers: item.officers.map((officer) => ({ ...officer, actualStart: officer.actualStart || item.start, actualEnd: officer.actualEnd || item.end })),
+                officers: item.officers.map((officer) => ({
+                  ...officer,
+                  confirmed: true,
+                  onDuty: true,
+                  actualStart: officer.actualStart || item.start,
+                  actualEnd: officer.actualEnd || item.end,
+                })),
                 photos: item.photos.length ? item.photos : job.photos,
-              }
-            : item,
+              })
+            : normalizeJobStage(item),
         ),
       );
       flash('Job marked as completed');
@@ -352,7 +361,7 @@ export function AdminApp({
     }
     try {
       const updated = await markJobBilled(billTarget.id, billForm, billTarget);
-      setJobs((items) => items.map((job) => (job.id === updated.id ? { ...job, ...updated } : job)));
+      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updated.id ? { ...job, ...updated } : job)));
       setBillId(null);
       setBillForm({ invoice: '', billedDate: TODAY });
       flash(`Job ${billTarget.id} marked as billed`);
@@ -366,19 +375,47 @@ export function AdminApp({
   const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
 
   useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(JOBS_STORAGE_KEY);
+      if (stored) setJobs((JSON.parse(stored) as Job[]).map((job) => normalizeJobStage(job)));
+    } catch {
+      // Keep seeded data when local storage is unavailable or stale.
+    }
+    setJobsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
+    try {
+      window.localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
+    } catch {
+      // Ignore storage failures; the in-memory admin state still works.
+    }
+  }, [jobs, jobsHydrated]);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
+    const updateStages = () => setJobs((items) => items.map((job) => normalizeJobStage(job)));
+    updateStages();
+    const timer = window.setInterval(updateStages, 60_000);
+    return () => window.clearInterval(timer);
+  }, [jobsHydrated]);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
     let cancelled = false;
 
-    void fetchJobs(jobsSeed)
+    void fetchJobs(jobs)
       .then((items) => {
         if (cancelled) return;
         setJobs((current) =>
           items.map((item) => {
             const existing = current.find((job) => job.id === item.id);
-            return {
+            return normalizeJobStage({
               ...item,
               officers: existing?.officers.length ? existing.officers : item.officers,
               photos: existing?.photos.length ? existing.photos : item.photos,
-            };
+            });
           }),
         );
         if (items.length) {
@@ -394,7 +431,7 @@ export function AdminApp({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [jobsHydrated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -425,9 +462,9 @@ export function AdminApp({
         setJobs((current) => {
           const merged = current.map((job) => {
             const billingJob = items.find((item) => item.id === job.id);
-            return billingJob ? { ...job, ...billingJob, officers: job.officers, photos: job.photos } : job;
+            return normalizeJobStage(billingJob ? { ...job, ...billingJob, officers: job.officers, photos: job.photos } : job);
           });
-          const missing = items.filter((item) => !merged.some((job) => job.id === item.id));
+          const missing = items.filter((item) => !merged.some((job) => job.id === item.id)).map((job) => normalizeJobStage(job));
           return [...merged, ...missing];
         });
         setBillingReady(true);
