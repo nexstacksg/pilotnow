@@ -106,7 +106,7 @@ export function BellIcon(props: IconProps) {
 export function MessageIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M21 12a8 8 0 0 1-8 8H6l-3 2 1.2-4.2A8 8 0 1 1 21 12Z" />
+      <path d="M21 11.5a7.5 7.5 0 0 1-8 7.48 8.8 8.8 0 0 1-4.2-1.32L3 19l1.34-5.3A7.5 7.5 0 1 1 21 11.5Z" />
     </Svg>
   );
 }
