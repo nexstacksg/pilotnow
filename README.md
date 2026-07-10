@@ -28,6 +28,52 @@ The repo originally started from an MVP framing. Current direction is to documen
 
 Previous MVP pricing/budget references are no longer used as product framing.
 
+## Which Folder To Run
+
+Run the project from the repository root folder:
+
+```bash
+cd pilotnow
+```
+
+This is a pnpm/Turborepo workspace. You usually do not need to run commands inside each app folder.
+
+```
+apps/web      Next.js admin UI, runs on http://localhost:3000
+apps/api      Hono Web API, runs on http://localhost:4000
+packages/db   Drizzle/Postgres schema and DB client
+```
+
+`pnpm dev` starts these app entry points:
+
+- `apps/web` → `next dev --port 3000`
+- `apps/api/src/index.ts` → API server entry point
+
+## Run Locally
+
+Requirements: Node 20+, pnpm 10, and Docker.
+
+```bash
+cp .env.example .env
+pnpm install
+docker-compose up -d
+pnpm db:push
+pnpm dev
+```
+
+Open:
+
+- Web app: `http://localhost:3000`
+- API health check: `http://localhost:4000/health`
+
+Useful commands:
+
+```bash
+pnpm build
+pnpm typecheck
+pnpm db:studio
+```
+
 ## License
 
 Proprietary – NexStack Pte Ltd
