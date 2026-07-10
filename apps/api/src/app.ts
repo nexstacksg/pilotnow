@@ -19,6 +19,7 @@ import { assignments } from './routes/assignments.js';
 import { proofs } from './routes/proofs.js';
 import { payables } from './routes/payables.js';
 import { billing } from './routes/billing.js';
+import { reports } from './routes/reports.js';
 
 loadEnv();
 
@@ -42,6 +43,7 @@ export const app = new Hono()
   .route('/proofs', proofs) // FR-012..016 — report-on-duty, proof photos, exceptions
   .route('/payables', payables) // FR-018..021 — hours, payable computation, PAID/UNPAID
   .route('/billing', billing) // FR-022 — BILLED/NOT BILLED
+  .route('/reports', reports)
   .all('/mcp', async (c) => {
     const transport = new StreamableHTTPTransport();
     await mcpServer.connect(transport);

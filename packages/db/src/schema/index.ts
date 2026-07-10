@@ -87,6 +87,8 @@ export const jobs = pgTable(
     requestRaw: text('request_raw'), // pasted customer message
     status: jobStatus('status').notNull().default('OPEN'),
     billingStatus: billingStatus('billing_status').notNull().default('NOT_BILLED'),
+    invoiceNumber: text('invoice_number'),
+    billedAt: timestamp('billed_at', { withTimezone: true }),
     // FR-036: agent-created jobs start as DRAFT; human confirmation flips to CONFIRMED
     recordState: recordState('record_state').notNull().default('CONFIRMED'),
     postedToGroupAt: timestamp('posted_to_group_at', { withTimezone: true }),

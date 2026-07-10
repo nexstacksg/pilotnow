@@ -77,6 +77,8 @@ function serializeJob(row: {
     requestRaw: row.job.requestRaw,
     status: row.job.status,
     billingStatus: row.job.billingStatus,
+    invoiceNumber: row.job.invoiceNumber,
+    billedAt: row.job.billedAt?.toISOString() ?? null,
     recordState: row.job.recordState,
     postedToGroupAt: row.job.postedToGroupAt?.toISOString() ?? null,
     createdAt: row.job.createdAt.toISOString(),
