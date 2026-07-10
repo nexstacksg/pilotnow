@@ -12,6 +12,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 // --- enums (keep in sync with @pilotnow/shared) ---
@@ -75,6 +76,7 @@ export const jobs = pgTable(
   'jobs',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    jobCode: text('job_code').notNull(),
     customerId: uuid('customer_id').notNull().references(() => customers.id),
     siteId: uuid('site_id').notNull().references(() => sites.id),
     startAt: timestamp('start_at', { withTimezone: true }).notNull(),
@@ -90,7 +92,7 @@ export const jobs = pgTable(
     postedToGroupAt: timestamp('posted_to_group_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('jobs_status_idx').on(t.status), index('jobs_start_idx').on(t.startAt)],
+  (t) => [uniqueIndex('jobs_job_code_idx').on(t.jobCode), index('jobs_status_idx').on(t.status), index('jobs_start_idx').on(t.startAt)],
 );
 
 // FR-003, FR-007..010, FR-018..021 — one row per officer per job

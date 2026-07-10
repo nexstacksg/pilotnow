@@ -70,13 +70,15 @@ export function Modal({
   subtitle,
   children,
   footer,
+  headerActions,
   onClose,
   wide = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  footer: ReactNode;
+  footer?: ReactNode;
+  headerActions?: ReactNode;
   onClose: () => void;
   wide?: boolean;
 }) {
@@ -88,12 +90,13 @@ export function Modal({
             <h2>{title}</h2>
             {subtitle ? <p>{subtitle}</p> : null}
           </div>
+          {headerActions}
           <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
             x
           </button>
         </header>
         <div className="pn-modal-body">{children}</div>
-        <footer className="pn-modal-footer">{footer}</footer>
+        {footer ? <footer className="pn-modal-footer">{footer}</footer> : null}
       </section>
     </div>
   );
