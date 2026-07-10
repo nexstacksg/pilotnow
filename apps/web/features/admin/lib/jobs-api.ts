@@ -40,9 +40,9 @@ function statusFromApi(job: ApiJob): JobStatus {
   if (job.status === 'CANCELLED') return 'Cancelled';
   if (job.status === 'COMPLETED') return 'Completed';
   if (job.status === 'IN_PROGRESS') return 'Ongoing';
-  if (job.status === 'ASSIGNED') return 'Confirmed';
+  if (job.status === 'ASSIGNED') return 'Assigned';
   if (job.recordState === 'DRAFT' || !job.postedToGroupAt) return 'Draft';
-  return 'Waiting for Officers';
+  return 'Open';
 }
 
 function splitIso(value: string) {

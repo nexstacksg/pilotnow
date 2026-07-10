@@ -498,13 +498,15 @@ button {
 
 .pn-officers-badge {
   display: inline-flex;
+  width: fit-content;
   align-items: center;
   gap: 5px;
   width: fit-content;
   border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 12px;
+  padding: 3px 9px;
+  font-size: 11.5px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .pn-officers-badge.is-full {

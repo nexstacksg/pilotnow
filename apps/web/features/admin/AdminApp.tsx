@@ -124,7 +124,7 @@ export function AdminApp({
     const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
     return {
       todayJobs: jobs.filter((job) => job.date === TODAY && job.status !== 'Cancelled').length,
-      waitingJobs: jobs.filter((job) => job.status === 'Waiting for Officers' || job.status === 'Posted to WhatsApp').length,
+      openJobs: jobs.filter((job) => job.status === 'Open').length,
       ongoingJobs: jobs.filter((job) => job.status === 'Ongoing').length,
       missingPhotos: jobs.flatMap((job) => job.photos).filter((photo) => photo.status === 'missing').length,
       officersNeeded: jobs.reduce((sum, job) => sum + Math.max(0, job.required - job.officers.length), 0),
