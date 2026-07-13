@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   BillingIcon,
@@ -24,6 +24,8 @@ import { Badge, Button, Field, Modal } from './components/ui';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
+import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
+import type { DashboardSnapshot } from './lib/dashboard-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
@@ -154,6 +156,7 @@ export function AdminApp({
   const [reportsReady, setReportsReady] = useState(false);
   const [jobsHydrated, setJobsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
+  const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
   const [toast, setToast] = useState('');
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -179,7 +182,8 @@ export function AdminApp({
       pendingPayments,
       notBilled: completedJobs.filter((job) => job.billing === 'Not Billed').length,
     };
-  }, [completedJobs, financePayments, jobs]);
+  }, [completedJobs, jobs, payments]);
+  const fallbackDashboard = useMemo(() => dashboardFallback(jobs), [jobs]);
 
   function flash(message: string) {
     setToast(message);
@@ -419,6 +423,20 @@ export function AdminApp({
   const [crumb, title] = screenTitles[screen];
   const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
 
+  const refreshDashboard = useCallback(async () => {
+    try {
+      setDashboardSnapshot(await fetchDashboard());
+    } catch {
+      // Keep the locally derived dashboard available until the next background retry.
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshDashboard();
+    const timer = window.setInterval(() => void refreshDashboard(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [refreshDashboard]);
+
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(JOBS_STORAGE_KEY);
@@ -603,8 +621,7 @@ export function AdminApp({
         <div className="pn-content">
           {screen === 'dashboard' ? (
             <DashboardScreen
-              jobs={jobs}
-              stats={stats}
+              snapshot={dashboardSnapshot ?? fallbackDashboard}
               openCreateJob={openCreateJob}
               openJob={openJob}
               setScreen={navigateToScreen}
