@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CalendarIcon, DownloadIcon } from '../components/icons';
 import { Button, Card } from '../components/ui';
 import { dateLabel, jobPay, money } from '../lib/format';
@@ -69,10 +69,17 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
   const defaultRange = useMemo(() => defaultDateRange(jobs, payments), [jobs, payments]);
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
+  const [dateRangeEdited, setDateRangeEdited] = useState(false);
+
+  useEffect(() => {
+    if (dateRangeEdited) return;
+    setStartDate(defaultRange.start);
+    setEndDate(defaultRange.end);
+  }, [dateRangeEdited, defaultRange.end, defaultRange.start]);
 
   const completedRows = useMemo<ReportRow[]>(
     () =>
-      (report?.completedJobs ?? buildCompletedRows(jobs)).map((job) => ({
+      buildCompletedReportRows(jobs, payments, report).map((job) => ({
         id: job.id,
         date: job.date,
         cells: {
@@ -83,7 +90,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
           totalPayable: money(job.totalPayable),
         },
       })),
-    [jobs, report],
+    [jobs, payments, report],
   );
   const reportRows = useMemo(
     () => ({
@@ -116,9 +123,25 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
           <div className="pn-report-actions">
             <label className="pn-report-date-control">
               <CalendarIcon size={15} stroke="#A3A3A3" strokeWidth={2} />
-              <input aria-label="Report start date" type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} />
+              <input
+                aria-label="Report start date"
+                type="date"
+                value={startDate}
+                onChange={(event) => {
+                  setDateRangeEdited(true);
+                  setStartDate(event.target.value);
+                }}
+              />
               <span>-</span>
-              <input aria-label="Report end date" type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} />
+              <input
+                aria-label="Report end date"
+                type="date"
+                value={endDate}
+                onChange={(event) => {
+                  setDateRangeEdited(true);
+                  setEndDate(event.target.value);
+                }}
+              />
             </label>
             <Button variant="primary" onClick={() => exportReport(active.title, columns, rows, startDate, endDate)}>
               <DownloadIcon size={15} strokeWidth={2.1} />
@@ -149,15 +172,47 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
   );
 }
 
-function buildCompletedRows(jobs: Job[]) {
+function buildCompletedReportRows(jobs: Job[], payments: Payment[], report?: OperationsReport | null) {
+  const localRows = buildCompletedRows(jobs, payments);
+  if (!report?.completedJobs.length) return localRows;
+
+  const localById = new Map(localRows.map((job) => [job.id, job]));
+  const rows = report.completedJobs.map((apiJob) => {
+    const localJob = localById.get(apiJob.id);
+    if (!localJob) return apiJob;
+    return {
+      ...apiJob,
+      ...localJob,
+      billingStatus: apiJob.billingStatus,
+    };
+  });
+
+  localRows.forEach((job) => {
+    if (!rows.some((row) => row.id === job.id)) rows.push(job);
+  });
+
+  return rows;
+}
+
+function buildCompletedRows(jobs: Job[], payments: Payment[]): OperationsReport['completedJobs'] {
+  const paymentsByJob = payments.reduce<Record<string, { officers: Set<string>; totalPayable: number }>>((totals, payment) => {
+    const total = totals[payment.jobId] ?? { officers: new Set<string>(), totalPayable: 0 };
+    total.officers.add(payment.officer);
+    total.totalPayable += payment.hours * payment.rate;
+    totals[payment.jobId] = total;
+    return totals;
+  }, {});
+
   return jobs
     .filter((job) => job.status === 'Completed')
     .map((job) => ({
       id: job.id,
       customer: job.customer,
+      site: job.location,
       date: job.date,
-      officers: job.officers.length,
-      totalPayable: jobPay(job),
+      officers: job.officers.length || paymentsByJob[job.id]?.officers.size || 0,
+      totalPayable: jobPay(job) || paymentsByJob[job.id]?.totalPayable || 0,
+      billingStatus: job.billing === 'Billed' ? 'BILLED' : 'NOT_BILLED',
     }));
 }
 
