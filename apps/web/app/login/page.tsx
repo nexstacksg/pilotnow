@@ -6,9 +6,6 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import styles from '../auth.module.css';
 
-const DEMO_EMAIL = 'nandar@example.com';
-const DEMO_PASSWORD = 'password123';
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -19,12 +16,12 @@ export default function LoginPage() {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (email.trim().toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
-      setError('');
-      router.push('/');
+    if (!email.trim().includes('@') || !password) {
+      setError('Enter your email address and password.');
       return;
     }
-    setError('Invalid email or password. Try Again !');
+    setError('');
+    router.push('/');
   }
 
   return (

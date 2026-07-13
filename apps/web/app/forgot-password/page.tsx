@@ -11,7 +11,7 @@ const INITIAL_SECONDS = 59;
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<ResetStep>('email');
-  const [email, setEmail] = useState('pristia@gmail.com');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState(['', '', '', '']);
   const [seconds, setSeconds] = useState(INITIAL_SECONDS);
   const [password, setPassword] = useState('');
@@ -97,7 +97,9 @@ export default function ForgotPasswordPage() {
                   autoComplete="email"
                   required
                 />
-                <span className={styles.inputIcon} aria-hidden="true"><Check size={18} strokeWidth={1.8} /></span>
+                {email.includes('@') && (
+                  <span className={styles.inputIcon} aria-hidden="true"><Check size={18} strokeWidth={1.8} /></span>
+                )}
               </div>
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
