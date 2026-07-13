@@ -12,49 +12,21 @@ function timeLabel(value: string) {
     hourCycle: 'h23',
   }).format(new Date(value));
 }
-function refreshedLabel(value: string) {
-  return new Intl.DateTimeFormat('en-SG', {
-    timeZone: 'Asia/Singapore',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(value));
-}
-
 export function DashboardScreen({
   snapshot,
-  loading,
-  error,
   openCreateJob,
   openJob,
-  refresh,
   setScreen,
 }: {
   snapshot: DashboardSnapshot;
-  loading: boolean;
-  error: string;
   openCreateJob: () => void;
   openJob: (id: string) => void;
-  refresh: () => void;
   setScreen: (screen: Screen) => void;
 }) {
   const { metrics } = snapshot;
 
   return (
     <div className="pn-stack">
-      <div className={`pn-dashboard-status ${error ? 'is-warning' : ''}`} role="status">
-        <span>
-          <strong>{snapshot.source === 'live' ? 'Live operations data' : 'Local fallback data'}</strong>
-          {' · '}
-          {dateLabel(snapshot.operatingDate)} · updated {refreshedLabel(snapshot.generatedAt)}
-          {error ? ` · ${error}` : ''}
-        </span>
-        <button disabled={loading} onClick={refresh} type="button">
-          {loading ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </div>
-
       <div className="pn-stats">
         <StatCard icon={<CalendarIcon size={16} stroke="#0A0A0A" strokeWidth={2} />} label="Today's jobs" value={metrics.todayJobs} hint={`scheduled for ${dateLabel(snapshot.operatingDate)}`} tone="muted" />
         <StatCard icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Waiting for officers" value={metrics.waitingJobs} hint={`${metrics.officersNeeded} officers still needed`} tone="warning" />

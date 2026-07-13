@@ -124,8 +124,6 @@ export function AdminApp({
   const [jobsHydrated, setJobsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
-  const [dashboardError, setDashboardError] = useState('');
   const [toast, setToast] = useState('');
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -381,14 +379,10 @@ export function AdminApp({
   const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
 
   const refreshDashboard = useCallback(async () => {
-    setDashboardLoading(true);
     try {
       setDashboardSnapshot(await fetchDashboard());
-      setDashboardError('');
     } catch {
-      setDashboardError('Live API unavailable; retry to reconnect');
-    } finally {
-      setDashboardLoading(false);
+      // Keep the locally derived dashboard available until the next background retry.
     }
   }, []);
 
@@ -583,11 +577,8 @@ export function AdminApp({
           {screen === 'dashboard' ? (
             <DashboardScreen
               snapshot={dashboardSnapshot ?? fallbackDashboard}
-              loading={dashboardLoading}
-              error={dashboardError}
               openCreateJob={openCreateJob}
               openJob={openJob}
-              refresh={() => void refreshDashboard()}
               setScreen={navigateToScreen}
             />
           ) : null}
