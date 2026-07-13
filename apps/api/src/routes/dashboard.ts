@@ -138,6 +138,8 @@ export const dashboard = new Hono().get('/', async (c) => {
     .filter((item) => item.status === 'COMPLETED' && item.billingStatus === 'NOT_BILLED')
     .sort((a, b) => b.endAt.localeCompare(a.endAt));
   const waitingJobs = todayJobs.filter((item) => item.status !== 'COMPLETED' && item.assigned < item.required);
+  const ongoingJobs = items.filter((item) => item.status === 'IN_PROGRESS');
+  const missingPhotoJobIds = [...new Set(missingProofs.map((proof) => proof.jobId))];
 
   return c.json({
     item: {
@@ -146,7 +148,7 @@ export const dashboard = new Hono().get('/', async (c) => {
       metrics: {
         todayJobs: todayJobs.length,
         waitingJobs: waitingJobs.length,
-        ongoingJobs: items.filter((item) => item.status === 'IN_PROGRESS').length,
+        ongoingJobs: ongoingJobs.length,
         missingPhotos: missingProofs.length,
         officersNeeded: waitingJobs.reduce((sum, item) => sum + Math.max(0, item.required - item.assigned), 0),
         notBilled: unbilledJobs.length,
@@ -155,6 +157,13 @@ export const dashboard = new Hono().get('/', async (c) => {
       todayJobs,
       missingProofs: missingProofs.sort((a, b) => a.expectedAt.localeCompare(b.expectedAt)),
       unbilledJobs,
+      queues: {
+        todayJobs: todayJobs.map((item) => item.id),
+        waitingJobs: waitingJobs.map((item) => item.id),
+        ongoingJobs: ongoingJobs.map((item) => item.id),
+        missingPhotos: missingPhotoJobIds,
+        unbilledJobs: unbilledJobs.map((item) => item.id),
+      },
     },
   });
 });

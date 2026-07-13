@@ -1,6 +1,7 @@
 import { Badge } from '../components/ui';
+import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
-import type { Job, JobStatus } from '../types';
+import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
 const statusOrder: Partial<Record<JobStatus, number>> = {
@@ -16,23 +17,35 @@ export function JobsScreen({
   jobs,
   filter,
   setFilter,
+  queues,
   openJob,
 }: {
   jobs: Job[];
-  filter: JobStatus | 'All';
-  setFilter: (filter: JobStatus | 'All') => void;
+  filter: JobListFilter;
+  setFilter: (filter: JobListFilter) => void;
+  queues: DashboardQueues;
   openJob: (id: string) => void;
 }) {
-  const statusViews = ['All', ...defaultStatusViews] as (JobStatus | 'All')[];
+  const statusViews: JobListFilter[] = ['Today', 'Needs staffing', 'Ongoing', 'Missing photos', 'All', ...defaultStatusViews.filter((status) => status !== 'Ongoing')];
+  const queueIds: Partial<Record<JobListFilter, string[]>> = {
+    Today: queues.todayJobs,
+    'Needs staffing': queues.waitingJobs,
+    Ongoing: queues.ongoingJobs,
+    'Missing photos': queues.missingPhotos,
+  };
+  const selectedIds = queueIds[filter];
 
-  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter)).slice().sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+  const filtered = (selectedIds ? jobs.filter((job) => selectedIds.includes(job.id)) : filter === 'All' ? jobs : jobs.filter((job) => job.status === filter))
+    .slice()
+    .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+  const countFor = (item: JobListFilter) => queueIds[item]?.length ?? (item === 'All' ? jobs.length : jobs.filter((job) => job.status === item).length);
 
   return (
     <div className="pn-stack">
       <div className="pn-tabs">
         {statusViews.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
-            {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.status === item).length}
+            {item} · {countFor(item)}
           </button>
         ))}
       </div>

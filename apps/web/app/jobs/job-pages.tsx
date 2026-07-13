@@ -1,7 +1,8 @@
 import { AdminApp } from '../../features/admin';
+import type { JobListFilter } from '../../features/admin/types';
 
-export function JobsPageContent() {
-  return <AdminApp initialScreen="jobs" />;
+export function JobsPageContent({ initialJobFilter = 'All' }: { initialJobFilter?: JobListFilter }) {
+  return <AdminApp initialJobFilter={initialJobFilter} initialScreen="jobs" />;
 }
 
 export async function JobDetailPageContent({

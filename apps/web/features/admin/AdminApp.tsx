@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import {
   BillingIcon,
   CheckIcon,
@@ -40,7 +40,7 @@ import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
-import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
   dashboard: <DashboardIcon />,
@@ -68,6 +68,14 @@ const navGroups: { label: string; items: { screen: Screen; label: string }[] }[]
 ];
 
 const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
+
+type AdminSearchResult = {
+  key: string;
+  type: 'job' | 'officer';
+  id: string;
+  title: string;
+  detail: string;
+};
 
 const emptyJobForm: JobForm = {
   customer: '',
@@ -126,10 +134,18 @@ export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
   initialSummaryJobId = null,
+  initialJobFilter = 'All',
+  initialBillingFilter = 'All',
+  initialBillId = null,
+  initialOfficerProfileId = null,
 }: {
   initialScreen?: Screen;
   initialJobId?: string;
   initialSummaryJobId?: string | null;
+  initialJobFilter?: JobListFilter;
+  initialBillingFilter?: BillingFilter;
+  initialBillId?: string | null;
+  initialOfficerProfileId?: string | null;
 }) {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>(initialScreen);
@@ -138,12 +154,13 @@ export function AdminApp({
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
-  const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
+  const [jobFilter, setJobFilter] = useState<JobListFilter>(initialJobFilter);
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>(initialBillingFilter);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
-  const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
-  const [billId, setBillId] = useState<string | null>(null);
+  const [officerProfileId, setOfficerProfileId] = useState<string | null>(initialOfficerProfileId);
+  const [billId, setBillId] = useState<string | null>(initialBillId);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
@@ -158,6 +175,10 @@ export function AdminApp({
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
   const [toast, setToast] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const fallbackJob = jobsSeed[0] as Job;
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
@@ -169,7 +190,11 @@ export function AdminApp({
     setScreen(initialScreen);
     setJobId(initialJobId);
     setSummaryJobId(initialSummaryJobId);
-  }, [initialJobId, initialScreen, initialSummaryJobId]);
+    setJobFilter(initialJobFilter);
+    setBillingFilter(initialBillingFilter);
+    setBillId(initialBillId);
+    setOfficerProfileId(initialOfficerProfileId);
+  }, [initialBillId, initialBillingFilter, initialJobFilter, initialJobId, initialOfficerProfileId, initialScreen, initialSummaryJobId]);
 
   const stats = useMemo(() => {
     const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
@@ -184,6 +209,34 @@ export function AdminApp({
     };
   }, [completedJobs, jobs, payments]);
   const fallbackDashboard = useMemo(() => dashboardFallback(jobs), [jobs]);
+  const searchResults = useMemo<AdminSearchResult[]>(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
+
+    const matchingJobs = jobs
+      .filter((job) => [job.id, job.customer, job.location].some((value) => value.toLocaleLowerCase().includes(query)))
+      .slice(0, 5)
+      .map((job) => ({ key: `job-${job.id}`, type: 'job' as const, id: job.id, title: `${job.id} · ${job.customer}`, detail: `${job.location} · ${dateLabel(job.date)}` }));
+    const matchingOfficers = officers
+      .filter((officer) => [officer.id, officer.name, officer.phone].some((value) => value.toLocaleLowerCase().includes(query)))
+      .slice(0, 5)
+      .map((officer) => ({ key: `officer-${officer.id}`, type: 'officer' as const, id: officer.id, title: officer.name, detail: `${officer.id} · ${officer.phone}` }));
+
+    return [...matchingJobs, ...matchingOfficers];
+  }, [jobs, officers, searchQuery]);
+
+  useEffect(() => {
+    setActiveSearchIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    function closeSearchOnOutsidePointer(event: PointerEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) setSearchOpen(false);
+    }
+
+    document.addEventListener('pointerdown', closeSearchOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeSearchOnOutsidePointer);
+  }, []);
 
   function flash(message: string) {
     setToast(message);
@@ -200,15 +253,74 @@ export function AdminApp({
     setPayOfficer(null);
     setReportJobId(null);
     setOfficerProfileId(null);
+    if (nextScreen === 'jobs') setJobFilter('All');
+    if (nextScreen === 'billing') setBillingFilter('All');
     setScreen(nextScreen);
     if (nextScreen === 'summary') setSummaryJobId(null);
     router.push(routeForScreen(nextScreen, selectedJob.id));
+  }
+
+  function openJobs(filter: JobListFilter) {
+    setBillId(null);
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setJobFilter(filter);
+    setScreen('jobs');
+    router.push(`/admin/job?view=${encodeURIComponent(filter)}`);
+  }
+
+  function openBilling(jobId?: string, filter: BillingFilter = 'Not Billed') {
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setBillingFilter(filter);
+    setBillId(jobId ?? null);
+    if (jobId) setBillForm({ invoice: '', billedDate: TODAY });
+    setScreen('billing');
+    const jobQuery = jobId ? `&job=${encodeURIComponent(jobId)}` : '';
+    router.push(`/billing?view=${encodeURIComponent(filter)}${jobQuery}`);
   }
 
   function openJob(id: string) {
     setJobId(id);
     setScreen('jobDetail');
     router.push(routeForScreen('jobDetail', id));
+  }
+
+  function selectSearchResult(result: AdminSearchResult) {
+    setSearchQuery('');
+    setSearchOpen(false);
+    if (result.type === 'job') {
+      openJob(result.id);
+      return;
+    }
+
+    setScreen('officers');
+    setOfficerProfileId(result.id);
+    router.push(`/admin/officers?officer=${encodeURIComponent(result.id)}`);
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setSearchOpen(false);
+      event.currentTarget.blur();
+      return;
+    }
+    if (!searchResults.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveSearchIndex((index) => (index + 1) % searchResults.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveSearchIndex((index) => (index - 1 + searchResults.length) % searchResults.length);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const result = searchResults[activeSearchIndex] ?? searchResults[0];
+      if (result) selectSearchResult(result);
+    }
   }
 
   function openSummaryJob(id: string) {
@@ -605,9 +717,50 @@ export function AdminApp({
             <p>{crumb}</p>
             <h1>{pageTitle}</h1>
           </div>
-          <div className="pn-search">
+          <div className="pn-search" ref={searchRef}>
             <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
-            <input aria-label="Search" placeholder="Search jobs, officers..." />
+            <input
+              aria-activedescendant={searchOpen && searchResults.length ? `admin-search-${searchResults[activeSearchIndex]?.key}` : undefined}
+              aria-autocomplete="list"
+              aria-controls="admin-search-results"
+              aria-expanded={searchOpen && Boolean(searchQuery.trim())}
+              aria-label="Search jobs and officers"
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setSearchOpen(true);
+              }}
+              onFocus={() => setSearchOpen(true)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search jobs, officers..."
+              role="combobox"
+              value={searchQuery}
+            />
+            {searchOpen && searchQuery.trim() ? (
+              <div className="pn-search-results" id="admin-search-results" role="listbox">
+                {searchResults.length ? (
+                  searchResults.map((result, index) => (
+                    <button
+                      aria-selected={index === activeSearchIndex}
+                      className={index === activeSearchIndex ? 'active' : ''}
+                      id={`admin-search-${result.key}`}
+                      key={result.key}
+                      onClick={() => selectSearchResult(result)}
+                      onMouseEnter={() => setActiveSearchIndex(index)}
+                      role="option"
+                      type="button"
+                    >
+                      <span className={`pn-search-kind is-${result.type}`}>{result.type}</span>
+                      <span>
+                        <strong>{result.title}</strong>
+                        <small>{result.detail}</small>
+                      </span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="pn-search-empty">No jobs or officers found.</p>
+                )}
+              </div>
+            ) : null}
           </div>
           <Button
             variant="primary"
@@ -624,10 +777,12 @@ export function AdminApp({
               snapshot={dashboardSnapshot ?? fallbackDashboard}
               openCreateJob={openCreateJob}
               openJob={openJob}
+              openJobs={openJobs}
+              openBilling={openBilling}
               setScreen={navigateToScreen}
             />
           ) : null}
-          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} setFilter={setJobFilter} /> : null}
+          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} queues={(dashboardSnapshot ?? fallbackDashboard).queues} setFilter={setJobFilter} /> : null}
           {screen === 'jobDetail' ? (
             <JobDetailScreen
               job={selectedJob}
@@ -652,11 +807,13 @@ export function AdminApp({
           {screen === 'billing' ? (
             jobsReady && billingReady ? (
               <BillingScreen
+                filter={billingFilter}
                 jobs={completedJobs}
                 openBill={(id) => {
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });
                 }}
+                setFilter={setBillingFilter}
               />
             ) : (
               <LoadingPanel />

@@ -16,6 +16,9 @@ export type JobStatus =
   | 'Completed'
   | 'Cancelled';
 
+export type JobListFilter = JobStatus | 'All' | 'Today' | 'Needs staffing' | 'Missing photos';
+export type BillingFilter = 'All' | 'Not Billed' | 'Billed';
+
 export type BillingStatus = 'Billed' | 'Not Billed';
 export type OfficerStatus = 'New' | 'Active' | 'Inactive' | 'Blocked';
 export type PaymentStatus = 'Pending' | 'Paid';
