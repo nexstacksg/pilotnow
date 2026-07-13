@@ -8,6 +8,13 @@
       "when": 1783656814513,
       "tag": "0000_large_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783950957077,
+      "tag": "0002_add_admin_auth",
+      "breakpoints": true
     }
   ]
 }

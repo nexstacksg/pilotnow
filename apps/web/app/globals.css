@@ -3393,7 +3393,8 @@ button {
   font-size: 10px;
 }
 
-.pn-profile-account-menu > a {
+.pn-profile-account-menu > a,
+.pn-profile-account-menu > button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -3403,11 +3404,22 @@ button {
   text-decoration: none;
 }
 
-.pn-profile-account-menu > a:hover {
+.pn-profile-account-menu > button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pn-profile-account-menu > a:hover,
+.pn-profile-account-menu > button:hover {
   background: #f7f7f7;
 }
 
-.pn-profile-account-menu > a.is-danger {
+.pn-profile-account-menu > a.is-danger,
+.pn-profile-account-menu > button.is-danger {
   color: #c51d1d;
 }
 

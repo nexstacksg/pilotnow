@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import styles from '../auth.module.css';
+import { http } from '../../lib/api';
+import { HttpError } from '@pilotnow/api-client';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,15 +15,28 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim().includes('@') || !password) {
       setError('Enter your email address and password.');
       return;
     }
     setError('');
-    router.push('/');
+    setSubmitting(true);
+    try {
+      await http.post('/auth/login', { email: email.trim(), password, remember });
+      router.replace('/');
+      router.refresh();
+    } catch (loginError) {
+      const message = loginError instanceof HttpError && loginError.status === 401
+        ? 'Email address or password is incorrect.'
+        : 'Unable to sign in. Check that the API and database are running.';
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -85,7 +100,9 @@ export default function LoginPage() {
             <Link className={styles.link} href="/forgot-password">Forgot Password</Link>
           </div>
 
-          <button className={styles.button} type="submit">Login</button>
+          <button className={styles.button} type="submit" disabled={submitting}>
+            {submitting ? 'Signing in...' : 'Login'}
+          </button>
         </form>
       </section>
     </main>
