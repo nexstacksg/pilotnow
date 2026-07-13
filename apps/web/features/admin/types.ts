@@ -6,7 +6,8 @@ export type Screen =
   | 'summary'
   | 'payments'
   | 'billing'
-  | 'reports';
+  | 'reports'
+  | 'profile';
 
 export type JobStatus =
   | 'Draft'
