@@ -1,12 +1,17 @@
-import { createHash, randomBytes, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
-import { and, eq, gt } from 'drizzle-orm';
+import { createHash, randomBytes, randomInt, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
+import { and, desc, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import { createDb, schema } from '@pilotnow/db';
+import { sendPasswordResetCode } from './email.js';
 
 export const SESSION_COOKIE = 'pilotnow_session';
 
 const SESSION_HOURS = 12;
 const REMEMBER_DAYS = 30;
 const SCRYPT_KEY_LENGTH = 64;
+const RESET_CODE_LIFETIME_MS = 10 * 60 * 1000;
+const RESET_TOKEN_LIFETIME_MS = 15 * 60 * 1000;
+const RESET_REQUEST_COOLDOWN_MS = 60 * 1000;
+const RESET_MAX_ATTEMPTS = 5;
 
 let db: ReturnType<typeof createDb> | undefined;
 
@@ -104,4 +109,148 @@ export async function findAdminBySessionToken(token: string) {
 export async function deleteAdminSession(token: string | undefined) {
   if (!token) return;
   await getDb().delete(schema.adminSessions).where(eq(schema.adminSessions.tokenHash, tokenHash(token)));
+}
+
+export async function requestPasswordReset(email: string) {
+  const admin = await findAdminByEmail(email);
+  if (!admin?.active) return {};
+
+  const database = getDb();
+  const now = new Date();
+  const [latest] = await database
+    .select({ createdAt: schema.adminPasswordResets.createdAt })
+    .from(schema.adminPasswordResets)
+    .where(and(
+      eq(schema.adminPasswordResets.userId, admin.id),
+      isNull(schema.adminPasswordResets.consumedAt),
+    ))
+    .orderBy(desc(schema.adminPasswordResets.createdAt))
+    .limit(1);
+
+  if (latest && now.getTime() - latest.createdAt.getTime() < RESET_REQUEST_COOLDOWN_MS) return {};
+
+  await database
+    .update(schema.adminPasswordResets)
+    .set({ consumedAt: now })
+    .where(and(
+      eq(schema.adminPasswordResets.userId, admin.id),
+      isNull(schema.adminPasswordResets.consumedAt),
+    ));
+
+  const code = String(randomInt(0, 10_000)).padStart(4, '0');
+  const [created] = await database
+    .insert(schema.adminPasswordResets)
+    .values({
+      userId: admin.id,
+      codeHash: tokenHash(code),
+      expiresAt: new Date(now.getTime() + RESET_CODE_LIFETIME_MS),
+    })
+    .returning({ id: schema.adminPasswordResets.id });
+
+  try {
+    const delivery = await sendPasswordResetCode(admin.email, code);
+    return delivery === 'development' ? { developmentCode: code } : {};
+  } catch (error) {
+    if (created) {
+      await database.delete(schema.adminPasswordResets).where(eq(schema.adminPasswordResets.id, created.id));
+    }
+    throw error;
+  }
+}
+
+export async function verifyPasswordResetCode(email: string, code: string) {
+  const admin = await findAdminByEmail(email);
+  if (!admin?.active) return null;
+
+  const database = getDb();
+  const now = new Date();
+  const [reset] = await database
+    .select()
+    .from(schema.adminPasswordResets)
+    .where(and(
+      eq(schema.adminPasswordResets.userId, admin.id),
+      isNull(schema.adminPasswordResets.verifiedAt),
+      isNull(schema.adminPasswordResets.consumedAt),
+      gt(schema.adminPasswordResets.expiresAt, now),
+    ))
+    .orderBy(desc(schema.adminPasswordResets.createdAt))
+    .limit(1);
+
+  if (!reset || reset.attempts >= RESET_MAX_ATTEMPTS) return null;
+
+  if (reset.codeHash !== tokenHash(code)) {
+    const attempts = reset.attempts + 1;
+    await database
+      .update(schema.adminPasswordResets)
+      .set({ attempts, ...(attempts >= RESET_MAX_ATTEMPTS ? { consumedAt: now } : {}) })
+      .where(and(
+        eq(schema.adminPasswordResets.id, reset.id),
+        isNull(schema.adminPasswordResets.verifiedAt),
+        isNull(schema.adminPasswordResets.consumedAt),
+      ));
+    return null;
+  }
+
+  const resetToken = randomBytes(32).toString('base64url');
+  const [verified] = await database
+    .update(schema.adminPasswordResets)
+    .set({
+      resetTokenHash: tokenHash(resetToken),
+      verifiedAt: now,
+      expiresAt: new Date(now.getTime() + RESET_TOKEN_LIFETIME_MS),
+    })
+    .where(and(
+      eq(schema.adminPasswordResets.id, reset.id),
+      isNull(schema.adminPasswordResets.verifiedAt),
+      isNull(schema.adminPasswordResets.consumedAt),
+    ))
+    .returning({ id: schema.adminPasswordResets.id });
+
+  return verified ? resetToken : null;
+}
+
+export async function completePasswordReset(resetToken: string, password: string) {
+  const database = getDb();
+  const now = new Date();
+  const [reset] = await database
+    .select({ id: schema.adminPasswordResets.id, userId: schema.adminPasswordResets.userId })
+    .from(schema.adminPasswordResets)
+    .where(and(
+      eq(schema.adminPasswordResets.resetTokenHash, tokenHash(resetToken)),
+      isNotNull(schema.adminPasswordResets.verifiedAt),
+      isNull(schema.adminPasswordResets.consumedAt),
+      gt(schema.adminPasswordResets.expiresAt, now),
+    ))
+    .limit(1);
+
+  if (!reset) return false;
+
+  const passwordHash = await hashPassword(password);
+  await database.transaction(async (tx) => {
+    const [consumed] = await tx
+      .update(schema.adminPasswordResets)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(schema.adminPasswordResets.id, reset.id),
+        isNull(schema.adminPasswordResets.consumedAt),
+      ))
+      .returning({ id: schema.adminPasswordResets.id });
+
+    if (!consumed) throw new Error('Password reset token was already consumed');
+
+    await tx
+      .update(schema.adminUsers)
+      .set({ passwordHash, updatedAt: now })
+      .where(eq(schema.adminUsers.id, reset.userId));
+    await tx.delete(schema.adminSessions).where(eq(schema.adminSessions.userId, reset.userId));
+    await tx
+      .update(schema.adminPasswordResets)
+      .set({ consumedAt: now })
+      .where(and(
+        eq(schema.adminPasswordResets.userId, reset.userId),
+        isNull(schema.adminPasswordResets.consumedAt),
+      ));
+  });
+
+  return true;
 }

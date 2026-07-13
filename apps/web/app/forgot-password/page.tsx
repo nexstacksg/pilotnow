@@ -3,11 +3,25 @@
 import { Check, CircleCheck } from 'lucide-react';
 import Link from 'next/link';
 import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { HttpError } from '@pilotnow/api-client';
 import styles from '../auth.module.css';
+import { http } from '../../lib/api';
 
 type ResetStep = 'email' | 'code' | 'password' | 'success';
 
-const INITIAL_SECONDS = 59;
+const INITIAL_SECONDS = 10 * 60;
+const RESEND_WAIT_SECONDS = 60;
+
+type ResetRequestResponse = { developmentCode?: string };
+type ResetVerifyResponse = { resetToken: string };
+
+function apiErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof HttpError && error.body && typeof error.body === 'object' && 'error' in error.body) {
+    const message = error.body.error;
+    if (typeof message === 'string') return message;
+  }
+  return fallback;
+}
 
 export default function ForgotPasswordPage() {
   const [step, setStep] = useState<ResetStep>('email');
@@ -16,7 +30,10 @@ export default function ForgotPasswordPage() {
   const [seconds, setSeconds] = useState(INITIAL_SECONDS);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [developmentCode, setDevelopmentCode] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const codeRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   useEffect(() => {
@@ -25,15 +42,25 @@ export default function ForgotPasswordPage() {
     return () => window.clearInterval(timer);
   }, [step, seconds]);
 
-  function requestCode(event: FormEvent<HTMLFormElement>) {
+  async function requestCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!email.trim() || !email.includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
     setError('');
-    setSeconds(INITIAL_SECONDS);
-    setStep('code');
+    setSubmitting(true);
+    try {
+      const response = await http.post<ResetRequestResponse>('/auth/password-reset/request', { email: email.trim() });
+      setDevelopmentCode(response.developmentCode ?? '');
+      setCode(response.developmentCode?.split('') ?? ['', '', '', '']);
+      setSeconds(INITIAL_SECONDS);
+      setStep('code');
+    } catch (requestError) {
+      setError(apiErrorMessage(requestError, 'Unable to request a reset code. Please try again.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function updateCode(index: number, value: string) {
@@ -46,24 +73,46 @@ export default function ForgotPasswordPage() {
     if (event.key === 'Backspace' && !code[index] && index > 0) codeRefs.current[index - 1]?.focus();
   }
 
-  function verifyCode(event: FormEvent<HTMLFormElement>) {
+  async function verifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (code.join('').length !== 4) {
       setError('Enter the complete 4-digit code.');
       return;
     }
     setError('');
-    setStep('password');
+    setSubmitting(true);
+    try {
+      const response = await http.post<ResetVerifyResponse>('/auth/password-reset/verify', {
+        email: email.trim(),
+        code: code.join(''),
+      });
+      setResetToken(response.resetToken);
+      setStep('password');
+    } catch (verifyError) {
+      setError(apiErrorMessage(verifyError, 'Unable to verify the code. Please try again.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function resetCode() {
-    setCode(['', '', '', '']);
-    setSeconds(INITIAL_SECONDS);
+  async function resetCode() {
+    if (seconds > INITIAL_SECONDS - RESEND_WAIT_SECONDS || submitting) return;
     setError('');
-    window.setTimeout(() => codeRefs.current[0]?.focus(), 0);
+    setSubmitting(true);
+    try {
+      const response = await http.post<ResetRequestResponse>('/auth/password-reset/request', { email: email.trim() });
+      setDevelopmentCode(response.developmentCode ?? '');
+      setCode(response.developmentCode?.split('') ?? ['', '', '', '']);
+      setSeconds(INITIAL_SECONDS);
+      window.setTimeout(() => codeRefs.current[0]?.focus(), 0);
+    } catch (requestError) {
+      setError(apiErrorMessage(requestError, 'Unable to resend the code. Please try again.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
-  function submitPassword(event: FormEvent<HTMLFormElement>) {
+  async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
@@ -73,9 +122,24 @@ export default function ForgotPasswordPage() {
       setError('Passwords do not match.');
       return;
     }
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setError('Password must include at least one letter and one number.');
+      return;
+    }
     setError('');
-    setStep('success');
+    setSubmitting(true);
+    try {
+      await http.post('/auth/password-reset/complete', { resetToken, password });
+      setStep('success');
+    } catch (resetError) {
+      setError(apiErrorMessage(resetError, 'Unable to reset the password. Please request a new code.'));
+    } finally {
+      setSubmitting(false);
+    }
   }
+
+  const timer = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  const canResend = seconds <= INITIAL_SECONDS - RESEND_WAIT_SECONDS;
 
   return (
     <main className={styles.page}>
@@ -103,7 +167,9 @@ export default function ForgotPasswordPage() {
               </div>
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <button className={styles.button} type="submit">Get Reset Code</button>
+            <button className={styles.button} type="submit" disabled={submitting}>
+              {submitting ? 'Sending...' : 'Get Reset Code'}
+            </button>
           </form>
           <p className={styles.backLink}>Go back to&nbsp; <Link className={styles.link} href="/login">Login page</Link></p>
         </section>
@@ -131,11 +197,14 @@ export default function ForgotPasswordPage() {
                 />
               ))}
             </div>
-            <p className={styles.timer}>code expire in : <span>00:{String(seconds).padStart(2, '0')}</span></p>
+            <p className={styles.timer}>Code expires in: <span>{timer}</span></p>
+            {developmentCode && <p className={styles.timer}>Development code: <span>{developmentCode}</span></p>}
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <button className={styles.button} type="submit">Continue</button>
+            <button className={styles.button} type="submit" disabled={submitting}>
+              {submitting ? 'Verifying...' : 'Continue'}
+            </button>
           </form>
-          <p className={styles.resend}>Didn&apos;t get the code? <button className={styles.link} type="button" onClick={resetCode}>Resend Code</button></p>
+          <p className={styles.resend}>Didn&apos;t get the code? <button className={styles.link} type="button" onClick={resetCode} disabled={!canResend || submitting}>Resend Code</button></p>
         </section>
       )}
 
@@ -143,7 +212,7 @@ export default function ForgotPasswordPage() {
         <section className={`${styles.panel} ${styles.resetPanel}`} aria-labelledby="password-heading">
           <h1 className={styles.brand}>PilotNow</h1>
           <h2 id="password-heading" className={styles.title}>Create New Password</h2>
-          <p className={`${styles.subtitle} ${styles.leftSubtitle}`}>Enter new a new password . It must be min. 8 characters with a<br /> combinations of letters &amp; numbers</p>
+          <p className={`${styles.subtitle} ${styles.leftSubtitle}`}>Enter a new password. It must be at least 8 characters with a<br /> combination of letters &amp; numbers.</p>
           <form className={styles.form} onSubmit={submitPassword} noValidate>
             <div className={styles.field}>
               <label htmlFor="new-password">Enter new password</label>
@@ -170,7 +239,9 @@ export default function ForgotPasswordPage() {
               />
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <button className={styles.button} type="submit">Submit</button>
+            <button className={styles.button} type="submit" disabled={submitting}>
+              {submitting ? 'Resetting...' : 'Submit'}
+            </button>
           </form>
           <p className={styles.backLink}>Go back to&nbsp; <Link className={styles.link} href="/login">Login page</Link></p>
         </section>
