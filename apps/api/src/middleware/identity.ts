@@ -14,9 +14,17 @@ declare module 'hono' {
   }
 }
 
+const PUBLIC_PATHS = new Set([
+  '/health',
+  '/auth/login',
+  '/auth/password-reset/request',
+  '/auth/password-reset/verify',
+  '/auth/password-reset/complete',
+]);
+
 export function identity(): MiddlewareHandler {
   return async (c, next) => {
-    if (c.req.method === 'OPTIONS' || c.req.path === '/health' || c.req.path === '/auth/login') {
+    if (c.req.method === 'OPTIONS' || PUBLIC_PATHS.has(c.req.path)) {
       await next();
       return;
     }
