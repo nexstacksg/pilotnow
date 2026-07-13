@@ -112,21 +112,33 @@ export function StatCard({
   hint,
   icon,
   tone = 'muted',
+  onClick,
+  ariaLabel,
 }: {
   label: string;
   value: string | number;
   hint: string;
   icon?: ReactNode;
   tone?: 'muted' | 'success' | 'warning' | 'info' | 'danger';
+  onClick?: () => void;
+  ariaLabel?: string;
 }) {
-  return (
-    <Card>
+  const content = (
+    <>
       <div className="pn-stat-head">
         <span>{label}</span>
         <span className={`pn-stat-dot pn-stat-${tone}`}>{icon}</span>
       </div>
       <strong className="pn-stat-value">{value}</strong>
       <p className={`pn-stat-hint pn-text-${tone}`}>{hint}</p>
-    </Card>
+    </>
+  );
+
+  return onClick ? (
+    <button aria-label={ariaLabel ?? label} className="pn-card pn-stat-card-action" onClick={onClick} type="button">
+      {content}
+    </button>
+  ) : (
+    <Card>{content}</Card>
   );
 }

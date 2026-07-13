@@ -40,7 +40,7 @@ import { ReportsScreen } from './screens/ReportsScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
-import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, Officer, OfficerForm, Payment, Screen } from './types';
 
 const navIcons: Record<Screen, ReactNode> = {
   dashboard: <DashboardIcon />,
@@ -126,10 +126,16 @@ export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
   initialSummaryJobId = null,
+  initialJobFilter = 'All',
+  initialBillingFilter = 'All',
+  initialBillId = null,
 }: {
   initialScreen?: Screen;
   initialJobId?: string;
   initialSummaryJobId?: string | null;
+  initialJobFilter?: JobListFilter;
+  initialBillingFilter?: BillingFilter;
+  initialBillId?: string | null;
 }) {
   const router = useRouter();
   const [screen, setScreen] = useState<Screen>(initialScreen);
@@ -138,12 +144,13 @@ export function AdminApp({
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
-  const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
+  const [jobFilter, setJobFilter] = useState<JobListFilter>(initialJobFilter);
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>(initialBillingFilter);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
   const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
-  const [billId, setBillId] = useState<string | null>(null);
+  const [billId, setBillId] = useState<string | null>(initialBillId);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
@@ -169,7 +176,10 @@ export function AdminApp({
     setScreen(initialScreen);
     setJobId(initialJobId);
     setSummaryJobId(initialSummaryJobId);
-  }, [initialJobId, initialScreen, initialSummaryJobId]);
+    setJobFilter(initialJobFilter);
+    setBillingFilter(initialBillingFilter);
+    setBillId(initialBillId);
+  }, [initialBillId, initialBillingFilter, initialJobFilter, initialJobId, initialScreen, initialSummaryJobId]);
 
   const stats = useMemo(() => {
     const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
@@ -200,9 +210,33 @@ export function AdminApp({
     setPayOfficer(null);
     setReportJobId(null);
     setOfficerProfileId(null);
+    if (nextScreen === 'jobs') setJobFilter('All');
+    if (nextScreen === 'billing') setBillingFilter('All');
     setScreen(nextScreen);
     if (nextScreen === 'summary') setSummaryJobId(null);
     router.push(routeForScreen(nextScreen, selectedJob.id));
+  }
+
+  function openJobs(filter: JobListFilter) {
+    setBillId(null);
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setJobFilter(filter);
+    setScreen('jobs');
+    router.push(`/admin/job?view=${encodeURIComponent(filter)}`);
+  }
+
+  function openBilling(jobId?: string, filter: BillingFilter = 'Not Billed') {
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setBillingFilter(filter);
+    setBillId(jobId ?? null);
+    if (jobId) setBillForm({ invoice: '', billedDate: TODAY });
+    setScreen('billing');
+    const jobQuery = jobId ? `&job=${encodeURIComponent(jobId)}` : '';
+    router.push(`/billing?view=${encodeURIComponent(filter)}${jobQuery}`);
   }
 
   function openJob(id: string) {
@@ -624,10 +658,12 @@ export function AdminApp({
               snapshot={dashboardSnapshot ?? fallbackDashboard}
               openCreateJob={openCreateJob}
               openJob={openJob}
+              openJobs={openJobs}
+              openBilling={openBilling}
               setScreen={navigateToScreen}
             />
           ) : null}
-          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} setFilter={setJobFilter} /> : null}
+          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} queues={(dashboardSnapshot ?? fallbackDashboard).queues} setFilter={setJobFilter} /> : null}
           {screen === 'jobDetail' ? (
             <JobDetailScreen
               job={selectedJob}
@@ -652,11 +688,13 @@ export function AdminApp({
           {screen === 'billing' ? (
             jobsReady && billingReady ? (
               <BillingScreen
+                filter={billingFilter}
                 jobs={completedJobs}
                 openBill={(id) => {
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });
                 }}
+                setFilter={setBillingFilter}
               />
             ) : (
               <LoadingPanel />

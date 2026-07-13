@@ -31,6 +31,15 @@ export type DashboardSnapshot = {
   todayJobs: DashboardJob[];
   missingProofs: { jobId: string; customer: string; officer: string; expectedAt: string }[];
   unbilledJobs: DashboardJob[];
+  queues: DashboardQueues;
+};
+
+export type DashboardQueues = {
+  todayJobs: string[];
+  waitingJobs: string[];
+  ongoingJobs: string[];
+  missingPhotos: string[];
+  unbilledJobs: string[];
 };
 
 type ApiDashboardJob = Omit<DashboardJob, 'status'> & {
@@ -108,6 +117,7 @@ export function dashboardFallback(jobs: Job[], now = new Date()): DashboardSnaps
   );
   const unbilledJobs = items.filter((job) => job.status === 'Completed' && job.billingStatus === 'NOT_BILLED');
   const waitingJobs = todayJobs.filter((job) => job.status !== 'Completed' && job.assigned < job.required);
+  const ongoingJobs = items.filter((job) => job.status === 'Ongoing');
 
   return {
     source: 'fallback',
@@ -116,7 +126,7 @@ export function dashboardFallback(jobs: Job[], now = new Date()): DashboardSnaps
     metrics: {
       todayJobs: todayJobs.length,
       waitingJobs: waitingJobs.length,
-      ongoingJobs: items.filter((job) => job.status === 'Ongoing').length,
+      ongoingJobs: ongoingJobs.length,
       missingPhotos: missingProofs.length,
       officersNeeded: waitingJobs.reduce((sum, job) => sum + Math.max(0, job.required - job.assigned), 0),
       notBilled: unbilledJobs.length,
@@ -125,5 +135,12 @@ export function dashboardFallback(jobs: Job[], now = new Date()): DashboardSnaps
     todayJobs,
     missingProofs,
     unbilledJobs,
+    queues: {
+      todayJobs: todayJobs.map((job) => job.id),
+      waitingJobs: waitingJobs.map((job) => job.id),
+      ongoingJobs: ongoingJobs.map((job) => job.id),
+      missingPhotos: [...new Set(missingProofs.map((proof) => proof.jobId))],
+      unbilledJobs: unbilledJobs.map((job) => job.id),
+    },
   };
 }

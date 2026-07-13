@@ -1,11 +1,31 @@
 import { Badge, Button } from '../components/ui';
 import { dateLabel } from '../lib/format';
-import type { Job } from '../types';
+import type { BillingFilter, Job } from '../types';
 
-export function BillingScreen({ jobs, openBill }: { jobs: Job[]; openBill: (id: string) => void }) {
+export function BillingScreen({
+  jobs,
+  filter,
+  setFilter,
+  openBill,
+}: {
+  jobs: Job[];
+  filter: BillingFilter;
+  setFilter: (filter: BillingFilter) => void;
+  openBill: (id: string) => void;
+}) {
+  const filters: BillingFilter[] = ['All', 'Not Billed', 'Billed'];
+  const filtered = filter === 'All' ? jobs : jobs.filter((job) => job.billing === filter);
+
   return (
     <div className="pn-billing-screen">
       <p className="pn-billing-intro">Completed jobs and their customer billing status.</p>
+      <div className="pn-tabs">
+        {filters.map((item) => (
+          <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
+            {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.billing === item).length}
+          </button>
+        ))}
+      </div>
       <div className="pn-table pn-table-billing">
         <div className="pn-table-head">
           <span>Job</span>
@@ -15,7 +35,7 @@ export function BillingScreen({ jobs, openBill }: { jobs: Job[]; openBill: (id: 
           <span>Billed</span>
           <span>Status</span>
         </div>
-        {jobs.map((job) => (
+        {filtered.map((job) => (
           <div className="pn-table-row" key={job.id}>
             <span className="pn-mono pn-billing-job">{job.id}</span>
             <span className="pn-billing-customer">{job.customer}</span>
@@ -33,7 +53,7 @@ export function BillingScreen({ jobs, openBill }: { jobs: Job[]; openBill: (id: 
             </span>
           </div>
         ))}
-        {!jobs.length ? <div className="pn-empty">No completed jobs are ready for billing.</div> : null}
+        {!filtered.length ? <div className="pn-empty">No completed jobs match this billing filter.</div> : null}
       </div>
     </div>
   );
