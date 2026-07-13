@@ -87,6 +87,39 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
+function paymentKey(payment: Payment) {
+  return `${payment.jobId}::${payment.officer}`;
+}
+
+function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
+  const existingById = new Map(existingPayments.map((payment) => [payment.id, payment]));
+  const existingByJobOfficer = new Map(existingPayments.map((payment) => [paymentKey(payment), payment]));
+  const rows = [...existingPayments];
+
+  jobs
+    .filter((job) => job.status === 'Completed')
+    .forEach((job) => {
+      const scheduled = hours(job.start, job.end);
+      job.officers.forEach((officer) => {
+        const id = `local:${job.id}:${officer.oid}`;
+        if (existingById.has(id) || existingByJobOfficer.has(`${job.id}::${officer.name}`)) return;
+        const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
+        rows.push({
+          id,
+          officer: officer.name,
+          jobId: job.id,
+          jobDate: job.date,
+          hours: worked,
+          rate: officer.rate,
+          status: 'Pending',
+          paidDate: '',
+        });
+      });
+    });
+
+  return rows.sort((a, b) => b.jobDate.localeCompare(a.jobDate) || a.officer.localeCompare(b.officer));
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -126,6 +159,7 @@ export function AdminApp({
   const fallbackJob = jobsSeed[0] as Job;
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
+  const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
 
   useLayoutEffect(() => {
@@ -135,7 +169,7 @@ export function AdminApp({
   }, [initialJobId, initialScreen, initialSummaryJobId]);
 
   const stats = useMemo(() => {
-    const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
+    const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
     return {
       todayJobs: jobs.filter((job) => job.date === TODAY && job.status !== 'Cancelled').length,
       openJobs: jobs.filter((job) => job.status === 'Open').length,
@@ -145,7 +179,7 @@ export function AdminApp({
       pendingPayments,
       notBilled: completedJobs.filter((job) => job.billing === 'Not Billed').length,
     };
-  }, [completedJobs, jobs, payments]);
+  }, [completedJobs, financePayments, jobs]);
 
   function flash(message: string) {
     setToast(message);
@@ -343,7 +377,18 @@ export function AdminApp({
   }
 
   async function markPaid(id: string) {
-    setPayments((items) => items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment)));
+    const localPayment = financePayments.find((payment) => payment.id === id);
+    setPayments((items) => {
+      if (items.some((payment) => payment.id === id)) {
+        return items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment));
+      }
+      return localPayment ? [{ ...localPayment, status: 'Paid', paidDate: TODAY }, ...items] : items;
+    });
+
+    if (id.startsWith('local:')) {
+      flash('Payment marked as paid locally');
+      return;
+    }
 
     try {
       const updated = await markOfficerPaymentPaid(id);
@@ -586,7 +631,7 @@ export function AdminApp({
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
-          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
+          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
             jobsReady && billingReady ? (
               <BillingScreen
@@ -600,7 +645,7 @@ export function AdminApp({
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} report={operationsReport} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} /> : <LoadingPanel />) : null}
         </div>
       </main>
 
@@ -685,7 +730,7 @@ export function AdminApp({
           }}
         />
       ) : null}
-      {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={payments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
+      {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={financePayments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
       {toast ? <div className="pn-toast">{toast}</div> : null}
     </div>
   );
