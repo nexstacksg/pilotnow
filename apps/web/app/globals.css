@@ -3333,8 +3333,8 @@ button {
 .pn-profile-account-summary {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 9px;
+  gap: 10px;
+  padding: 11px 12px;
   border-bottom: 1px solid #ededed;
 }
 
@@ -3357,7 +3357,7 @@ button {
 .pn-profile-account-summary strong,
 .pn-profile-account-trigger strong {
   color: #111;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 650;
 }
 
@@ -3365,7 +3365,7 @@ button {
 .pn-profile-account-trigger small {
   margin-top: 2px;
   color: #a3a3a3;
-  font-size: 8px;
+  font-size: 9px;
 }
 
 .pn-profile-mini-avatar,
@@ -3377,8 +3377,8 @@ button {
 }
 
 .pn-profile-mini-avatar {
-  width: 29px;
-  height: 29px;
+  width: 32px;
+  height: 32px;
   background: #080a0d;
   color: #fff;
   font-size: 10px;
@@ -3393,21 +3393,33 @@ button {
   font-size: 10px;
 }
 
-.pn-profile-account-menu > a {
+.pn-profile-account-menu > a,
+.pn-profile-account-menu > button {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: #333;
-  font-size: 11px;
-  padding: 8px 10px;
+  font-size: 12px;
+  padding: 11px 12px;
   text-decoration: none;
 }
 
-.pn-profile-account-menu > a:hover {
+.pn-profile-account-menu > button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pn-profile-account-menu > a:hover,
+.pn-profile-account-menu > button:hover {
   background: #f7f7f7;
 }
 
-.pn-profile-account-menu > a.is-danger {
+.pn-profile-account-menu > a.is-danger,
+.pn-profile-account-menu > button.is-danger {
   color: #c51d1d;
 }
 

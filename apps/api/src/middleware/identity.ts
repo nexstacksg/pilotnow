@@ -4,7 +4,9 @@
 // (confirm job, complete, mark PAID, mark BILLED — see FR-032/FR-036).
 
 import type { MiddlewareHandler } from 'hono';
+import { getCookie } from 'hono/cookie';
 import type { Actor } from '@pilotnow/shared';
+import { findAdminBySessionToken, SESSION_COOKIE } from '../services/auth.js';
 
 declare module 'hono' {
   interface ContextVariableMap {
@@ -14,14 +16,24 @@ declare module 'hono' {
 
 export function identity(): MiddlewareHandler {
   return async (c, next) => {
-    // TODO: real auth. Placeholder: agent token header → AGENT, else HUMAN dev user.
+    if (c.req.method === 'OPTIONS' || c.req.path === '/health' || c.req.path === '/auth/login') {
+      await next();
+      return;
+    }
+
     const agentToken = c.req.header('x-agent-token');
     if (agentToken) {
-      // TODO: validate token, resolve agent name
+      // Agent credential validation remains separate from human admin sessions.
       c.set('actor', { type: 'AGENT', id: 'agent:dev' });
-    } else {
-      c.set('actor', { type: 'HUMAN', id: 'user:dev' });
+      await next();
+      return;
     }
+
+    const token = getCookie(c, SESSION_COOKIE);
+    const admin = token ? await findAdminBySessionToken(token) : null;
+    if (!admin) return c.json({ error: 'Authentication required' }, 401);
+
+    c.set('actor', { type: 'HUMAN', id: `user:${admin.id}` });
     await next();
   };
 }
