@@ -6,7 +6,6 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import {
   BillingIcon,
   CheckIcon,
-  ChevronDownIcon,
   CopyIcon,
   DashboardIcon,
   JobsIcon,
@@ -21,6 +20,7 @@ import {
   SummaryIcon,
 } from './components/icons';
 import { Badge, Button, Field, Modal } from './components/ui';
+import { AdminAccountMenu } from './components/AdminAccountMenu';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
@@ -37,12 +37,15 @@ import { JobsScreen } from './screens/JobsScreen';
 import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
 import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, Officer, OfficerForm, Payment, Screen } from './types';
 
-const navIcons: Record<Screen, ReactNode> = {
+type NavigationScreen = Exclude<Screen, 'profile'>;
+
+const navIcons: Record<NavigationScreen, ReactNode> = {
   dashboard: <DashboardIcon />,
   jobs: <JobsIcon />,
   jobDetail: <JobsIcon />,
@@ -53,7 +56,7 @@ const navIcons: Record<Screen, ReactNode> = {
   reports: <ReportsIcon />,
 };
 
-const navGroups: { label: string; items: { screen: Screen; label: string }[] }[] = [
+const navGroups: { label: string; items: { screen: NavigationScreen; label: string }[] }[] = [
   { label: 'Operations', items: [{ screen: 'dashboard', label: 'Dashboard' }, { screen: 'jobs', label: 'Jobs' }] },
   { label: 'People', items: [{ screen: 'officers', label: 'Officer Management' }] },
   {
@@ -701,14 +704,7 @@ export function AdminApp({
             </div>
           ))}
         </nav>
-        <div className="pn-user">
-          <div>SL</div>
-          <span>
-            <strong>Serene Lau</strong>
-            Operations Admin
-          </span>
-          <ChevronDownIcon size={15} stroke="#A3A3A3" strokeWidth={2} />
-        </div>
+        <AdminAccountMenu />
       </aside>
 
       <main className="pn-main">
@@ -771,7 +767,7 @@ export function AdminApp({
           </Button>
         </header>
 
-        <div className="pn-content">
+        <div className={screen === 'profile' ? 'pn-content pn-profile-content' : 'pn-content'}>
           {screen === 'dashboard' ? (
             <DashboardScreen
               snapshot={dashboardSnapshot ?? fallbackDashboard}
@@ -820,6 +816,7 @@ export function AdminApp({
             )
           ) : null}
           {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} /> : <LoadingPanel />) : null}
+          {screen === 'profile' ? <ProfileScreen /> : null}
         </div>
       </main>
 

@@ -8,6 +8,7 @@ export const adminRoutes: Record<Exclude<Screen, 'jobDetail'>, string> = {
   payments: '/payments',
   billing: '/billing',
   reports: '/reports',
+  profile: '/profile',
 };
 
 export function routeForScreen(screen: Screen, jobId = 'PN-2041') {
