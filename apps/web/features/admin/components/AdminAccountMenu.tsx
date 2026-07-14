@@ -6,7 +6,7 @@ import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { http } from '../../../lib/api';
 
-type AdminUser = { id: string; email: string; name: string; role: string };
+type AdminUser = { id: string; email: string; name: string; role: string; avatarUrl: string | null };
 
 function initials(name: string) {
   return name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase();
@@ -58,13 +58,14 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
 
   const displayName = user?.name ?? 'PilotNow Admin';
   const displayInitials = initials(displayName);
+  const avatar = user?.avatarUrl;
 
   return (
     <div className="pn-profile-account" ref={menuRef}>
       {open ? (
         <div aria-label="Account menu" className="pn-profile-account-menu" role="menu">
           <div className="pn-profile-account-summary">
-            <span className="pn-profile-mini-avatar">{displayInitials}</span>
+            <span className="pn-profile-mini-avatar">{avatar ? <img alt="" src={avatar} /> : displayInitials}</span>
             <span>
               <strong>{displayName}</strong>
               <small>{user?.email ?? ''}</small>
@@ -87,7 +88,7 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
-        <span className="pn-profile-trigger-avatar">{displayInitials}</span>
+        <span className="pn-profile-trigger-avatar">{avatar ? <img alt="" src={avatar} /> : displayInitials}</span>
         <span>
           <strong>{displayName}</strong>
           <small>{user?.role ?? 'Operations Admin'}</small>

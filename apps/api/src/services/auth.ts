@@ -76,7 +76,13 @@ export async function findAdminByEmail(email: string) {
 
 export async function findAdminById(id: string) {
   const [admin] = await getDb()
-    .select({ id: schema.adminUsers.id, email: schema.adminUsers.email, name: schema.adminUsers.name, role: schema.adminUsers.role })
+    .select({
+      id: schema.adminUsers.id,
+      email: schema.adminUsers.email,
+      name: schema.adminUsers.name,
+      role: schema.adminUsers.role,
+      avatarUrl: schema.adminUsers.avatarUrl,
+    })
     .from(schema.adminUsers)
     .where(and(eq(schema.adminUsers.id, id), eq(schema.adminUsers.active, true)))
     .limit(1);
