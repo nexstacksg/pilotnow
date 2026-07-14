@@ -33,6 +33,12 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           PILOTNOW_API_URL: ${{ secrets.PILOTNOW_API_URL }}
           PILOTNOW_AGENT_TOKEN: ${{ secrets.PILOTNOW_AGENT_TOKEN }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ secrets.SMTP_FROM }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
           API_PORT: ${{ vars.API_PORT }}
         run: |
           if [ -n "$PILOTNOW_ENV_FILE" ]; then
@@ -49,6 +55,12 @@ jobs:
               printf 'NEXT_PUBLIC_API_URL=%s\n' "${NEXT_PUBLIC_API_URL:-http://localhost:4000}"
               printf 'PILOTNOW_API_URL=%s\n' "${PILOTNOW_API_URL:-http://localhost:4000}"
               printf 'PILOTNOW_AGENT_TOKEN=%s\n' "$PILOTNOW_AGENT_TOKEN"
+              printf 'SMTP_HOST=%s\n' "${SMTP_HOST:-smtp.resend.com}"
+              printf 'SMTP_PORT=%s\n' "${SMTP_PORT:-465}"
+              printf 'SMTP_USER=%s\n' "${SMTP_USER:-resend}"
+              printf 'SMTP_PASS=%s\n' "$SMTP_PASS"
+              printf 'SMTP_FROM=%s\n' "$SMTP_FROM"
+              printf 'SMTP_SECURE=%s\n' "${SMTP_SECURE:-true}"
             } > .env
           fi
 
