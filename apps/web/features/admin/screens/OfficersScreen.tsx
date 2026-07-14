@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, Button } from '../components/ui';
+import { Badge, Button, Pagination } from '../components/ui';
 import { OfficersIcon } from '../components/icons';
 import { initials, money } from '../lib/format';
 import type { Officer } from '../types';
@@ -60,22 +60,7 @@ export function OfficersScreen({ officers, openOfficer, openOfficerProfile, sear
           </button>
         ))}
       </div>
-      {pageCount > 1 ? <div className="pn-pagination" aria-label="Officer pagination">
-        <span>
-          Showing {from}-{to} of {filteredOfficers.length}
-        </span>
-        <div>
-          <Button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-            Previous
-          </Button>
-          <strong>
-            Page {currentPage} of {pageCount}
-          </strong>
-          <Button disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
-            Next
-          </Button>
-        </div>
-      </div> : null}
+      <Pagination from={from} label="Officer" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filteredOfficers.length} />
     </div>
   );
 }

@@ -65,6 +65,45 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="pn-empty">{children}</div>;
 }
 
+export function Pagination({
+  page,
+  pageCount,
+  from,
+  to,
+  total,
+  label = 'records',
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  from: number;
+  to: number;
+  total: number;
+  label?: string;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <div className="pn-pagination" aria-label={`${label} pagination`}>
+      <span>
+        Showing {from}-{to} of {total}
+      </span>
+      <div>
+        <Button disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+          Previous
+        </Button>
+        <strong>
+          Page {page} of {pageCount}
+        </strong>
+        <Button disabled={page === pageCount} onClick={() => onPageChange(Math.min(pageCount, page + 1))}>
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function Modal({
   title,
   subtitle,

@@ -1,9 +1,11 @@
-import { Badge } from '../components/ui';
+import { useEffect, useState } from 'react';
+import { Badge, Pagination } from '../components/ui';
 import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
+const PAGE_SIZE = 8;
 const statusOrder: Partial<Record<JobStatus, number>> = {
   Draft: 0,
   Open: 1,
@@ -28,6 +30,7 @@ export function JobsScreen({
   queues?: DashboardQueues;
   openJob: (id: string) => void;
 }) {
+  const [page, setPage] = useState(1);
   const statusViews = ['All', ...defaultStatusViews] as JobListFilter[];
   const query = search.trim().toLowerCase();
 
@@ -36,6 +39,16 @@ export function JobsScreen({
     .filter((job) => !query || jobSearchText(job).includes(query))
     .slice()
     .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visibleJobs = filtered.slice(start, start + PAGE_SIZE);
+  const from = filtered.length ? start + 1 : 0;
+  const to = Math.min(start + PAGE_SIZE, filtered.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, query]);
 
   function countFor(item: JobListFilter) {
     return jobs.filter((job) => matchesJobFilter(job, item)).length;
@@ -59,7 +72,7 @@ export function JobsScreen({
           <span>Billing</span>
           <span>Status</span>
         </div>
-        {filtered.map((job) => (
+        {visibleJobs.map((job) => (
           <button className="pn-table-row" key={job.id} onClick={() => openJob(job.id)} type="button">
             <span className="pn-mono">{job.id}</span>
             <span>
@@ -88,6 +101,7 @@ export function JobsScreen({
         ))}
         {filtered.length === 0 ? <div className="pn-empty">No jobs match these filters.</div> : null}
       </div>
+      <Pagination from={from} label="Job" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filtered.length} />
     </div>
   );
 }
