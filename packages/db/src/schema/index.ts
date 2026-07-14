@@ -64,10 +64,13 @@ export const adminUsers = pgTable(
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
     name: text('name').notNull(),
+    phone: text('phone'),
+    avatarUrl: text('avatar_url'),
     role: text('role').notNull().default('Operations Admin'),
     active: boolean('active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    passwordChangedAt: timestamp('password_changed_at', { withTimezone: true }),
   },
   (t) => [uniqueIndex('admin_users_email_idx').on(t.email)],
 );

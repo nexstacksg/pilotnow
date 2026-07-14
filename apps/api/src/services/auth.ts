@@ -83,6 +83,51 @@ export async function findAdminById(id: string) {
   return admin ?? null;
 }
 
+export async function findAdminProfileById(id: string) {
+  const [admin] = await getDb()
+    .select({
+      id: schema.adminUsers.id,
+      email: schema.adminUsers.email,
+      name: schema.adminUsers.name,
+      phone: schema.adminUsers.phone,
+      avatarUrl: schema.adminUsers.avatarUrl,
+      role: schema.adminUsers.role,
+      createdAt: schema.adminUsers.createdAt,
+      passwordChangedAt: schema.adminUsers.passwordChangedAt,
+    })
+    .from(schema.adminUsers)
+    .where(and(eq(schema.adminUsers.id, id), eq(schema.adminUsers.active, true)))
+    .limit(1);
+  return admin ?? null;
+}
+
+export async function updateAdminProfile(
+  id: string,
+  profile: { name: string; phone: string | null; avatarUrl: string | null },
+) {
+  const [updated] = await getDb()
+    .update(schema.adminUsers)
+    .set({ ...profile, name: profile.name.trim(), phone: profile.phone?.trim() || null, updatedAt: new Date() })
+    .where(and(eq(schema.adminUsers.id, id), eq(schema.adminUsers.active, true)))
+    .returning({ id: schema.adminUsers.id });
+  return updated ? findAdminProfileById(updated.id) : null;
+}
+
+export async function changeAdminPassword(id: string, currentPassword: string, newPassword: string) {
+  const [admin] = await getDb()
+    .select({ passwordHash: schema.adminUsers.passwordHash })
+    .from(schema.adminUsers)
+    .where(and(eq(schema.adminUsers.id, id), eq(schema.adminUsers.active, true)))
+    .limit(1);
+  if (!admin || !(await verifyPassword(currentPassword, admin.passwordHash))) return false;
+
+  await getDb()
+    .update(schema.adminUsers)
+    .set({ passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date(), updatedAt: new Date() })
+    .where(eq(schema.adminUsers.id, id));
+  return true;
+}
+
 export async function createAdminSession(userId: string, remember: boolean) {
   const token = randomBytes(32).toString('base64url');
   const lifetimeMs = remember ? REMEMBER_DAYS * 24 * 60 * 60 * 1000 : SESSION_HOURS * 60 * 60 * 1000;

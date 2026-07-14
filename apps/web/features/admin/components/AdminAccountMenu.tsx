@@ -29,6 +29,11 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
 
   useEffect(() => {
     let active = true;
+    const updateProfile = (event: Event) => {
+      const profile = (event as CustomEvent<AdminUser>).detail;
+      if (profile?.id) setUser(profile);
+    };
+    window.addEventListener('pilotnow:profile-updated', updateProfile);
     http.get<{ user: AdminUser }>('/auth/me')
       .then(({ user: currentUser }) => {
         if (active) setUser(currentUser);
@@ -36,7 +41,10 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
       .catch(() => {
         if (active) router.replace('/login');
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.removeEventListener('pilotnow:profile-updated', updateProfile);
+    };
   }, [router]);
 
   async function handleLogout() {

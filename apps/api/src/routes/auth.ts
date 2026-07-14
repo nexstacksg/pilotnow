@@ -4,14 +4,17 @@ import { z } from 'zod';
 import {
   SESSION_COOKIE,
   completePasswordReset,
+  changeAdminPassword,
   createAdminSession,
   deleteAdminSession,
   ensureBootstrapAdmin,
   findAdminByEmail,
   findAdminById,
+  findAdminProfileById,
   requestPasswordReset,
   verifyPasswordResetCode,
   verifyPassword,
+  updateAdminProfile,
 } from '../services/auth.js';
 import { PasswordResetDeliveryError, assertPasswordResetEmailConfigured } from '../services/email.js';
 
@@ -36,6 +39,17 @@ const resetCompleteInput = z.object({
     .max(128)
     .regex(/[A-Za-z]/)
     .regex(/\d/),
+});
+
+const profileInput = z.object({
+  name: z.string().trim().min(2).max(100),
+  phone: z.string().trim().max(32).nullable(),
+  avatarUrl: z.string().max(1_500_000).regex(/^data:image\/(?:png|jpeg|webp);base64,/).nullable(),
+});
+
+const passwordChangeInput = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(128).regex(/[A-Za-z]/).regex(/\d/),
 });
 
 export const auth = new Hono()
@@ -103,6 +117,31 @@ export const auth = new Hono()
     const admin = await findAdminById(actor.id.replace(/^user:/, ''));
     if (!admin) return c.json({ error: 'Authentication required' }, 401);
     return c.json({ user: admin });
+  })
+  .get('/profile', async (c) => {
+    const actor = c.get('actor');
+    if (actor.type !== 'HUMAN') return c.json({ error: 'Human administrator required' }, 403);
+    const profile = await findAdminProfileById(actor.id.replace(/^user:/, ''));
+    if (!profile) return c.json({ error: 'Authentication required' }, 401);
+    return c.json({ profile });
+  })
+  .put('/profile', async (c) => {
+    const actor = c.get('actor');
+    if (actor.type !== 'HUMAN') return c.json({ error: 'Human administrator required' }, 403);
+    const parsed = profileInput.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'Enter a valid name, phone number, and profile photo' }, 400);
+    const profile = await updateAdminProfile(actor.id.replace(/^user:/, ''), parsed.data);
+    if (!profile) return c.json({ error: 'Profile could not be updated' }, 404);
+    return c.json({ profile });
+  })
+  .put('/password', async (c) => {
+    const actor = c.get('actor');
+    if (actor.type !== 'HUMAN') return c.json({ error: 'Human administrator required' }, 403);
+    const parsed = passwordChangeInput.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return c.json({ error: 'Use 8-128 characters with at least one letter and one number' }, 400);
+    const changed = await changeAdminPassword(actor.id.replace(/^user:/, ''), parsed.data.currentPassword, parsed.data.newPassword);
+    if (!changed) return c.json({ error: 'Current password is incorrect' }, 400);
+    return c.body(null, 204);
   })
   .post('/logout', async (c) => {
     await deleteAdminSession(getCookie(c, SESSION_COOKIE));
