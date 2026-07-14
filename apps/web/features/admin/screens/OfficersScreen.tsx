@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button } from '../components/ui';
 import { OfficersIcon } from '../components/icons';
 import { initials, money } from '../lib/format';
@@ -6,14 +6,20 @@ import type { Officer } from '../types';
 
 const PAGE_SIZE = 8;
 
-export function OfficersScreen({ officers, openOfficer, openOfficerProfile }: { officers: Officer[]; openOfficer: () => void; openOfficerProfile: (id: string) => void }) {
+export function OfficersScreen({ officers, openOfficer, openOfficerProfile, search }: { officers: Officer[]; openOfficer: () => void; openOfficerProfile: (id: string) => void; search: string }) {
   const [page, setPage] = useState(1);
-  const pageCount = Math.max(1, Math.ceil(officers.length / PAGE_SIZE));
+  const query = search.trim().toLowerCase();
+  const filteredOfficers = useMemo(() => officers.filter((officer) => !query || officerSearchText(officer).includes(query)), [officers, query]);
+  const pageCount = Math.max(1, Math.ceil(filteredOfficers.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleOfficers = useMemo(() => officers.slice(start, start + PAGE_SIZE), [officers, start]);
-  const from = officers.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, officers.length);
+  const visibleOfficers = useMemo(() => filteredOfficers.slice(start, start + PAGE_SIZE), [filteredOfficers, start]);
+  const from = filteredOfficers.length ? start + 1 : 0;
+  const to = Math.min(start + PAGE_SIZE, filteredOfficers.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [query]);
 
   return (
     <div className="pn-stack">
@@ -56,7 +62,7 @@ export function OfficersScreen({ officers, openOfficer, openOfficerProfile }: { 
       </div>
       {pageCount > 1 ? <div className="pn-pagination" aria-label="Officer pagination">
         <span>
-          Showing {from}-{to} of {officers.length}
+          Showing {from}-{to} of {filteredOfficers.length}
         </span>
         <div>
           <Button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
@@ -72,4 +78,20 @@ export function OfficersScreen({ officers, openOfficer, openOfficerProfile }: { 
       </div> : null}
     </div>
   );
+}
+
+function officerSearchText(officer: Officer) {
+  return [
+    officer.id,
+    officer.name,
+    officer.phone,
+    officer.ic ? 'IC yes' : 'No IC',
+    officer.rate,
+    `${officer.rate}/h`,
+    officer.jobsCount,
+    officer.status,
+    officer.notes,
+  ]
+    .join(' ')
+    .toLowerCase();
 }
