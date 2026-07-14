@@ -156,6 +156,7 @@ export default function ForgotPasswordPage() {
                   id="reset-email"
                   className={`${styles.input} ${error ? styles.inputError : ''}`}
                   type="email"
+                  placeholder="Enter your email address"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
                   autoComplete="email"

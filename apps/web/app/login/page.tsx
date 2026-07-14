@@ -55,6 +55,7 @@ export default function LoginPage() {
                 id="email"
                 className={`${styles.input} ${error ? styles.inputError : ''}`}
                 type="email"
+                placeholder="Enter your email address"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
@@ -73,6 +74,7 @@ export default function LoginPage() {
                 id="password"
                 className={`${styles.input} ${error ? styles.inputError : ''}`}
                 type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="current-password"
