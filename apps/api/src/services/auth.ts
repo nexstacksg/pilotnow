@@ -55,7 +55,11 @@ export async function ensureBootstrapAdmin() {
   if (password.length < 8) throw new Error('PILOTNOW_ADMIN_PASSWORD must be at least 8 characters');
 
   const database = getDb();
-  const existing = await database.select({ id: schema.adminUsers.id }).from(schema.adminUsers).limit(1);
+  const existing = await database
+    .select({ id: schema.adminUsers.id })
+    .from(schema.adminUsers)
+    .where(eq(schema.adminUsers.email, email))
+    .limit(1);
   if (existing.length) return;
 
   await database.insert(schema.adminUsers).values({

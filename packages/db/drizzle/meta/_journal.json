@@ -17,7 +17,28 @@
       "breakpoints": true
     },
     {
+      "idx": 2,
+      "version": "7",
+      "when": 1783695660384,
+      "tag": "0002_add_officer_code",
+      "breakpoints": true
+    },
+    {
       "idx": 3,
+      "version": "7",
+      "when": 1783695660385,
+      "tag": "0002_add_admin_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784007552402,
+      "tag": "0003_add_password_resets",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
       "version": "7",
       "when": 1784007552403,
       "tag": "0004_add_admin_profile",
