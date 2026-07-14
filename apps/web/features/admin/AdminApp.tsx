@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import {
   BillingIcon,
   CheckIcon,
@@ -41,7 +41,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
-import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, Officer, OfficerForm, Payment, Screen } from './types';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 type NavigationScreen = Exclude<Screen, 'profile'>;
 
@@ -112,6 +112,24 @@ function pushRoute(path: string) {
   window.history.pushState(null, '', path);
 }
 
+function paymentRowsFromJobs(jobs: Job[], payments: Payment[]) {
+  const generated = jobs.flatMap((job) =>
+    job.status === 'Completed'
+      ? job.officers.map((officer) => ({
+          id: `local:${job.id}:${officer.oid}`,
+          officer: officer.name,
+          jobId: job.id,
+          jobDate: job.date,
+          hours: officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : hours(job.start, job.end),
+          rate: officer.rate,
+          status: 'Pending' as const,
+          paidDate: '',
+        }))
+      : [],
+  );
+  return [...payments, ...generated.filter((row) => !payments.some((payment) => payment.jobId === row.jobId && payment.officer === row.officer))];
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -135,7 +153,8 @@ export function AdminApp({
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
-  const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
+  const [jobFilter, setJobFilter] = useState<JobListFilter>('All');
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>(initialBillingFilter);
   const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
@@ -252,7 +271,7 @@ export function AdminApp({
     setOfficerProfileId(null);
     setJobFilter(filter);
     setScreen('jobs');
-    router.push(`/admin/job?view=${encodeURIComponent(filter)}`);
+    pushRoute(`/admin/job?view=${encodeURIComponent(filter)}`);
   }
 
   function openBilling(jobId?: string, filter: BillingFilter = 'Not Billed') {
@@ -264,7 +283,7 @@ export function AdminApp({
     if (jobId) setBillForm({ invoice: '', billedDate: TODAY });
     setScreen('billing');
     const jobQuery = jobId ? `&job=${encodeURIComponent(jobId)}` : '';
-    router.push(`/billing?view=${encodeURIComponent(filter)}${jobQuery}`);
+    pushRoute(`/billing?view=${encodeURIComponent(filter)}${jobQuery}`);
   }
 
   function openJob(id: string) {
@@ -283,7 +302,7 @@ export function AdminApp({
 
     setScreen('officers');
     setOfficerProfileId(result.id);
-    router.push(`/admin/officers?officer=${encodeURIComponent(result.id)}`);
+    pushRoute(`/admin/officers?officer=${encodeURIComponent(result.id)}`);
   }
 
   function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {

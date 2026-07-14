@@ -1,6 +1,6 @@
 import { Badge } from '../components/ui';
 import type { DashboardQueues } from '../lib/dashboard-api';
-import { dateLabel, statusTone } from '../lib/format';
+import { TODAY, dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
@@ -22,18 +22,27 @@ export function JobsScreen({
   openJob,
 }: {
   jobs: Job[];
-  filter: JobStatus | 'All';
+  filter: JobListFilter;
   search: string;
-  setFilter: (filter: JobStatus | 'All') => void;
+  setFilter: (filter: JobListFilter) => void;
+  queues?: DashboardQueues;
   openJob: (id: string) => void;
 }) {
-  const statusViews = ['All', ...defaultStatusViews] as (JobStatus | 'All')[];
+  const statusViews = ['All', 'Today', 'Needs staffing', 'Missing photos', ...defaultStatusViews] as JobListFilter[];
   const query = search.trim().toLowerCase();
 
-  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter))
+  const filtered = jobs
+    .filter((job) => matchesJobFilter(job, filter))
     .filter((job) => !query || jobSearchText(job).includes(query))
     .slice()
     .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+
+  function countFor(item: JobListFilter) {
+    if (item === 'Today') return queues?.todayJobs.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
+    if (item === 'Needs staffing') return queues?.waitingJobs.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
+    if (item === 'Missing photos') return queues?.missingPhotos.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
+    return jobs.filter((job) => matchesJobFilter(job, item)).length;
+  }
 
   return (
     <div className="pn-stack">
@@ -84,6 +93,14 @@ export function JobsScreen({
       </div>
     </div>
   );
+}
+
+function matchesJobFilter(job: Job, filter: JobListFilter) {
+  if (filter === 'All') return true;
+  if (filter === 'Today') return job.date === TODAY && job.status !== 'Cancelled';
+  if (filter === 'Needs staffing') return job.status !== 'Completed' && job.status !== 'Cancelled' && job.officers.length < job.required;
+  if (filter === 'Missing photos') return job.photos.some((photo) => photo.status === 'missing');
+  return job.status === filter;
 }
 
 function jobSearchText(job: Job) {
