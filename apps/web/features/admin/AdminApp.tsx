@@ -856,10 +856,12 @@ export function AdminApp({
             <h1>{pageTitle}</h1>
           </div>
           <div></div>
-          <div className="pn-search">
-            <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
-            <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder="Search jobs, officers..." value={search} />
-          </div>
+          {screen !== 'dashboard' ? (
+            <div className="pn-search">
+              <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
+              <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder="Search jobs, officers..." value={search} />
+            </div>
+          ) : null}
           <Button
             variant="primary"
             onClick={openCreateJob}
