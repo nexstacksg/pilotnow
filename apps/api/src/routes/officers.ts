@@ -36,7 +36,7 @@ function getDb() {
   return db;
 }
 
-function jsonError(c: Context, status: 400 | 404, message: string) {
+function jsonError(c: Context, status: 400 | 404 | 409, message: string) {
   return c.json({ error: message }, status);
 }
 
@@ -271,4 +271,31 @@ export const officers = new Hono()
     await audit('officer.update', row.id, { ...input, status }, c.get('actor'));
     const next = await findOfficer(row.id);
     return c.json({ item: next ? serializeOfficer(next) : null });
+  })
+  .delete('/:id', async (c) => {
+    const row = await findOfficer(c.req.param('id'));
+    if (!row) {
+      return jsonError(c, 404, 'Officer not found');
+    }
+
+    const [usage] = await getDb()
+      .select({
+        assignmentsCount: sql<number>`count(distinct ${schema.jobAssignments.id})::int`,
+        proofsCount: sql<number>`count(distinct ${schema.proofPhotos.id})::int`,
+      })
+      .from(schema.officers)
+      .leftJoin(schema.jobAssignments, eq(schema.officers.id, schema.jobAssignments.officerId))
+      .leftJoin(schema.proofPhotos, eq(schema.officers.id, schema.proofPhotos.officerId))
+      .where(eq(schema.officers.id, row.id))
+      .groupBy(schema.officers.id);
+
+    const assignmentsCount = usage?.assignmentsCount ?? 0;
+    const proofsCount = usage?.proofsCount ?? 0;
+    if (assignmentsCount > 0 || proofsCount > 0) {
+      return jsonError(c, 409, 'Officer has job history and cannot be deleted. Set the officer to Inactive instead.');
+    }
+
+    await getDb().delete(schema.officers).where(eq(schema.officers.id, row.id));
+    await audit('officer.delete', row.id, { officerCode: row.officerCode, name: row.name }, c.get('actor'));
+    return c.json({ ok: true });
   });

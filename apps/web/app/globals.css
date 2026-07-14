@@ -592,7 +592,98 @@ button {
 
 .pn-table-officer-list .pn-table-head,
 .pn-table-officer-list .pn-table-row {
-  grid-template-columns: minmax(180px, 1.2fr) 150px 82px 90px 56px 100px;
+  grid-template-columns: minmax(180px, 1.2fr) 150px 82px 90px 56px 100px 78px;
+}
+
+.pn-table-officer-list {
+  overflow: visible;
+}
+
+.pn-table-officer-list .pn-table-head span:last-child,
+.pn-table-officer-list .pn-table-row > span:last-child {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+}
+
+.pn-table-officer-list .pn-table-row {
+  position: relative;
+}
+
+.pn-row-actions {
+  position: relative;
+  align-items: center;
+}
+
+.pn-action-menu-trigger {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #D4D4D4;
+  border-radius: 6px;
+  background: #fff;
+  color: #404040;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.pn-action-menu-trigger:hover,
+.pn-action-menu-trigger[aria-expanded='true'] {
+  border-color: #2563EB;
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.pn-action-menu-trigger:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.pn-action-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: grid;
+  width: 150px;
+  overflow: hidden;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.14), 0 3px 10px rgba(15, 23, 42, 0.08);
+  padding: 6px;
+}
+
+.pn-action-menu button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #262626;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.pn-action-menu button:hover:not(:disabled),
+.pn-action-menu button:focus-visible {
+  background: #F5F5F5;
+  outline: none;
+}
+
+.pn-action-menu button.is-danger {
+  color: #DC2626;
+}
+
+.pn-action-menu button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .pn-officer-toolbar {
@@ -1574,6 +1665,23 @@ button {
   color: #171717;
 }
 
+.pn-profile-actions .pn-profile-delete-btn {
+  border-color: #D4D4D4;
+  background: #fff;
+  color: #DC2626;
+}
+
+.pn-profile-actions .pn-profile-delete-btn:hover:not(:disabled) {
+  border-color: #FCA5A5;
+  background: #FEF2F2;
+  color: #B91C1C;
+}
+
+.pn-profile-actions .pn-profile-delete-btn:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
 .pn-profile-actions .pn-icon-btn:focus-visible,
 .pn-profile-actions .pn-btn:focus-visible {
   outline: 2px solid #2563EB;
@@ -2135,6 +2243,23 @@ button {
 .pn-modal-header > div:first-child {
   flex: 1;
   min-width: 0;
+}
+
+.pn-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pn-modal-header-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 4px;
+  background: #F5F5F5;
+  color: #0A0A0A;
 }
 
 .pn-modal-footer {
@@ -2742,6 +2867,11 @@ button {
 
   .pn-officer-filters {
     grid-template-columns: 1fr;
+  }
+
+  .pn-table-officer-list .pn-table-head,
+  .pn-table-officer-list .pn-table-row {
+    grid-template-columns: minmax(180px, 1.2fr) 130px 74px 86px 48px 92px 58px;
   }
 
   .pn-modal-chromeless .pn-modal-body {

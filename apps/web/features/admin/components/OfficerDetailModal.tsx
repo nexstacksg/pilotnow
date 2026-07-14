@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { CheckIcon, MessageIcon, PencilIcon, XIcon } from './icons';
+import { CheckIcon, MessageIcon, OfficersIcon, PencilIcon, TrashIcon, XIcon } from './icons';
 import { Badge, Button, Field, Modal } from './ui';
 import { dateLabel, hours, initials, money, officerStatusLabel, officerStatusTone, statusTone } from '../lib/format';
 import { fetchOfficerAssignmentHistory } from '../lib/officers-api';
@@ -16,6 +16,15 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
+function noteText(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  if ('notes' in value && typeof value.notes === 'string') return value.notes;
+  if ('note' in value && typeof value.note === 'string') return value.note;
+  if ('text' in value && typeof value.text === 'string') return value.text;
+  return '';
+}
+
 function officerToForm(officer: Officer): OfficerForm {
   return {
     name: officer.name,
@@ -23,7 +32,7 @@ function officerToForm(officer: Officer): OfficerForm {
     rate: String(officer.rate),
     ic: officer.ic,
     status: officer.status,
-    notes: officer.notes ?? '',
+    notes: noteText(officer.notes),
   };
 }
 
@@ -84,8 +93,8 @@ function OfficerProfileFields({
       <label className="pn-check">
         <input checked={form.ic} onChange={(event) => setForm((item) => ({ ...item, ic: event.target.checked }))} type="checkbox" />
         <span>
-          <strong>IC document verified</strong>
-          <small>Tick only after the officer's IC copy has been checked.</small>
+          <strong>IC received</strong>
+          <small>Tick if the officer's IC copy has been received.</small>
         </span>
       </label>
       <Field label="Notes">
@@ -103,25 +112,33 @@ function OfficerProfileFields({
 export function OfficerDetailModal({
   officer,
   jobs,
+  initialMode = 'view',
   onClose,
+  onDelete,
   onSave,
   openJob,
 }: {
   officer?: Officer;
   jobs: Job[];
+  initialMode?: 'view' | 'edit';
   onClose: () => void;
+  onDelete: (id: string) => Promise<boolean>;
   onSave: (id: string, form: OfficerForm) => Promise<boolean>;
   openJob: (id: string) => void;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialMode === 'edit');
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [assignmentHistory, setAssignmentHistory] = useState<OfficerAssignmentHistory[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
   const [form, setForm] = useState<OfficerForm>(() => (officer ? officerToForm(officer) : emptyOfficerForm));
 
   useEffect(() => {
-    if (officer) setForm(officerToForm(officer));
-  }, [officer]);
+    if (officer) {
+      setForm(officerToForm(officer));
+      setEditing(initialMode === 'edit');
+    }
+  }, [initialMode, officer]);
 
   useEffect(() => {
     if (!officer) return;
@@ -188,7 +205,52 @@ export function OfficerDetailModal({
     setSaving(true);
     const ok = await onSave(officerId, form);
     setSaving(false);
-    if (ok) setEditing(false);
+    if (ok) {
+      if (initialMode === 'edit') {
+        onClose();
+      } else {
+        setEditing(false);
+      }
+    }
+  }
+
+  async function deleteProfile() {
+    setDeleting(true);
+    const ok = await onDelete(officerId);
+    if (!ok) setDeleting(false);
+  }
+
+  if (editing) {
+    return (
+      <Modal
+        title="Edit officer"
+        subtitle={`Update the profile for ${officerCode}.`}
+        onClose={onClose}
+        headerIcon={<OfficersIcon size={19} strokeWidth={2.2} />}
+        footer={
+          <>
+            <Button
+              onClick={() => {
+                setForm(officerToForm(officer));
+                if (initialMode === 'edit') {
+                  onClose();
+                } else {
+                  setEditing(false);
+                }
+              }}
+            >
+              Cancel
+            </Button>
+            <Button disabled={saving} variant="primary" onClick={saveProfile}>
+              <OfficersIcon size={16} strokeWidth={2.2} />
+              {saving ? 'Saving...' : 'Save changes'}
+            </Button>
+          </>
+        }
+      >
+        <OfficerProfileFields form={form} setForm={setForm} />
+      </Modal>
+    );
   }
 
   return (
@@ -213,51 +275,32 @@ export function OfficerDetailModal({
             <PencilIcon size={15} strokeWidth={2.1} />
             {editing ? 'View' : 'Edit'}
           </Button>
+          <button className="pn-icon-btn pn-profile-delete-btn" type="button" aria-label={`Delete ${officer.name}`} disabled={deleting} onClick={deleteProfile}>
+            <TrashIcon size={16} strokeWidth={2.1} />
+          </button>
           <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
             <XIcon size={15} strokeWidth={2.2} />
           </button>
         </div>
       </div>
 
-      {editing ? (
-        <>
-          <div className="pn-profile-label pn-profile-details-label">Officer details</div>
-          <OfficerProfileFields form={form} setForm={setForm} />
-          <div className="pn-profile-edit-actions">
-            <Button
-              onClick={() => {
-                setForm(officerToForm(officer));
-                setEditing(false);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button disabled={saving} variant="primary" onClick={saveProfile}>
-              {saving ? 'Saving...' : 'Save changes'}
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="pn-profile-label pn-profile-details-label">Officer details</div>
-          <div className="pn-profile-grid">
-            <ProfileCell label="OFFICER ID" value={officerCode} mono />
-            <ProfileCell label="FULL NAME" value={officer.name} />
-            <ProfileCell label="WHATSAPP NUMBER" value={officer.phone} mono />
-            <ProfileCell label="DEFAULT HOURLY RATE" value={`${money(officer.rate)}/h`} mono />
-            <ProfileCell
-              label="IC STATUS"
-              value={
-                <span className="pn-profile-cell-inline">
-                  <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? <><span>IC</span><CheckIcon size={13} strokeWidth={2.4} /></> : 'No IC'}</Badge>
-                  {officer.ic ? 'Received' : 'Not received'}
-                </span>
-              }
-            />
-            <ProfileCell label="OFFICER STATUS" value={<Badge tone={officerTone}>{officer.status}</Badge>} />
-          </div>
-        </>
-      )}
+      <div className="pn-profile-label pn-profile-details-label">Officer details</div>
+      <div className="pn-profile-grid">
+        <ProfileCell label="OFFICER ID" value={officerCode} mono />
+        <ProfileCell label="FULL NAME" value={officer.name} />
+        <ProfileCell label="WHATSAPP NUMBER" value={officer.phone} mono />
+        <ProfileCell label="DEFAULT HOURLY RATE" value={`${money(officer.rate)}/h`} mono />
+        <ProfileCell
+          label="IC STATUS"
+          value={
+            <span className="pn-profile-cell-inline">
+              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? <><span>IC</span><CheckIcon size={13} strokeWidth={2.4} /></> : 'No IC'}</Badge>
+              {officer.ic ? 'Received' : 'Not received'}
+            </span>
+          }
+        />
+        <ProfileCell label="OFFICER STATUS" value={<Badge tone={officerTone}>{officer.status}</Badge>} />
+      </div>
 
       <div className="pn-profile-stats">
         <ProfileCell label="JOBS WITH US" value={String(visibleHistory.length)} />
@@ -301,7 +344,7 @@ export function OfficerDetailModal({
       )}
 
       <div className="pn-profile-label">Notes</div>
-      <p className="pn-profile-notes">{officer.notes || 'No notes on file.'}</p>
+      <p className="pn-profile-notes">{noteText(officer.notes) || 'No notes on file.'}</p>
     </Modal>
   );
 }

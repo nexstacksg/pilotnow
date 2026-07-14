@@ -10,7 +10,7 @@ import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
-import { createOfficerFromForm, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
+import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
 import type { OperationsReport } from './lib/reports-api';
@@ -92,6 +92,7 @@ export function AdminApp({
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
   const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
+  const [officerProfileMode, setOfficerProfileMode] = useState<'view' | 'edit'>('view');
   const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
@@ -352,6 +353,24 @@ export function AdminApp({
     }
   }
 
+  async function deleteOfficerProfile(id: string) {
+    const officer = officers.find((item) => item.id === id);
+    const confirmed = window.confirm(`Delete ${officer?.name ?? 'this officer'}? This cannot be undone.`);
+    if (!confirmed) return false;
+
+    try {
+      await deleteOfficer(id);
+      setOfficers((items) => items.filter((item) => item.id !== id));
+      setOfficerProfileId((value) => (value === id ? null : value));
+      flash(`Officer ${officer?.name ?? id} deleted`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not delete officer. ${reason}`);
+      return false;
+    }
+  }
+
   async function markPaid(id: string) {
     setPayments((items) => items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment)));
 
@@ -584,7 +603,25 @@ export function AdminApp({
               toggleOfficer={toggleOfficer}
             />
           ) : null}
-          {screen === 'officers' ? (officersReady ? <OfficersScreen officers={officers} openOfficer={() => setOfficerOpen(true)} openOfficerProfile={setOfficerProfileId} /> : <LoadingPanel />) : null}
+          {screen === 'officers' ? (
+            officersReady ? (
+              <OfficersScreen
+                officers={officers}
+                onDeleteOfficer={deleteOfficerProfile}
+                openOfficer={() => setOfficerOpen(true)}
+                openOfficerEdit={(id) => {
+                  setOfficerProfileMode('edit');
+                  setOfficerProfileId(id);
+                }}
+                openOfficerProfile={(id) => {
+                  setOfficerProfileMode('view');
+                  setOfficerProfileId(id);
+                }}
+              />
+            ) : (
+              <LoadingPanel />
+            )
+          ) : null}
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
@@ -678,9 +715,14 @@ export function AdminApp({
       {reportJobId ? <JobReportModal copyText={copyText} job={jobs.find((job) => job.id === reportJobId) ?? selectedJob} onClose={() => setReportJobId(null)} /> : null}
       {officerProfileId ? (
         <OfficerDetailModal
+          initialMode={officerProfileMode}
           jobs={jobs}
           officer={officers.find((officer) => officer.id === officerProfileId)}
-          onClose={() => setOfficerProfileId(null)}
+          onClose={() => {
+            setOfficerProfileId(null);
+            setOfficerProfileMode('view');
+          }}
+          onDelete={deleteOfficerProfile}
           onSave={updateOfficerProfile}
           openJob={(id) => {
             setOfficerProfileId(null);

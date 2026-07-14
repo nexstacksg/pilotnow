@@ -15,7 +15,7 @@ type ApiOfficer = {
   icVerified: boolean;
   icMasked: string | null;
   defaultHourlyRate: number;
-  onboardingNote: string | null;
+  onboardingNote: unknown;
   jobsCount: number;
   createdAt: string;
 };
@@ -95,6 +95,15 @@ function fallbackOfficerCode(id: string, index = 0) {
   return `OF-${String(index + 1).padStart(2, '0')}`;
 }
 
+function noteFromApi(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (!value || typeof value !== 'object') return '';
+  if ('notes' in value && typeof value.notes === 'string') return value.notes;
+  if ('note' in value && typeof value.note === 'string') return value.note;
+  if ('text' in value && typeof value.text === 'string') return value.text;
+  return '';
+}
+
 function mergeOfficer(apiOfficer: ApiOfficer, index = 0): Officer {
   const code = apiOfficer.officerCode ?? fallbackOfficerCode(apiOfficer.id, index);
   return {
@@ -106,7 +115,7 @@ function mergeOfficer(apiOfficer: ApiOfficer, index = 0): Officer {
     ic: apiOfficer.icVerified,
     rate: apiOfficer.defaultHourlyRate,
     jobsCount: apiOfficer.jobsCount,
-    notes: apiOfficer.onboardingNote ?? '',
+    notes: noteFromApi(apiOfficer.onboardingNote),
   };
 }
 
@@ -155,4 +164,8 @@ export async function updateOfficerFromForm(id: string, form: OfficerForm) {
   }));
 
   return mergeOfficer(payload.item);
+}
+
+export async function deleteOfficer(id: string) {
+  await withServerMessage(http.delete<{ ok: true }>(`/officers/${id}`));
 }

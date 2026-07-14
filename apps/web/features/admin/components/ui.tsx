@@ -71,6 +71,7 @@ export function Modal({
   children,
   footer,
   headerActions,
+  headerIcon,
   onClose,
   hideHeader = false,
   wide = false,
@@ -80,6 +81,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   headerActions?: ReactNode;
+  headerIcon?: ReactNode;
   onClose: () => void;
   hideHeader?: boolean;
   wide?: boolean;
@@ -89,9 +91,12 @@ export function Modal({
       <section className={`pn-modal ${wide ? 'pn-modal-wide' : ''} ${hideHeader ? 'pn-modal-chromeless' : ''}`}>
         {hideHeader ? null : (
           <header className="pn-modal-header">
-            <div>
-              <h2>{title}</h2>
-              {subtitle ? <p>{subtitle}</p> : null}
+            <div className="pn-modal-title-row">
+              {headerIcon ? <span className="pn-modal-header-icon">{headerIcon}</span> : null}
+              <div>
+                <h2>{title}</h2>
+                {subtitle ? <p>{subtitle}</p> : null}
+              </div>
             </div>
             {headerActions}
             <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
