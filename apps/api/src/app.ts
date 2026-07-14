@@ -64,6 +64,7 @@ export const app = new Hono()
   .route('/billing', billing) // FR-022 — BILLED/NOT BILLED
   .route('/reports', reports)
   .route('/dashboard', dashboard) // FR-024 — source-backed admin operating view
+  .route('/auth', auth)
   .all('/mcp', async (c) => {
     const transport = new StreamableHTTPTransport();
     await mcpServer.connect(transport);
