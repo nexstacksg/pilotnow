@@ -1,24 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
-import {
-  BillingIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  DashboardIcon,
-  DownloadIcon,
-  JobsIcon,
-  MessageIcon,
-  OfficersIcon,
-  PaymentIcon,
-  PlusIcon,
-  PrinterIcon,
-  ReportsIcon,
-  SearchIcon,
-  ShieldCheckIcon,
-  SummaryIcon,
-} from './components/icons';
+import { useRouter } from 'next/navigation';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
+import { BillingIcon, ChevronDownIcon, CopyIcon, DashboardIcon, JobsIcon, OfficersIcon, PaymentIcon, PlusIcon, PrinterIcon, ReportsIcon, SearchIcon, ShieldCheckIcon, SummaryIcon } from './components/icons';
+import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
 import { AdminAccountMenu } from './components/AdminAccountMenu';
 import { screenTitles } from './config';
@@ -27,9 +13,12 @@ import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
+import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
 import type { OperationsReport } from './lib/reports-api';
+import { TODAY, dateLabel, hours, money, officerStatusLabel, statusTone } from './lib/format';
+import { routeForScreen } from './routes';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -159,15 +148,18 @@ export function AdminApp({
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
-  const [officerProfileId, setOfficerProfileId] = useState<string | null>(initialOfficerProfileId);
-  const [billId, setBillId] = useState<string | null>(initialBillId);
+  const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
+  const [officerProfileMode, setOfficerProfileMode] = useState<'view' | 'edit'>('view');
+  const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
   const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
   const [savingJob, setSavingJob] = useState(false);
+  const [savingOfficer, setSavingOfficer] = useState(false);
   const [jobsReady, setJobsReady] = useState(false);
+  const [officersReady, setOfficersReady] = useState(false);
   const [paymentsReady, setPaymentsReady] = useState(false);
   const [billingReady, setBillingReady] = useState(false);
   const [reportsReady, setReportsReady] = useState(false);
@@ -483,25 +475,74 @@ export function AdminApp({
     flash(status === 'received' ? 'Photo marked received' : 'Photo marked missing');
   }
 
-  function saveOfficer() {
+  async function saveOfficer() {
     if (!officerForm.name.trim() || officerForm.phone.replace(/[^0-9]/g, '').length < 6) {
       flash('Enter a name and valid WhatsApp number');
       return;
     }
-    const officer: Officer = {
-      id: nextId('OF-', officers.map((item) => item.id), 2),
-      name: officerForm.name.trim(),
-      phone: officerForm.phone.trim(),
-      status: officerForm.status,
-      ic: officerForm.ic,
-      rate: Number(officerForm.rate) || 14,
-      jobsCount: 0,
-      notes: officerForm.notes.trim(),
-    };
-    setOfficers((items) => [officer, ...items]);
-    setOfficerOpen(false);
-    setOfficerForm(emptyOfficerForm);
-    flash(`Officer ${officer.name} added`);
+    setSavingOfficer(true);
+    try {
+      const officer = await createOfficerFromForm(officerForm);
+      setOfficers((items) => [officer, ...items.filter((item) => item.id !== officer.id)]);
+      setOfficerOpen(false);
+      setOfficerForm(emptyOfficerForm);
+      flash(`Officer ${officer.name} added`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not add officer. ${reason}`);
+    } finally {
+      setSavingOfficer(false);
+    }
+  }
+
+  async function updateOfficerProfile(id: string, form: OfficerForm) {
+    if (!form.name.trim() || form.phone.replace(/[^0-9]/g, '').length < 6) {
+      flash('Enter a name and valid WhatsApp number');
+      return false;
+    }
+    try {
+      const officer = await updateOfficerFromForm(id, form);
+      setOfficers((items) => items.map((item) => (item.id === id ? officer : item)));
+      setJobs((items) =>
+        items.map((job) => ({
+          ...job,
+          officers: job.officers.map((assigned) =>
+            assigned.oid === id
+              ? {
+                  ...assigned,
+                  name: officer.name,
+                  ic: officer.ic,
+                  rate: officer.rate,
+                }
+              : assigned,
+          ),
+        })),
+      );
+      flash(`Officer ${officer.name} updated`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not update officer. ${reason}`);
+      return false;
+    }
+  }
+
+  async function deleteOfficerProfile(id: string) {
+    const officer = officers.find((item) => item.id === id);
+    const confirmed = window.confirm(`Delete ${officer?.name ?? 'this officer'}? This cannot be undone.`);
+    if (!confirmed) return false;
+
+    try {
+      await deleteOfficer(id);
+      setOfficers((items) => items.filter((item) => item.id !== id));
+      setOfficerProfileId((value) => (value === id ? null : value));
+      flash(`Officer ${officer?.name ?? id} deleted`);
+      return true;
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not delete officer. ${reason}`);
+      return false;
+    }
   }
 
   async function markPaid(id: string) {
@@ -592,7 +633,27 @@ export function AdminApp({
     if (!jobsHydrated) return;
     let cancelled = false;
 
-    void fetchJobs(jobs)
+    void fetchOfficers()
+      .then((items) => {
+        if (!cancelled) {
+          setOfficers(items);
+          setOfficersReady(true);
+        }
+      })
+      .catch(() => {
+        // Keep seeded demo officers when the API is not running.
+        setOfficersReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void fetchJobs(jobsSeed)
       .then((items) => {
         if (cancelled) return;
         setJobs((current) =>
@@ -765,7 +826,25 @@ export function AdminApp({
               toggleOfficer={toggleOfficer}
             />
           ) : null}
-          {screen === 'officers' ? <OfficersScreen officers={officers} openOfficer={() => setOfficerOpen(true)} openOfficerProfile={setOfficerProfileId} search={search} /> : null}
+          {screen === 'officers' ? (
+            officersReady ? (
+              <OfficersScreen
+                officers={officers}
+                onDeleteOfficer={deleteOfficerProfile}
+                openOfficer={() => setOfficerOpen(true)}
+                openOfficerEdit={(id) => {
+                  setOfficerProfileMode('edit');
+                  setOfficerProfileId(id);
+                }}
+                openOfficerProfile={(id) => {
+                  setOfficerProfileMode('view');
+                  setOfficerProfileId(id);
+                }}
+              />
+            ) : (
+              <LoadingPanel />
+            )
+          ) : null}
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
@@ -826,8 +905,8 @@ export function AdminApp({
           footer={
             <>
               <Button onClick={() => setOfficerOpen(false)}>Cancel</Button>
-              <Button variant="primary" onClick={saveOfficer}>
-                Add officer
+              <Button disabled={savingOfficer} variant="primary" onClick={saveOfficer}>
+                {savingOfficer ? 'Saving...' : 'Add officer'}
               </Button>
             </>
           }
@@ -861,10 +940,16 @@ export function AdminApp({
 
       {reportJobId ? <JobReportModal job={jobs.find((job) => job.id === reportJobId) ?? selectedJob} onClose={() => setReportJobId(null)} /> : null}
       {officerProfileId ? (
-        <OfficerProfileModal
+        <OfficerDetailModal
+          initialMode={officerProfileMode}
           jobs={jobs}
           officer={officers.find((officer) => officer.id === officerProfileId)}
-          onClose={() => setOfficerProfileId(null)}
+          onClose={() => {
+            setOfficerProfileId(null);
+            setOfficerProfileMode('view');
+          }}
+          onDelete={deleteOfficerProfile}
+          onSave={updateOfficerProfile}
           openJob={(id) => {
             setOfficerProfileId(null);
             openJob(id);
@@ -957,122 +1042,7 @@ function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: (upd
   );
 }
 
-function OfficerProfileModal({ officer, jobs, onClose, openJob }: { officer?: Officer; jobs: Job[]; onClose: () => void; openJob: (id: string) => void }) {
-  if (!officer) return null;
-
-  const history = jobs
-    .map((job) => {
-      const assigned = job.officers.find((item) => item.oid === officer.id);
-      if (!assigned) return null;
-      const scheduled = hours(job.start, job.end);
-      const worked = assigned.actualStart && assigned.actualEnd ? hours(assigned.actualStart, assigned.actualEnd) : job.status === 'Completed' || assigned.actualStart ? scheduled : 0;
-      return {
-        job,
-        worked,
-        pay: worked * assigned.rate,
-      };
-    })
-    .filter((item): item is { job: Job; worked: number; pay: number } => Boolean(item))
-    .sort((a, b) => b.job.date.localeCompare(a.job.date) || b.job.id.localeCompare(a.job.id));
-  const completed = history.filter((item) => item.job.status === 'Completed');
-  const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
-  const totalPay = completed.reduce((sum, item) => sum + item.pay, 0);
-  const officerTone = officerStatusTone[officer.status];
-
-  return (
-    <Modal title={officer.name} onClose={onClose} wide hideHeader>
-      <div className="pn-profile-head">
-        <span className="pn-profile-avatar">{initials(officer.name)}</span>
-        <div className="pn-profile-title">
-          <div className="pn-profile-name-row">
-            <strong>{officer.name}</strong>
-            <div className="pn-profile-badges">
-              <Badge tone={officerTone}>{officer.status}</Badge>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge>
-            </div>
-          </div>
-          <small>{officer.id} / {officer.phone} / {money(officer.rate)}/h</small>
-        </div>
-        <div className="pn-profile-actions">
-          <button className="pn-icon-btn" type="button" aria-label={`Message ${officer.name}`}>
-            <MessageIcon size={16} strokeWidth={2} />
-          </button>
-          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
-            x
-          </button>
-        </div>
-      </div>
-
-      <div className="pn-profile-label pn-profile-details-label">Officer details</div>
-      <div className="pn-profile-grid">
-        <ProfileCell label="OFFICER ID" value={officer.id} mono />
-        <ProfileCell label="FULL NAME" value={officer.name} />
-        <ProfileCell label="WHATSAPP NUMBER" value={officer.phone} mono />
-        <ProfileCell label="DEFAULT HOURLY RATE" value={`${money(officer.rate)}/h`} mono />
-        <ProfileCell
-          label="IC STATUS"
-          value={
-            <span className="pn-profile-cell-inline">
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? <><span>IC</span><CheckIcon size={13} strokeWidth={2.4} /></> : 'No IC'}</Badge>
-              {officer.ic ? 'Received' : 'Not received'}
-            </span>
-          }
-        />
-        <ProfileCell label="OFFICER STATUS" value={<Badge tone={officerTone}>{officer.status}</Badge>} />
-      </div>
-
-      <div className="pn-profile-stats">
-        <ProfileCell label="JOBS WITH US" value={String(history.length)} />
-        <ProfileCell label="COMPLETED" value={String(completed.length)} />
-        <ProfileCell label="HOURS WORKED" value={`${totalHours.toFixed(2)}h`} mono />
-        <ProfileCell label="TOTAL EARNED" value={money(totalPay)} mono />
-      </div>
-
-      <div className="pn-profile-label pn-profile-label-line">Job history</div>
-      {history.length ? (
-        <div className="pn-table pn-table-profile-history">
-          <div className="pn-table-head">
-            <span>Job</span>
-            <span>Customer</span>
-            <span>Date</span>
-            <span>Hours</span>
-            <span>Pay</span>
-            <span>Status</span>
-          </div>
-          {history.map(({ job, worked, pay }) => (
-            <button className="pn-table-row pn-click-row" key={job.id} onClick={() => openJob(job.id)} type="button">
-              <span className="pn-mono">{job.id}</span>
-              <span>{job.customer}</span>
-              <span>{dateLabel(job.date)}</span>
-              <span>{worked ? `${worked.toFixed(2)}h` : '-'}</span>
-              <span>{money(pay)}</span>
-              <span>
-                <Badge tone={statusTone[job.status]} dot>{job.status}</Badge>
-              </span>
-            </button>
-          ))}
-        </div>
-      ) : (
-        <div className="pn-empty">No jobs recorded for this officer yet.</div>
-      )}
-
-      <div className="pn-profile-label">Notes</div>
-      <p className="pn-profile-notes">{officer.notes || 'No notes on file.'}</p>
-    </Modal>
-  );
-}
-
-function ProfileCell({ label, value, mono = false }: { label: string; value: ReactNode; mono?: boolean }) {
-  return (
-    <div className="pn-profile-cell">
-      <span>{label}</span>
-      <strong className={mono ? 'pn-mono' : ''}>{value}</strong>
-    </div>
-  );
-}
-
-function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
-  const reportRef = useRef<HTMLDivElement>(null);
+function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => void; copyText: (text: string, message: string) => void }) {
   const scheduled = hours(job.start, job.end);
   const received = job.photos.filter((photo) => photo.status === 'received');
   const officerReports = job.officers.map((officer) => {

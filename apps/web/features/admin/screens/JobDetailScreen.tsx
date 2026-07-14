@@ -49,7 +49,7 @@ export function JobDetailScreen({
 }) {
   const [addPick, setAddPick] = useState('');
   const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
-  const available = officers.filter((officer) => officer.status !== 'Blocked' && !job.officers.some((assigned) => assigned.oid === officer.id));
+  const available = officers.filter((officer) => officer.status === 'Active' && !job.officers.some((assigned) => assigned.oid === officer.id));
   const scheduled = hours(job.start, job.end);
   const selectedOfficer = job.officers.find((officer) => officer.oid === selectedOfficerId);
   const selectedWorked = selectedOfficer

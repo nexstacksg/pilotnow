@@ -12,15 +12,8 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1783950957077,
-      "tag": "0002_add_admin_auth",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1783956763362,
-      "tag": "0003_add_password_resets",
+      "when": 1783695660383,
+      "tag": "0001_volatile_killmonger",
       "breakpoints": true
     }
   ]
