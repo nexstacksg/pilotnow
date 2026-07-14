@@ -64,6 +64,52 @@ export const sites = pgTable('sites', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const adminUsers = pgTable(
+  'admin_users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    email: text('email').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    name: text('name').notNull(),
+    role: text('role').notNull().default('Operations Admin'),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('admin_users_email_idx').on(t.email)],
+);
+
+export const adminSessions = pgTable(
+  'admin_sessions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => adminUsers.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('admin_sessions_token_idx').on(t.tokenHash), index('admin_sessions_user_idx').on(t.userId)],
+);
+
+export const adminPasswordResets = pgTable(
+  'admin_password_resets',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').notNull().references(() => adminUsers.id, { onDelete: 'cascade' }),
+    codeHash: text('code_hash').notNull(),
+    resetTokenHash: text('reset_token_hash'),
+    attempts: integer('attempts').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true }),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('admin_password_resets_user_idx').on(t.userId),
+    index('admin_password_resets_token_idx').on(t.resetTokenHash),
+  ],
+);
+
 // FR-005/FR-006 — officer master; IC stored masked, full record access-controlled
 export const officers = pgTable('officers', {
   id: uuid('id').primaryKey().defaultRandom(),

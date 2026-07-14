@@ -241,3 +241,19 @@ export function OfficersScreen({
     </div>
   );
 }
+
+function officerSearchText(officer: Officer) {
+  return [
+    officer.id,
+    officer.name,
+    officer.phone,
+    officer.ic ? 'IC yes' : 'No IC',
+    officer.rate,
+    `${officer.rate}/h`,
+    officer.jobsCount,
+    officer.status,
+    officer.notes,
+  ]
+    .join(' ')
+    .toLowerCase();
+}

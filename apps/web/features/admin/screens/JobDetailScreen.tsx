@@ -6,20 +6,17 @@ import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } fro
 
 const lifecycleSteps: { key: JobStatus; label: string }[] = [
   { key: 'Draft', label: 'Draft created' },
-  { key: 'Open', label: 'Open' },
-  { key: 'Assigned', label: 'Job assigned' },
+  { key: 'Open', label: 'Posted / Waiting' },
+  { key: 'Assigned', label: 'Officers confirmed' },
   { key: 'Ongoing', label: 'Job ongoing' },
   { key: 'Completed', label: 'Completed' },
 ];
 
-const lifecycleIndex: Record<JobStatus, number> = {
-  Draft: 0,
-  Open: 1,
-  Assigned: 2,
-  Ongoing: 3,
-  Completed: 4,
-  Cancelled: 0,
-};
+const cancelledLifecycleSteps: { key: JobStatus; label: string }[] = [
+  { key: 'Draft', label: 'Draft created' },
+  { key: 'Open', label: 'Posted / Waiting' },
+  { key: 'Cancelled', label: 'Cancelled' },
+];
 
 export function JobDetailScreen({
   job,
@@ -34,6 +31,7 @@ export function JobDetailScreen({
   openReport,
   onEdit,
   copyText,
+  markPosted,
 }: {
   job: Job;
   officers: Officer[];
@@ -47,6 +45,7 @@ export function JobDetailScreen({
   openReport: () => void;
   onEdit: () => void;
   copyText: (text: string, message: string) => void;
+  markPosted: (id: string) => void;
 }) {
   const [addPick, setAddPick] = useState('');
   const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
@@ -73,10 +72,25 @@ export function JobDetailScreen({
     const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : officer.onDuty ? scheduled : 0;
     return sum + worked * officer.rate;
   }, 0);
-  const activeStep = lifecycleIndex[job.status];
   const confirmedCount = job.officers.filter((officer) => officer.confirmed).length;
   const onDutyCount = job.officers.filter((officer) => officer.onDuty).length;
+  const allOfficersConfirmed = job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed);
+  const allOfficersOnDuty = allOfficersConfirmed && job.officers.every((officer) => officer.onDuty);
+  const visibleLifecycleSteps = job.status === 'Cancelled' ? cancelledLifecycleSteps : lifecycleSteps;
+  const activeStep =
+    job.status === 'Cancelled'
+      ? visibleLifecycleSteps.length - 1
+      : job.status === 'Completed'
+        ? 4
+        : allOfficersOnDuty
+          ? 3
+          : allOfficersConfirmed
+            ? 2
+            : job.posted
+              ? 1
+              : 0;
   const stillNeeded = Math.max(0, job.required - job.officers.length);
+  const isFull = job.officers.length >= job.required;
   const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${job.start}–${job.end}\n${job.required} officers needed\n\n${job.description}`;
   const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${job.start}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
 
@@ -132,9 +146,9 @@ export function JobDetailScreen({
           <Card className="pn-lifecycle-card">
             <h2>Job lifecycle</h2>
             <div className="pn-lifecycle">
-              {lifecycleSteps.map((step, index) => {
-                const current = job.status !== 'Cancelled' && job.status !== 'Completed' && index === activeStep;
-                const done = job.status !== 'Cancelled' && (job.status === 'Completed' ? index <= activeStep : index < activeStep);
+              {visibleLifecycleSteps.map((step, index) => {
+                const current = job.status !== 'Completed' && index === activeStep;
+                const done = job.status === 'Completed' ? index <= activeStep : index < activeStep;
                 return (
                   <div className={`pn-lifecycle-step ${done ? 'is-done' : ''} ${current ? 'is-current' : ''}`} key={step.key}>
                     <div className="pn-lifecycle-line" />
@@ -179,10 +193,10 @@ export function JobDetailScreen({
                         <b>›</b>
                       </strong>
                     </button>
-                    <small>{officer.actualStart || '—'} – {officer.actualEnd || '—'}</small>
+                    <small>{officer.actualStart || job.start} - {officer.actualEnd || job.end}</small>
                   </span>
                   <span>
-                    <Badge tone={officer.ic ? 'success' : 'danger'}>{icDocumentLabel(officer.ic)}</Badge>
+                    <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : icDocumentLabel(officer.ic)}</Badge>
                   </span>
                   <span>{money(officer.rate)}/h</span>
                   <span>
@@ -204,8 +218,8 @@ export function JobDetailScreen({
               ))}
             </div>
             <div className="pn-add-row">
-              <select value={addPick} onChange={(event) => setAddPick(event.target.value)}>
-                <option value="">Add participating officer...</option>
+              <select value={addPick} onChange={(event) => setAddPick(event.target.value)} disabled={isFull}>
+                <option value="">{isFull ? 'Officer limit reached' : 'Add participating officer...'}</option>
                 {available.map((officer) => (
                   <option key={officer.id} value={officer.id}>
                     {officer.name} · {money(officer.rate)}/h{officer.ic ? '' : ' · IC missing'}
@@ -213,10 +227,10 @@ export function JobDetailScreen({
                 ))}
               </select>
               <Button
-                disabled={!addPick}
+                disabled={isFull || !addPick}
                 variant="primary"
                 onClick={() => {
-                  if (!addPick) return;
+                  if (isFull || !addPick) return;
                   addOfficer(addPick);
                   setAddPick('');
                 }}
@@ -274,6 +288,13 @@ export function JobDetailScreen({
               </div>
             </div>
             <div className="pn-wa-actions">
+              <button className="is-green" onClick={() => {
+                postToWhatsApp(jobMsg);
+                markPosted(job.id);
+              }} type="button">
+                <WhatsAppIcon size={13} />
+                Post to WhatsApp group
+              </button>
               <button onClick={() => copyText(jobMsg, 'Job message copied for WhatsApp')} type="button">
                 <CopyIcon size={13} strokeWidth={2} />
                 Copy job post
@@ -337,7 +358,7 @@ export function JobDetailScreen({
               <Badge tone={job.billing === 'Billed' ? 'success' : 'warning'}>{job.billing}</Badge>
             </div>
             {job.cancelReason ? <div className="pn-complete-note">{job.cancelReason}</div> : null}
-            <Button disabled={job.status === 'Completed' || job.status === 'Cancelled' || job.officers.length === 0} variant="primary" onClick={() => completeJob(job.id)}>
+            <Button disabled={job.status === 'Completed' || job.status === 'Cancelled' || !allOfficersOnDuty} variant="primary" onClick={() => completeJob(job.id)}>
               <CheckIcon size={16} strokeWidth={2.4} />
               Complete job
             </Button>
@@ -350,6 +371,10 @@ export function JobDetailScreen({
       {selectedRow ? <OfficerAssignmentModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
     </div>
   );
+}
+
+function postToWhatsApp(message: string) {
+  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

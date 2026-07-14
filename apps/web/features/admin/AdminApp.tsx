@@ -6,9 +6,12 @@ import type { ReactNode } from 'react';
 import { BillingIcon, ChevronDownIcon, CopyIcon, DashboardIcon, JobsIcon, OfficersIcon, PaymentIcon, PlusIcon, PrinterIcon, ReportsIcon, SearchIcon, ShieldCheckIcon, SummaryIcon } from './components/icons';
 import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
+import { AdminAccountMenu } from './components/AdminAccountMenu';
 import { screenTitles } from './config';
 import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
+import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
+import type { DashboardSnapshot } from './lib/dashboard-api';
 import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
 import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
@@ -23,10 +26,15 @@ import { JobsScreen } from './screens/JobsScreen';
 import { OfficersScreen } from './screens/OfficersScreen';
 import { PaymentsScreen } from './screens/PaymentsScreen';
 import { ReportsScreen } from './screens/ReportsScreen';
+import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
-import type { BillForm, Job, JobForm, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
+import { routeForScreen } from './routes';
+import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
-const navIcons: Record<Screen, ReactNode> = {
+type NavigationScreen = Exclude<Screen, 'profile'>;
+
+const navIcons: Record<NavigationScreen, ReactNode> = {
   dashboard: <DashboardIcon />,
   jobs: <JobsIcon />,
   jobDetail: <JobsIcon />,
@@ -37,7 +45,7 @@ const navIcons: Record<Screen, ReactNode> = {
   reports: <ReportsIcon />,
 };
 
-const navGroups: { label: string; items: { screen: Screen; label: string }[] }[] = [
+const navGroups: { label: string; items: { screen: NavigationScreen; label: string }[] }[] = [
   { label: 'Operations', items: [{ screen: 'dashboard', label: 'Dashboard' }, { screen: 'jobs', label: 'Jobs' }] },
   { label: 'People', items: [{ screen: 'officers', label: 'Officer Management' }] },
   {
@@ -50,6 +58,16 @@ const navGroups: { label: string; items: { screen: Screen; label: string }[] }[]
   },
   { label: 'Insights', items: [{ screen: 'reports', label: 'Reports' }] },
 ];
+
+const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
+
+type AdminSearchResult = {
+  key: string;
+  type: 'job' | 'officer';
+  id: string;
+  title: string;
+  detail: string;
+};
 
 const emptyJobForm: JobForm = {
   customer: '',
@@ -71,23 +89,62 @@ const emptyOfficerForm: OfficerForm = {
   notes: '',
 };
 
+const screens: Screen[] = ['dashboard', 'jobs', 'jobDetail', 'officers', 'summary', 'payments', 'billing', 'reports'];
+
+function initialScreenForPath(initialScreen: Screen) {
+  if (typeof window === 'undefined' || window.location.pathname !== '/' || initialScreen !== 'dashboard') return initialScreen;
+  const stored = window.localStorage.getItem('pilotnow:last-screen') as Screen | null;
+  return stored && stored !== 'jobDetail' && screens.includes(stored) ? stored : initialScreen;
+}
+
+function pushRoute(path: string) {
+  window.history.pushState(null, '', path);
+}
+
+function paymentRowsFromJobs(jobs: Job[], payments: Payment[]) {
+  const generated = jobs.flatMap((job) =>
+    job.status === 'Completed'
+      ? job.officers.map((officer) => ({
+          id: `local:${job.id}:${officer.oid}`,
+          officer: officer.name,
+          jobId: job.id,
+          jobDate: job.date,
+          hours: officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : hours(job.start, job.end),
+          rate: officer.rate,
+          status: 'Pending' as const,
+          paidDate: '',
+        }))
+      : [],
+  );
+  return [...payments, ...generated.filter((row) => !payments.some((payment) => payment.jobId === row.jobId && payment.officer === row.officer))];
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
   initialSummaryJobId = null,
+  initialJobFilter = 'All',
+  initialBillingFilter = 'All',
+  initialBillId = null,
+  initialOfficerProfileId = null,
 }: {
   initialScreen?: Screen;
   initialJobId?: string;
   initialSummaryJobId?: string | null;
+  initialJobFilter?: JobListFilter;
+  initialBillingFilter?: BillingFilter;
+  initialBillId?: string | null;
+  initialOfficerProfileId?: string | null;
 }) {
-  const router = useRouter();
-  const [screen, setScreen] = useState<Screen>(initialScreen);
-  const [jobs, setJobs] = useState<Job[]>(jobsSeed);
+  const [screen, setScreen] = useState<Screen>(() => initialScreenForPath(initialScreen));
+  const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
-  const [jobFilter, setJobFilter] = useState<JobStatus | 'All'>('All');
+  const [jobFilter, setJobFilter] = useState<JobListFilter>('All');
+  const [billingFilter, setBillingFilter] = useState<BillingFilter>(initialBillingFilter);
+  const [search, setSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
@@ -106,22 +163,37 @@ export function AdminApp({
   const [paymentsReady, setPaymentsReady] = useState(false);
   const [billingReady, setBillingReady] = useState(false);
   const [reportsReady, setReportsReady] = useState(false);
+  const [jobsHydrated, setJobsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
+  const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
   const [toast, setToast] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const fallbackJob = jobsSeed[0] as Job;
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
+  const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
 
   useLayoutEffect(() => {
-    setScreen(initialScreen);
+    setScreen(initialScreenForPath(initialScreen));
     setJobId(initialJobId);
     setSummaryJobId(initialSummaryJobId);
-  }, [initialJobId, initialScreen, initialSummaryJobId]);
+    setJobFilter(initialJobFilter);
+    setBillingFilter(initialBillingFilter);
+    setBillId(initialBillId);
+    setOfficerProfileId(initialOfficerProfileId);
+  }, [initialBillId, initialBillingFilter, initialJobFilter, initialJobId, initialOfficerProfileId, initialScreen, initialSummaryJobId]);
+
+  useEffect(() => {
+    window.localStorage.setItem('pilotnow:last-screen', screen);
+  }, [screen]);
 
   const stats = useMemo(() => {
-    const pendingPayments = payments.filter((payment) => payment.status === 'Pending').length;
+    const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
     return {
       todayJobs: jobs.filter((job) => job.date === TODAY && job.status !== 'Cancelled').length,
       openJobs: jobs.filter((job) => job.status === 'Open').length,
@@ -132,6 +204,35 @@ export function AdminApp({
       notBilled: completedJobs.filter((job) => job.billing === 'Not Billed').length,
     };
   }, [completedJobs, jobs, payments]);
+  const fallbackDashboard = useMemo(() => dashboardFallback(jobs), [jobs]);
+  const searchResults = useMemo<AdminSearchResult[]>(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return [];
+
+    const matchingJobs = jobs
+      .filter((job) => [job.id, job.customer, job.location].some((value) => value.toLocaleLowerCase().includes(query)))
+      .slice(0, 5)
+      .map((job) => ({ key: `job-${job.id}`, type: 'job' as const, id: job.id, title: `${job.id} · ${job.customer}`, detail: `${job.location} · ${dateLabel(job.date)}` }));
+    const matchingOfficers = officers
+      .filter((officer) => [officer.id, officer.name, officer.phone].some((value) => value.toLocaleLowerCase().includes(query)))
+      .slice(0, 5)
+      .map((officer) => ({ key: `officer-${officer.id}`, type: 'officer' as const, id: officer.id, title: officer.name, detail: `${officer.id} · ${officer.phone}` }));
+
+    return [...matchingJobs, ...matchingOfficers];
+  }, [jobs, officers, searchQuery]);
+
+  useEffect(() => {
+    setActiveSearchIndex(0);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    function closeSearchOnOutsidePointer(event: PointerEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) setSearchOpen(false);
+    }
+
+    document.addEventListener('pointerdown', closeSearchOnOutsidePointer);
+    return () => document.removeEventListener('pointerdown', closeSearchOnOutsidePointer);
+  }, []);
 
   function flash(message: string) {
     setToast(message);
@@ -148,31 +249,90 @@ export function AdminApp({
     setPayOfficer(null);
     setReportJobId(null);
     setOfficerProfileId(null);
+    if (nextScreen === 'jobs') setJobFilter('All');
+    if (nextScreen === 'billing') setBillingFilter('All');
     setScreen(nextScreen);
     if (nextScreen === 'summary') setSummaryJobId(null);
-    router.push(routeForScreen(nextScreen, selectedJob.id));
+    pushRoute(routeForScreen(nextScreen, selectedJob.id));
+  }
+
+  function openJobs(filter: JobListFilter) {
+    setBillId(null);
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setJobFilter(filter);
+    setScreen('jobs');
+    pushRoute(`/admin/job?view=${encodeURIComponent(filter)}`);
+  }
+
+  function openBilling(jobId?: string, filter: BillingFilter = 'Not Billed') {
+    setPayOfficer(null);
+    setReportJobId(null);
+    setOfficerProfileId(null);
+    setBillingFilter(filter);
+    setBillId(jobId ?? null);
+    if (jobId) setBillForm({ invoice: '', billedDate: TODAY });
+    setScreen('billing');
+    const jobQuery = jobId ? `&job=${encodeURIComponent(jobId)}` : '';
+    pushRoute(`/billing?view=${encodeURIComponent(filter)}${jobQuery}`);
   }
 
   function openJob(id: string) {
     setJobId(id);
     setScreen('jobDetail');
-    router.push(routeForScreen('jobDetail', id));
+    pushRoute(routeForScreen('jobDetail', id));
+  }
+
+  function selectSearchResult(result: AdminSearchResult) {
+    setSearchQuery('');
+    setSearchOpen(false);
+    if (result.type === 'job') {
+      openJob(result.id);
+      return;
+    }
+
+    setScreen('officers');
+    setOfficerProfileId(result.id);
+    pushRoute(`/admin/officers?officer=${encodeURIComponent(result.id)}`);
+  }
+
+  function handleSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape') {
+      setSearchOpen(false);
+      event.currentTarget.blur();
+      return;
+    }
+    if (!searchResults.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveSearchIndex((index) => (index + 1) % searchResults.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setSearchOpen(true);
+      setActiveSearchIndex((index) => (index - 1 + searchResults.length) % searchResults.length);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const result = searchResults[activeSearchIndex] ?? searchResults[0];
+      if (result) selectSearchResult(result);
+    }
   }
 
   function openSummaryJob(id: string) {
     setSummaryJobId(id);
     setScreen('summary');
-    router.push(`/admin/summary/${encodeURIComponent(id)}`);
+    pushRoute(`/admin/summary/${encodeURIComponent(id)}`);
   }
 
   function closeSummaryJob() {
     setSummaryJobId(null);
     setScreen('summary');
-    router.push('/admin/summary');
+    pushRoute('/admin/summary');
   }
 
   function updateJob(id: string, updater: (job: Job) => Job) {
-    setJobs((items) => items.map((job) => (job.id === id ? updater(job) : job)));
+    setJobs((items) => items.map((job) => (job.id === id ? normalizeJobStage(updater(job)) : normalizeJobStage(job))));
   }
 
   function openCreateJob() {
@@ -205,7 +365,7 @@ export function AdminApp({
     try {
       const existing = editingJobId ? jobs.find((job) => job.id === editingJobId) : undefined;
       const job = editingJobId ? await updateJobFromForm(editingJobId, jobForm, existing) : await createJobFromForm(jobForm);
-      setJobs((items) => (editingJobId ? items.map((item) => (item.id === job.id ? job : item)) : [job, ...items.filter((item) => item.id !== job.id)]));
+      setJobs((items) => (editingJobId ? items.map((item) => normalizeJobStage(item.id === job.id ? job : item)) : [normalizeJobStage(job), ...items.filter((item) => item.id !== job.id).map((item) => normalizeJobStage(item))]));
       setCreateOpen(false);
       setEditingJobId(null);
       setJobForm(emptyJobForm);
@@ -224,6 +384,10 @@ export function AdminApp({
     if (!officer || officer.status === 'Blocked') return;
     if (selectedJob.officers.some((item) => item.oid === oid)) {
       flash('Officer already added to this job');
+      return;
+    }
+    if (selectedJob.officers.length >= selectedJob.required) {
+      flash(`Officer limit reached for ${selectedJob.id}`);
       return;
     }
     const jobOfficer: JobOfficer = {
@@ -251,11 +415,15 @@ export function AdminApp({
     }));
   }
 
+  function markJobPosted(id: string) {
+    updateJob(id, (job) => ({ ...job, posted: true }));
+  }
+
   async function cancelJob(id: string) {
     const current = jobs.find((job) => job.id === id);
     try {
       const job = await cancelJobInApi(id, current);
-      setJobs((items) => items.map((item) => (item.id === id ? job : item)));
+      setJobs((items) => items.map((item) => normalizeJobStage(item.id === id ? job : item)));
       flash('Job cancelled');
     } catch {
       flash('Could not cancel job. Check that the API is running.');
@@ -269,12 +437,18 @@ export function AdminApp({
       setJobs((items) =>
         items.map((item) =>
           item.id === id
-            ? {
+            ? normalizeJobStage({
                 ...job,
-                officers: item.officers.map((officer) => ({ ...officer, actualStart: officer.actualStart || item.start, actualEnd: officer.actualEnd || item.end })),
+                officers: item.officers.map((officer) => ({
+                  ...officer,
+                  confirmed: true,
+                  onDuty: true,
+                  actualStart: officer.actualStart || item.start,
+                  actualEnd: officer.actualEnd || item.end,
+                })),
                 photos: item.photos.length ? item.photos : job.photos,
-              }
-            : item,
+              })
+            : normalizeJobStage(item),
         ),
       );
       flash('Job marked as completed');
@@ -372,7 +546,18 @@ export function AdminApp({
   }
 
   async function markPaid(id: string) {
-    setPayments((items) => items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment)));
+    const localPayment = financePayments.find((payment) => payment.id === id);
+    setPayments((items) => {
+      if (items.some((payment) => payment.id === id)) {
+        return items.map((payment) => (payment.id === id ? { ...payment, status: 'Paid', paidDate: TODAY } : payment));
+      }
+      return localPayment ? [{ ...localPayment, status: 'Paid', paidDate: TODAY }, ...items] : items;
+    });
+
+    if (id.startsWith('local:')) {
+      flash('Payment marked as paid locally');
+      return;
+    }
 
     try {
       const updated = await markOfficerPaymentPaid(id);
@@ -390,7 +575,7 @@ export function AdminApp({
     }
     try {
       const updated = await markJobBilled(billTarget.id, billForm, billTarget);
-      setJobs((items) => items.map((job) => (job.id === updated.id ? { ...job, ...updated } : job)));
+      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updated.id ? { ...job, ...updated } : job)));
       setBillId(null);
       setBillForm({ invoice: '', billedDate: TODAY });
       flash(`Job ${billTarget.id} marked as billed`);
@@ -403,7 +588,49 @@ export function AdminApp({
   const [crumb, title] = screenTitles[screen];
   const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
 
+  const refreshDashboard = useCallback(async () => {
+    try {
+      setDashboardSnapshot(await fetchDashboard());
+    } catch {
+      // Keep the locally derived dashboard available until the next background retry.
+    }
+  }, []);
+
   useEffect(() => {
+    void refreshDashboard();
+    const timer = window.setInterval(() => void refreshDashboard(), 60_000);
+    return () => window.clearInterval(timer);
+  }, [refreshDashboard]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(JOBS_STORAGE_KEY);
+      if (stored) setJobs((JSON.parse(stored) as Job[]).map((job) => normalizeJobStage(job)));
+    } catch {
+      // Keep seeded data when local storage is unavailable or stale.
+    }
+    setJobsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
+    try {
+      window.localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
+    } catch {
+      // Ignore storage failures; the in-memory admin state still works.
+    }
+  }, [jobs, jobsHydrated]);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
+    const updateStages = () => setJobs((items) => items.map((job) => normalizeJobStage(job)));
+    updateStages();
+    const timer = window.setInterval(updateStages, 60_000);
+    return () => window.clearInterval(timer);
+  }, [jobsHydrated]);
+
+  useEffect(() => {
+    if (!jobsHydrated) return;
     let cancelled = false;
 
     void fetchOfficers()
@@ -432,11 +659,11 @@ export function AdminApp({
         setJobs((current) =>
           items.map((item) => {
             const existing = current.find((job) => job.id === item.id);
-            return {
+            return normalizeJobStage({
               ...item,
               officers: existing?.officers.length ? existing.officers : item.officers,
               photos: existing?.photos.length ? existing.photos : item.photos,
-            };
+            });
           }),
         );
         if (items.length) {
@@ -452,7 +679,7 @@ export function AdminApp({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [jobsHydrated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -483,9 +710,9 @@ export function AdminApp({
         setJobs((current) => {
           const merged = current.map((job) => {
             const billingJob = items.find((item) => item.id === job.id);
-            return billingJob ? { ...job, ...billingJob, officers: job.officers, photos: job.photos } : job;
+            return normalizeJobStage(billingJob ? { ...job, ...billingJob, officers: job.officers, photos: job.photos } : job);
           });
-          const missing = items.filter((item) => !merged.some((job) => job.id === item.id));
+          const missing = items.filter((item) => !merged.some((job) => job.id === item.id)).map((job) => normalizeJobStage(job));
           return [...merged, ...missing];
         });
         setBillingReady(true);
@@ -547,14 +774,7 @@ export function AdminApp({
             </div>
           ))}
         </nav>
-        <div className="pn-user">
-          <div>SL</div>
-          <span>
-            <strong>Serene Lau</strong>
-            Operations Admin
-          </span>
-          <ChevronDownIcon size={15} stroke="#A3A3A3" strokeWidth={2} />
-        </div>
+        <AdminAccountMenu />
       </aside>
 
       <main className="pn-main">
@@ -563,9 +783,10 @@ export function AdminApp({
             <p>{crumb}</p>
             <h1>{pageTitle}</h1>
           </div>
+          <div></div>
           <div className="pn-search">
             <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
-            <input aria-label="Search" placeholder="Search jobs, officers..." />
+            <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder="Search jobs, officers..." value={search} />
           </div>
           <Button
             variant="primary"
@@ -576,17 +797,18 @@ export function AdminApp({
           </Button>
         </header>
 
-        <div className="pn-content">
+        <div className={screen === 'profile' ? 'pn-content pn-profile-content' : 'pn-content'}>
           {screen === 'dashboard' ? (
             <DashboardScreen
-              jobs={jobs}
-              stats={stats}
+              snapshot={dashboardSnapshot ?? fallbackDashboard}
               openCreateJob={openCreateJob}
               openJob={openJob}
+              openJobs={openJobs}
+              openBilling={openBilling}
               setScreen={navigateToScreen}
             />
           ) : null}
-          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} setFilter={setJobFilter} /> : null}
+          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} search={search} setFilter={setJobFilter} /> : null}
           {screen === 'jobDetail' ? (
             <JobDetailScreen
               job={selectedJob}
@@ -596,6 +818,7 @@ export function AdminApp({
               cancelJob={cancelJob}
               copyText={copyText}
               markPhoto={markPhoto}
+              markPosted={markJobPosted}
               onEdit={() => openEditJob(selectedJob)}
               openReport={() => setReportJobId(selectedJob.id)}
               removeOfficer={removeOfficerFromJob}
@@ -625,21 +848,24 @@ export function AdminApp({
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
-          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={payments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
+          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
             jobsReady && billingReady ? (
               <BillingScreen
+                filter={billingFilter}
                 jobs={completedJobs}
                 openBill={(id) => {
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });
                 }}
+                setFilter={setBillingFilter}
               />
             ) : (
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={payments} report={operationsReport} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} /> : <LoadingPanel />) : null}
+          {screen === 'profile' ? <ProfileScreen /> : null}
         </div>
       </main>
 
@@ -712,7 +938,7 @@ export function AdminApp({
         </Modal>
       ) : null}
 
-      {reportJobId ? <JobReportModal copyText={copyText} job={jobs.find((job) => job.id === reportJobId) ?? selectedJob} onClose={() => setReportJobId(null)} /> : null}
+      {reportJobId ? <JobReportModal job={jobs.find((job) => job.id === reportJobId) ?? selectedJob} onClose={() => setReportJobId(null)} /> : null}
       {officerProfileId ? (
         <OfficerDetailModal
           initialMode={officerProfileMode}
@@ -730,7 +956,7 @@ export function AdminApp({
           }}
         />
       ) : null}
-      {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={payments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
+      {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={financePayments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
       {toast ? <div className="pn-toast">{toast}</div> : null}
     </div>
   );
@@ -826,43 +1052,6 @@ function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => v
     return { officer, worked, actualHours, evidencePhotos, payable: worked * officer.rate };
   });
   const totalPay = officerReports.reduce((sum, report) => sum + report.payable, 0);
-  const officerCopy = officerReports.length
-    ? officerReports
-        .map(
-          ({ officer, worked, actualHours, evidencePhotos, payable }) =>
-            `${officer.name}\n${officer.confirmed ? 'Confirmed' : 'Not confirmed'} - ${officer.actualStart ? 'Reported' : 'Not reported'} - IC ${officer.ic ? 'yes' : 'missing'}\nActual hours: ${actualHours}\nEvidence photos: ${evidencePhotos}\nPayable: ${money(payable)} (${worked.toFixed(2)}h x ${money(officer.rate)}/h)`,
-        )
-        .join('\n\n')
-    : 'No participating officers recorded for this job yet.';
-  const reportText = [
-    'PilotNow Security Ops',
-    'Job Completion & Evidence Report',
-    '',
-    `Job ID: ${job.id}`,
-    `Generated: ${dateLabel(TODAY)}`,
-    `Customer: ${job.customer}`,
-    `Status: ${job.status}`,
-    `Location: ${job.location}`,
-    `Date: ${dateLabel(job.date)}`,
-    `Time: ${job.start}-${job.end}`,
-    `Officers: ${job.officers.length} of ${job.required} officers`,
-    '',
-    'Description',
-    job.description || 'No description provided.',
-    '',
-    'Special instructions',
-    job.instructions || 'No special instructions.',
-    '',
-    `Participating officers & evidence photos (${received.length} / ${job.photos.length} photos received)`,
-    officerCopy,
-    '',
-    'TOTAL PAYABLE TO OFFICERS',
-    `Billing status: ${job.billing}`,
-    money(totalPay),
-    '',
-    `This report was generated by PilotNow - ${dateLabel(TODAY)} - Confidential`,
-  ].join('\n');
-
   return (
     <Modal
       title="Job Completion Report"
@@ -874,18 +1063,16 @@ function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => v
             <PrinterIcon size={14} strokeWidth={2} />
             Print / PDF
           </button>
-          <button onClick={() => copyText(reportText, 'Job completion report copied')} type="button">
-            <CopyIcon size={14} strokeWidth={2} />
-            Copy
+          <button onClick={() => void downloadPdfReport(reportRef.current, job.id)} type="button">
+            <DownloadIcon size={14} strokeWidth={2} />
+            Download
           </button>
         </div>
       }
     >
-      <div className="pn-report">
+      <div className="pn-report" ref={reportRef}>
         <header className="pn-report-letterhead">
-          <span>
-            <ShieldCheckIcon size={19} stroke="#FF7A1A" strokeWidth={2.2} />
-          </span>
+          <span className="pn-report-logo" aria-hidden="true" />
           <div>
             <strong>PilotNow Security Ops</strong>
             <small>Job Completion & Evidence Report</small>
@@ -973,6 +1160,151 @@ function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => v
       </div>
     </Modal>
   );
+}
+
+async function downloadPdfReport(report: HTMLElement | null, jobId: string) {
+  if (!report) return;
+  const image = await reportImage(report);
+  const pdf = imagePdf(image.bytes, image.width, image.height);
+  const url = URL.createObjectURL(pdf);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${jobId.replace(/[^a-z0-9-]/gi, '_')}-completion-report.pdf`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+async function reportImage(report: HTMLElement) {
+  const width = 794;
+  const height = Math.max(Math.ceil((report.scrollHeight / report.getBoundingClientRect().width) * width), 1123);
+  const styles = Array.from(document.styleSheets)
+    .map((sheet) => {
+      try {
+        return Array.from(sheet.cssRules).map((rule) => rule.cssText).join('\n');
+      } catch {
+        return '';
+      }
+    })
+    .join('\n');
+  const printStyles = `
+    .pn-pdf-export {
+      width: ${width}px;
+      min-height: ${height}px;
+      background: #fff;
+      color: #0A0A0A;
+      box-sizing: border-box;
+    }
+    .pn-pdf-export .pn-report {
+      display: block;
+      position: static;
+      inset: auto;
+      width: 100%;
+      max-width: none;
+      color: #0A0A0A;
+      background: #fff;
+      padding: 52px 56px 0;
+      box-sizing: border-box;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+    .pn-pdf-export .pn-report-letterhead,
+    .pn-pdf-export .pn-report-title-row,
+    .pn-pdf-export .pn-report-officer-main,
+    .pn-pdf-export .pn-report-officer-meta {
+      align-items: center;
+      flex-direction: row;
+    }
+    .pn-pdf-export .pn-report-letterhead aside,
+    .pn-pdf-export .pn-report-pay {
+      text-align: right;
+    }
+    .pn-pdf-export .pn-report-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .pn-pdf-export .pn-report-notes {
+      grid-template-columns: 1fr 1fr;
+    }
+    .pn-pdf-export .pn-report-grid > div {
+      border-right: 1px solid #E5E5E5;
+      border-bottom: 0;
+    }
+    .pn-pdf-export .pn-report-grid > div:last-child {
+      border-right: 0;
+    }
+    .pn-pdf-export .pn-report-grid,
+    .pn-pdf-export .pn-report-notes,
+    .pn-pdf-export .pn-report-officer,
+    .pn-pdf-export .pn-report-footer,
+    .pn-pdf-export .pn-report-empty {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+  `;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="pn-pdf-export"><style>${styles}${printStyles}</style>${report.outerHTML}</div></foreignObject></svg>`;
+  const image = new Image();
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  await image.decode();
+
+  const scale = Math.min(2, 1800 / width);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Could not create PDF canvas');
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  const base64 = canvas.toDataURL('image/jpeg', 0.95).split(',')[1] ?? '';
+  return { bytes: base64Bytes(base64), width: canvas.width, height: canvas.height };
+}
+
+function imagePdf(jpeg: Uint8Array, imageWidth: number, imageHeight: number) {
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const scale = Math.min(pageWidth / imageWidth, pageHeight / imageHeight);
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
+  const content = `1 1 1 rg\n0 0 ${pageWidth} ${pageHeight} re f\nq\n${drawWidth} 0 0 ${drawHeight} ${(pageWidth - drawWidth) / 2} ${pageHeight - drawHeight} cm\n/Im1 Do\nQ`;
+  const encoder = new TextEncoder();
+  const objects: (string | Uint8Array)[][] = [
+    ['<< /Type /Catalog /Pages 2 0 R >>'],
+    ['<< /Type /Pages /Kids [3 0 R] /Count 1 >>'],
+    [`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>`],
+    [`<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`, jpeg, '\nendstream'],
+    [`<< /Length ${content.length} >>\nstream\n${content}\nendstream`],
+  ];
+  const header = encoder.encode('%PDF-1.4\n');
+  const chunks: Uint8Array[] = [header];
+  const offsets = [0];
+  let length = header.length;
+
+  objects.forEach((body, index) => {
+    offsets.push(length);
+    const objectChunks = [encoder.encode(`${index + 1} 0 obj\n`), ...body.map((part) => (typeof part === 'string' ? encoder.encode(part) : part)), encoder.encode('\nendobj\n')];
+    objectChunks.forEach((chunk) => {
+      chunks.push(chunk);
+      length += chunk.length;
+    });
+  });
+
+  const xref = length;
+  const footer = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n `).join('\n')}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  chunks.push(encoder.encode(footer));
+  return new Blob(chunks.map(blobBuffer), { type: 'application/pdf' });
+}
+
+function blobBuffer(chunk: Uint8Array) {
+  const copy = new Uint8Array(chunk.byteLength);
+  copy.set(chunk);
+  return copy.buffer as ArrayBuffer;
+}
+
+function base64Bytes(base64: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
 }
 
 function initials(name: string) {

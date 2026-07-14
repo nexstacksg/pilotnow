@@ -157,6 +157,16 @@ export function CopyIcon(props: IconProps) {
   );
 }
 
+export function DownloadIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </Svg>
+  );
+}
+
 export function PrinterIcon(props: IconProps) {
   return (
     <Svg {...props}>
