@@ -1,6 +1,6 @@
 import { Badge } from '../components/ui';
 import type { DashboardQueues } from '../lib/dashboard-api';
-import { TODAY, dateLabel, statusTone } from '../lib/format';
+import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
@@ -28,7 +28,7 @@ export function JobsScreen({
   queues?: DashboardQueues;
   openJob: (id: string) => void;
 }) {
-  const statusViews = ['All', 'Today', 'Needs staffing', 'Missing photos', ...defaultStatusViews] as JobListFilter[];
+  const statusViews = ['All', ...defaultStatusViews] as JobListFilter[];
   const query = search.trim().toLowerCase();
 
   const filtered = jobs
@@ -38,9 +38,6 @@ export function JobsScreen({
     .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
 
   function countFor(item: JobListFilter) {
-    if (item === 'Today') return queues?.todayJobs.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
-    if (item === 'Needs staffing') return queues?.waitingJobs.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
-    if (item === 'Missing photos') return queues?.missingPhotos.length ?? jobs.filter((job) => matchesJobFilter(job, item)).length;
     return jobs.filter((job) => matchesJobFilter(job, item)).length;
   }
 
@@ -97,9 +94,7 @@ export function JobsScreen({
 
 function matchesJobFilter(job: Job, filter: JobListFilter) {
   if (filter === 'All') return true;
-  if (filter === 'Today') return job.date === TODAY && job.status !== 'Cancelled';
-  if (filter === 'Needs staffing') return job.status !== 'Completed' && job.status !== 'Cancelled' && job.officers.length < job.required;
-  if (filter === 'Missing photos') return job.photos.some((photo) => photo.status === 'missing');
+  if (filter === 'Today' || filter === 'Needs staffing' || filter === 'Missing photos') return true;
   return job.status === filter;
 }
 
