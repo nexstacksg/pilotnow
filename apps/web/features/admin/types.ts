@@ -6,7 +6,8 @@ export type Screen =
   | 'summary'
   | 'payments'
   | 'billing'
-  | 'reports';
+  | 'reports'
+  | 'profile';
 
 export type JobStatus =
   | 'Draft'
@@ -15,6 +16,9 @@ export type JobStatus =
   | 'Ongoing'
   | 'Completed'
   | 'Cancelled';
+
+export type JobListFilter = JobStatus | 'All' | 'Today' | 'Needs staffing' | 'Missing photos';
+export type BillingFilter = 'All' | 'Not Billed' | 'Billed';
 
 export type BillingStatus = 'Billed' | 'Not Billed';
 export type OfficerStatus = 'New' | 'Active' | 'Inactive' | 'Blocked';

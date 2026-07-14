@@ -1,6 +1,16 @@
+import { useMemo, useState } from 'react';
+import { CalendarIcon, CheckIcon, ClockIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
 import { dateLabel, money } from '../lib/format';
-import type { Payment } from '../types';
+import type { Payment, PaymentStatus } from '../types';
+
+type PaymentFilter = 'All' | PaymentStatus;
+
+const paymentFilters: PaymentFilter[] = ['All', 'Pending', 'Paid'];
+
+function paymentAmount(payment: Payment) {
+  return payment.hours * payment.rate;
+}
 
 export function PaymentsScreen({
   payments,
@@ -11,50 +21,109 @@ export function PaymentsScreen({
   markPaid: (id: string) => void;
   setPayOfficer: (officer: string) => void;
 }) {
-  const pending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + payment.hours * payment.rate, 0);
-  const paid = payments.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + payment.hours * payment.rate, 0);
+  const [statusFilter, setStatusFilter] = useState<PaymentFilter>('All');
+  const [jobDate, setJobDate] = useState('');
+
+  const pending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  const paid = payments.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + paymentAmount(payment), 0);
+  const filteredPayments = useMemo(
+    () =>
+      payments.filter((payment) => {
+        const matchesStatus = statusFilter === 'All' || payment.status === statusFilter;
+        const matchesDate = !jobDate || payment.jobDate === jobDate;
+        return matchesStatus && matchesDate;
+      }),
+    [jobDate, payments, statusFilter],
+  );
+  const filteredTotal = filteredPayments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
 
   return (
     <div className="pn-stack">
       <div className="pn-stats pn-stats-2">
-        <Card>
-          <span className="pn-muted">Pending payroll</span>
-          <strong className="pn-compact-metric">{money(pending)}</strong>
+        <Card className="pn-payment-stat">
+          <span className="pn-payment-stat-icon pn-payment-stat-warning">
+            <ClockIcon size={19} strokeWidth={2.1} />
+          </span>
+          <span>
+            <span className="pn-payment-stat-label">Pending payout</span>
+            <strong className="pn-compact-metric">{money(pending)}</strong>
+          </span>
         </Card>
-        <Card>
-          <span className="pn-muted">Paid payroll</span>
-          <strong className="pn-compact-metric">{money(paid)}</strong>
+        <Card className="pn-payment-stat">
+          <span className="pn-payment-stat-icon pn-payment-stat-success">
+            <CheckIcon size={19} strokeWidth={2.3} />
+          </span>
+          <span>
+            <span className="pn-payment-stat-label">Paid this week</span>
+            <strong className="pn-compact-metric">{money(paid)}</strong>
+          </span>
         </Card>
       </div>
-      <Card>
-        <h2>Officer payments</h2>
-        <div className="pn-table pn-table-payments">
-          <div className="pn-table-head">
-            <span>Officer</span>
-            <span>Job</span>
-            <span>Date</span>
-            <span>Hours</span>
-            <span>Total</span>
-            <span>Status</span>
-            <span>Action</span>
-          </div>
-          {payments.map((payment) => (
-            <div className="pn-table-row" key={payment.id}>
-              <button className="pn-link-btn" onClick={() => setPayOfficer(payment.officer)} type="button">
-                {payment.officer}
-              </button>
-              <span>{payment.jobId}</span>
-              <span>{dateLabel(payment.jobDate)}</span>
-              <span>{payment.hours.toFixed(2)}h</span>
-              <span>{money(payment.hours * payment.rate)}</span>
-              <span>
-                <Badge tone={payment.status === 'Paid' ? 'success' : 'warning'}>{payment.status}</Badge>
-              </span>
-              <span>{payment.status === 'Pending' ? <Button onClick={() => markPaid(payment.id)}>Mark paid</Button> : payment.paidDate ? dateLabel(payment.paidDate) : '-'}</span>
-            </div>
+
+      <div className="pn-payment-toolbar">
+        <div className="pn-tabs" aria-label="Payment status filter">
+          {paymentFilters.map((filter) => (
+            <button className={statusFilter === filter ? 'active' : ''} key={filter} onClick={() => setStatusFilter(filter)} type="button" aria-pressed={statusFilter === filter}>
+              {filter}
+            </button>
           ))}
         </div>
-      </Card>
+
+        <span className="pn-payment-toolbar-divider" />
+
+        <label className="pn-date-filter">
+          <CalendarIcon size={15} stroke="#A3A3A3" strokeWidth={2} />
+          <span>Job date</span>
+          <input aria-label="Filter payments by job date" type="date" value={jobDate} onChange={(event) => setJobDate(event.target.value)} />
+        </label>
+
+        {jobDate ? (
+          <Button onClick={() => setJobDate('')}>
+            Clear date
+          </Button>
+        ) : null}
+
+        <span className="pn-payment-filter-total">
+          Filtered total <strong>{money(filteredTotal)}</strong>
+        </span>
+      </div>
+
+      <div className="pn-table pn-table-payments">
+        <div className="pn-table-head">
+          <span>Officer</span>
+          <span>Job</span>
+          <span>Date</span>
+          <span>Hours</span>
+          <span>Rate</span>
+          <span>Total</span>
+          <span>Status</span>
+        </div>
+        {filteredPayments.map((payment) => (
+          <div className="pn-table-row" key={payment.id}>
+            <span>
+              <button className="pn-payment-officer-btn" onClick={() => setPayOfficer(payment.officer)} type="button">
+                {payment.officer}
+                <span aria-hidden="true">›</span>
+              </button>
+            </span>
+            <span className="pn-mono">{payment.jobId}</span>
+            <span>{dateLabel(payment.jobDate)}</span>
+            <span><strong>{payment.hours.toFixed(2)}h</strong></span>
+            <span className="pn-mono">{money(payment.rate)}</span>
+            <span><strong>{money(paymentAmount(payment))}</strong></span>
+            <span>
+              {payment.status === 'Pending' ? (
+                <Button variant="primary" onClick={() => markPaid(payment.id)}>
+                  Mark paid
+                </Button>
+              ) : (
+                <Badge tone="success">{payment.status}</Badge>
+              )}
+            </span>
+          </div>
+        ))}
+        {!filteredPayments.length ? <div className="pn-empty">No payments match these filters.</div> : null}
+      </div>
     </div>
   );
 }

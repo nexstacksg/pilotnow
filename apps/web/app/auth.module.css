@@ -1,0 +1,407 @@
+.page {
+  --auth-red: #ac3033;
+  --auth-red-bright: #d62f3a;
+  --auth-ink: #253047;
+  --auth-muted: #8893a7;
+  --auth-border: #dfe3e9;
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  overflow: hidden;
+  background: #ffffff;
+  padding: 24px 16px;
+}
+
+.panel {
+  width: min(100%, 300px);
+  color: var(--auth-ink);
+  transform: scale(1.2);
+  transform-origin: center;
+}
+
+.brand {
+  margin: 0 0 36px;
+  color: #cf3038;
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -1.4px;
+  line-height: 1;
+  text-align: center;
+}
+
+.loginBrand {
+  margin-bottom: 36px;
+}
+
+.title {
+  margin: 0;
+  color: var(--auth-ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.loginTitle {
+  width: max-content;
+  max-width: none;
+  margin: 0 auto 18px;
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.subtitle {
+  margin: 2px 0 18px;
+  color: #5c6679;
+  font-size: 10px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.leftSubtitle {
+  text-align: left;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.field label {
+  color: #202536;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.required {
+  color: var(--auth-red-bright);
+}
+
+.inputWrap {
+  position: relative;
+}
+
+.input {
+  width: 100%;
+  height: 35px;
+  border: 1px solid var(--auth-border);
+  border-radius: 8px;
+  outline: 0;
+  background: #ffffff;
+  color: #172033;
+  padding: 0 32px 0 11px;
+  font-size: 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.input::placeholder {
+  color: #c3c8d3;
+}
+
+.input:hover {
+  border-color: #c8ced8;
+}
+
+.input:focus {
+  border-color: var(--auth-red-bright);
+  box-shadow: 0 0 0 2px rgb(214 47 58 / 10%);
+}
+
+.inputError {
+  border-color: #ef4e5a;
+}
+
+.inputIcon,
+.iconButton {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  display: grid;
+  width: 16px;
+  height: 16px;
+  place-items: center;
+  transform: translateY(-50%);
+  color: #172033;
+}
+
+.inputIcon svg,
+.iconButton svg {
+  width: 12px;
+  height: 12px;
+}
+
+.iconButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.error {
+  margin: -10px 0 2px;
+  color: #ec3845;
+  font-size: 10px;
+}
+
+.formMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -3px 0 17px;
+}
+
+.remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #8390a5;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.remember input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.checkbox {
+  display: grid;
+  width: 11px;
+  height: 11px;
+  place-items: center;
+  border: 1px solid #c8ced8;
+  border-radius: 3px;
+  background: #fff;
+  color: #fff;
+}
+
+.checkbox svg {
+  width: 8px;
+  height: 8px;
+}
+
+.remember input:checked + .checkbox {
+  border-color: #d53540;
+  background: #d53540;
+}
+
+.link {
+  border: 0;
+  background: transparent;
+  color: var(--auth-red);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.button {
+  display: inline-flex;
+  width: 100%;
+  height: 35px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: var(--auth-red);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  transition: background 160ms ease, transform 80ms ease;
+}
+
+.button:hover {
+  background: #92282b;
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: .6;
+}
+
+.backLink,
+.resend {
+  margin: 21px 0 0;
+  color: #9aa5b8;
+  font-size: 10px;
+  text-align: center;
+}
+
+.codePanel {
+  width: min(100%, 300px);
+}
+
+.codePanel .brand {
+  margin-bottom: 42px;
+}
+
+.codeForm {
+  margin-top: 16px;
+}
+
+.codeFields {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 0 auto 10px;
+}
+
+.codeInput {
+  width: 31px;
+  height: 33px;
+  border: 0;
+  border-bottom: 2px solid #d9dde4;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  color: #101522;
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1;
+  text-align: center;
+}
+
+.codeInput:focus,
+.codeInput:not(:placeholder-shown) {
+  border-bottom-color: #394052;
+}
+
+.timer {
+  margin: 0 0 20px;
+  color: #202536;
+  font-size: 10px;
+  text-align: center;
+}
+
+.timer span {
+  color: #f04450;
+}
+
+.resetPanel .brand {
+  margin-bottom: 43px;
+}
+
+.resetPanel .field {
+  margin-bottom: 18px;
+}
+
+.successBackdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 62%);
+  padding: 16px;
+}
+
+.successModal {
+  display: flex;
+  width: min(100%, 335px);
+  min-height: 277px;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 70px rgb(0 0 0 / 20%);
+  padding: 28px 42px;
+  text-align: center;
+  transform: scale(1.2);
+}
+
+.successIcon {
+  color: var(--auth-red);
+  width: 68px;
+  height: 68px;
+  margin-bottom: 26px;
+}
+
+.successModal h2 {
+  margin: 0 0 17px;
+  color: #171b26;
+  font-size: 11px;
+}
+
+.successModal p {
+  margin: 0 0 26px;
+  color: #3f4656;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.modalButton {
+  width: min(100%, 150px);
+  height: 28px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    align-items: start;
+    overflow: auto;
+    padding: 60px 22px 40px;
+  }
+
+  .brand,
+  .loginBrand {
+    margin-bottom: 36px;
+    font-size: 38px;
+    letter-spacing: -1.4px;
+  }
+
+  .loginTitle {
+    margin-bottom: 18px;
+    font-size: 11px;
+  }
+
+  .codePanel .brand,
+  .resetPanel .brand {
+    margin-bottom: 42px;
+  }
+
+  .codeFields {
+    gap: 18px;
+  }
+
+  .codeInput {
+    width: 31px;
+    font-size: 25px;
+  }
+
+  .successModal {
+    min-height: 277px;
+    padding: 28px;
+  }
+}
+
+@media (max-width: 380px) {
+  .panel,
+  .successModal {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input,
+  .button {
+    transition: none;
+  }
+}

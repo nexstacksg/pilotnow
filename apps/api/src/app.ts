@@ -20,6 +20,8 @@ import { proofs } from './routes/proofs.js';
 import { payables } from './routes/payables.js';
 import { billing } from './routes/billing.js';
 import { reports } from './routes/reports.js';
+import { dashboard } from './routes/dashboard.js';
+import { auth } from './routes/auth.js';
 
 loadEnv();
 
@@ -36,6 +38,7 @@ export const app = new Hono()
   .use(logger())
   .use(cors())
   .use(identity()) // FR-035: resolve caller to HUMAN or AGENT identity
+  .route('/auth', auth)
   .route('/health', health)
   .route('/jobs', jobs) // FR-001..003, FR-017 — intake, drafts, completion
   .route('/officers', officers) // FR-005..006 — master data, onboarding
@@ -44,6 +47,7 @@ export const app = new Hono()
   .route('/payables', payables) // FR-018..021 — hours, payable computation, PAID/UNPAID
   .route('/billing', billing) // FR-022 — BILLED/NOT BILLED
   .route('/reports', reports)
+  .route('/dashboard', dashboard) // FR-024 — source-backed admin operating view
   .all('/mcp', async (c) => {
     const transport = new StreamableHTTPTransport();
     await mcpServer.connect(transport);

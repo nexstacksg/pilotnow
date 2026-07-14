@@ -10,7 +10,7 @@ import {
 } from './components/icons';
 import type { JobForm, OfficerForm, Screen } from './types';
 
-export const navIcons: Record<Screen, ReactNode> = {
+export const navIcons: Record<Exclude<Screen, 'profile'>, ReactNode> = {
   dashboard: <DashboardIcon />,
   jobs: <JobsIcon />,
   jobDetail: <JobsIcon />,
@@ -64,4 +64,5 @@ export const screenTitles: Record<Screen, [string, string]> = {
   payments: ['Finance', 'Officer Payment'],
   billing: ['Finance', 'Customer Billing'],
   reports: ['Insights', 'Reports'],
+  profile: ['Account', 'Profile'],
 };

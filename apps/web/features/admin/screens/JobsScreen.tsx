@@ -1,6 +1,7 @@
 import { Badge } from '../components/ui';
+import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
-import type { Job, JobStatus } from '../types';
+import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
 const statusOrder: Partial<Record<JobStatus, number>> = {
@@ -17,6 +18,7 @@ export function JobsScreen({
   filter,
   search,
   setFilter,
+  queues,
   openJob,
 }: {
   jobs: Job[];
@@ -38,7 +40,7 @@ export function JobsScreen({
       <div className="pn-tabs">
         {statusViews.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
-            {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.status === item).length}
+            {item} · {countFor(item)}
           </button>
         ))}
       </div>
