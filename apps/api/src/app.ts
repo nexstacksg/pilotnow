@@ -51,10 +51,12 @@ export const app = new Hono()
         payables: '/payables',
         billing: '/billing',
         reports: '/reports',
+        auth: '/auth',
         mcp: '/mcp',
       },
     }),
   )
+  .route('/auth', auth)
   .route('/health', health)
   .route('/jobs', jobs) // FR-001..003, FR-017 — intake, drafts, completion
   .route('/officers', officers) // FR-005..006 — master data, onboarding
@@ -64,7 +66,6 @@ export const app = new Hono()
   .route('/billing', billing) // FR-022 — BILLED/NOT BILLED
   .route('/reports', reports)
   .route('/dashboard', dashboard) // FR-024 — source-backed admin operating view
-  .route('/auth', auth)
   .all('/mcp', async (c) => {
     const transport = new StreamableHTTPTransport();
     await mcpServer.connect(transport);

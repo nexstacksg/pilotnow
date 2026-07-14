@@ -706,12 +706,12 @@ export function AdminApp({
 
     void fetchOfficers()
       .then((items) => {
-        if (!cancelled) {
-          setOfficers(items);
-          setOfficersReady(true);
-        }
+        if (cancelled) return;
+        setOfficers(items);
+        setOfficersReady(true);
       })
       .catch(() => {
+        if (cancelled) return;
         // Keep seeded demo officers when the API is not running.
         setOfficersReady(true);
       });
@@ -719,7 +719,7 @@ export function AdminApp({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [jobsHydrated]);
 
   useEffect(() => {
     let cancelled = false;

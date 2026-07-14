@@ -31,8 +31,12 @@ jobs:
           PILOTNOW_ENV_FILE: ${{ secrets.PILOTNOW_ENV_FILE }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          PILOTNOW_WEB_API_URL: ${{ secrets.PILOTNOW_WEB_API_URL }}
           PILOTNOW_API_URL: ${{ secrets.PILOTNOW_API_URL }}
           PILOTNOW_AGENT_TOKEN: ${{ secrets.PILOTNOW_AGENT_TOKEN }}
+          PILOTNOW_ADMIN_EMAIL: ${{ secrets.PILOTNOW_ADMIN_EMAIL }}
+          PILOTNOW_ADMIN_PASSWORD: ${{ secrets.PILOTNOW_ADMIN_PASSWORD }}
+          PILOTNOW_ADMIN_NAME: ${{ secrets.PILOTNOW_ADMIN_NAME }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -53,8 +57,12 @@ jobs:
               printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
               printf 'API_PORT=%s\n' "${API_PORT:-4000}"
               printf 'NEXT_PUBLIC_API_URL=%s\n' "${NEXT_PUBLIC_API_URL:-http://localhost:4000}"
+              printf 'PILOTNOW_WEB_API_URL=%s\n' "${PILOTNOW_WEB_API_URL:-${PILOTNOW_API_URL:-http://localhost:4000}}"
               printf 'PILOTNOW_API_URL=%s\n' "${PILOTNOW_API_URL:-http://localhost:4000}"
               printf 'PILOTNOW_AGENT_TOKEN=%s\n' "$PILOTNOW_AGENT_TOKEN"
+              printf 'PILOTNOW_ADMIN_EMAIL=%s\n' "$PILOTNOW_ADMIN_EMAIL"
+              printf 'PILOTNOW_ADMIN_PASSWORD=%s\n' "$PILOTNOW_ADMIN_PASSWORD"
+              printf 'PILOTNOW_ADMIN_NAME=%s\n' "${PILOTNOW_ADMIN_NAME:-PilotNow Admin}"
               printf 'SMTP_HOST=%s\n' "${SMTP_HOST:-smtp.resend.com}"
               printf 'SMTP_PORT=%s\n' "${SMTP_PORT:-465}"
               printf 'SMTP_USER=%s\n' "${SMTP_USER:-resend}"
