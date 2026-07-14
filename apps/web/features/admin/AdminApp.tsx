@@ -60,6 +60,8 @@ const navGroups: { label: string; items: { screen: NavigationScreen; label: stri
 ];
 
 const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
+const PAYMENTS_STORAGE_KEY = 'pilotnow.admin.payments';
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type AdminSearchResult = {
   key: string;
@@ -101,11 +103,43 @@ function pushRoute(path: string) {
   window.history.pushState(null, '', path);
 }
 
-function paymentRowsFromJobs(jobs: Job[], payments: Payment[]) {
-  const generated = jobs.flatMap((job) =>
-    job.status === 'Completed'
-      ? job.officers.map((officer) => ({
-          id: `local:${job.id}:${officer.oid}`,
+function isApiPaymentId(id: string) {
+  return UUID_PATTERN.test(id);
+}
+
+function mergePaymentRows(primary: Payment[], secondary: Payment[]) {
+  const rows = [...primary];
+  const existingById = new Set(rows.map((payment) => payment.id));
+  const existingByJobOfficer = new Set(rows.map(paymentKey));
+
+  secondary.forEach((payment) => {
+    if (existingById.has(payment.id) || existingByJobOfficer.has(paymentKey(payment))) return;
+    rows.push(payment);
+  });
+
+  return rows;
+}
+
+function mergeServerPayments(serverPayments: Payment[], localPayments: Payment[]) {
+  const clientOnly = localPayments.filter((payment) => !isApiPaymentId(payment.id));
+  return mergePaymentRows(serverPayments, clientOnly);
+}
+
+function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
+  const existingById = new Map(existingPayments.map((payment) => [payment.id, payment]));
+  const existingByJobOfficer = new Map(existingPayments.map((payment) => [paymentKey(payment), payment]));
+  const rows = [...existingPayments];
+
+  jobs
+    .filter((job) => job.status === 'Completed')
+    .forEach((job) => {
+      const scheduled = hours(job.start, job.end);
+      job.officers.forEach((officer) => {
+        const id = `local:${job.id}:${officer.oid}`;
+        if (existingById.has(id) || existingByJobOfficer.has(`${job.id}::${officer.name}`)) return;
+        const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
+        rows.push({
+          id,
           officer: officer.name,
           jobId: job.id,
           jobDate: job.date,
@@ -164,6 +198,7 @@ export function AdminApp({
   const [billingReady, setBillingReady] = useState(false);
   const [reportsReady, setReportsReady] = useState(false);
   const [jobsHydrated, setJobsHydrated] = useState(false);
+  const [paymentsHydrated, setPaymentsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
   const [toast, setToast] = useState('');
@@ -630,6 +665,25 @@ export function AdminApp({
   }, [jobsHydrated]);
 
   useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(PAYMENTS_STORAGE_KEY);
+      if (stored) setPayments((items) => mergePaymentRows(JSON.parse(stored) as Payment[], items));
+    } catch {
+      // Keep seeded payments when local storage is unavailable or stale.
+    }
+    setPaymentsHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!paymentsHydrated) return;
+    try {
+      window.localStorage.setItem(PAYMENTS_STORAGE_KEY, JSON.stringify(payments));
+    } catch {
+      // Ignore storage failures; the in-memory admin state still works.
+    }
+  }, [payments, paymentsHydrated]);
+
+  useEffect(() => {
     if (!jobsHydrated) return;
     let cancelled = false;
 
@@ -682,12 +736,13 @@ export function AdminApp({
   }, [jobsHydrated]);
 
   useEffect(() => {
+    if (!paymentsHydrated) return;
     let cancelled = false;
 
     void fetchOfficerPayments()
       .then((items) => {
         if (!cancelled) {
-          setPayments(items);
+          setPayments((current) => mergeServerPayments(items, current));
           setPaymentsReady(true);
         }
       })
@@ -699,7 +754,7 @@ export function AdminApp({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [paymentsHydrated]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1317,26 +1372,79 @@ function initials(name: string) {
 }
 
 function PaymentHistoryModal({ officer, payments, onClose, openJob }: { officer: string; payments: Payment[]; onClose: () => void; openJob: (id: string) => void }) {
-  const rows = payments.filter((payment) => payment.officer === officer);
+  const rows = payments.filter((payment) => payment.officer === officer).sort((a, b) => b.jobDate.localeCompare(a.jobDate) || b.jobId.localeCompare(a.jobId));
+  const paidTotal = rows.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + payment.hours * payment.rate, 0);
+  const pendingTotal = rows.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + payment.hours * payment.rate, 0);
+  const lifetimeTotal = paidTotal + pendingTotal;
+
   return (
-    <Modal title={officer} subtitle={`Payment history / ${rows.length} records`} onClose={onClose} wide footer={<Button onClick={onClose}>Close</Button>}>
-      <div className="pn-table">
-        {rows.map((payment) => (
-          <button
-            className="pn-table-row"
-            key={payment.id}
-            onClick={() => {
-              onClose();
-              openJob(payment.jobId);
-            }}
-            type="button"
-          >
-            <span>{payment.jobId}</span>
-            <span>{dateLabel(payment.jobDate)}</span>
-            <span>{payment.hours.toFixed(2)}h</span>
-            <span>{payment.status}</span>
+    <Modal title={officer} onClose={onClose} wide hideHeader>
+      <div className="pn-payment-history">
+        <header className="pn-payment-history-head">
+          <span className="pn-payment-history-avatar">{initials(officer)}</span>
+          <div>
+            <h2>{officer}</h2>
+            <p>Payment history / {rows.length} record{rows.length === 1 ? '' : 's'}</p>
+          </div>
+          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">
+            x
           </button>
-        ))}
+        </header>
+
+        <div className="pn-payment-history-body">
+          <div className="pn-payment-history-stats">
+            <div>
+              <span>Total paid</span>
+              <strong className="is-paid">{money(paidTotal)}</strong>
+            </div>
+            <div>
+              <span>Pending</span>
+              <strong className="is-pending">{money(pendingTotal)}</strong>
+            </div>
+            <div>
+              <span>Lifetime</span>
+              <strong>{money(lifetimeTotal)}</strong>
+            </div>
+          </div>
+
+          {rows.length ? (
+            <div className="pn-table pn-table-payment-history">
+              <div className="pn-table-head">
+                <span>Job</span>
+                <span>Job date</span>
+                <span>Hrs</span>
+                <span>Rate</span>
+                <span>Total</span>
+                <span>Status</span>
+              </div>
+              {rows.map((payment) => {
+                const total = payment.hours * payment.rate;
+                return (
+                  <button
+                    className="pn-table-row pn-click-row"
+                    key={payment.id}
+                    onClick={() => {
+                      onClose();
+                      openJob(payment.jobId);
+                    }}
+                    type="button"
+                  >
+                    <span className="pn-mono">{payment.jobId}</span>
+                    <span>{dateLabel(payment.jobDate)}</span>
+                    <span>{payment.hours.toFixed(2)}h</span>
+                    <span className="pn-mono">{money(payment.rate)}</span>
+                    <span className="pn-mono">{money(total)}</span>
+                    <span>
+                      <Badge tone={payment.status === 'Paid' ? 'success' : 'warning'}>{payment.status}</Badge>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pn-empty">No payment history recorded for this officer yet.</div>
+          )}
+        </div>
       </div>
     </Modal>
   );

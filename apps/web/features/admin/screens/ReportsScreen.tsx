@@ -105,7 +105,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
   const rows = reportRows[activeReport].filter((row) => isWithinDateRange(row.date, startDate, endDate));
   const columns = reportColumns[activeReport];
   const active = reportTabs.find((tab) => tab.key === activeReport) ?? defaultReportTab;
-  const totalPayable = activeReport === 'completed' ? rows.reduce((sum, row) => sum + parseMoney(String(row.cells.totalPayable)), 0) : null;
+  const reportSummary = buildReportSummary(activeReport, rows, officers);
 
   return (
     <div className="pn-reports-screen">
@@ -166,7 +166,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
           {!rows.length ? <div className="pn-empty">No records match this report date range.</div> : null}
         </div>
 
-        {totalPayable !== null ? <div className="pn-report-total">Total payable across jobs: {money(totalPayable)}</div> : null}
+        <div className="pn-report-total">{reportSummary}</div>
       </Card>
     </div>
   );
@@ -296,6 +296,31 @@ function isWithinDateRange(date: string, start: string, end: string) {
 function parseMoney(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ''));
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function buildReportSummary(activeReport: ReportKey, rows: ReportRow[], officers: Officer[]) {
+  if (activeReport === 'completed') {
+    const totalPayroll = rows.reduce((sum, row) => sum + parseMoney(String(row.cells.totalPayable)), 0);
+    return `${rows.length} completed job(s), Total payroll: ${money(totalPayroll)}`;
+  }
+
+  if (activeReport === 'payments') {
+    const totalPayroll = rows.reduce((sum, row) => sum + parseMoney(String(row.cells.total)), 0);
+    const pending = rows.filter((row) => row.cells.status === 'Pending').length;
+    const paid = rows.filter((row) => row.cells.status === 'Paid').length;
+    return `Total payroll: ${money(totalPayroll)}, ${pending} pending payout(s), ${paid} paid payout(s)`;
+  }
+
+  if (activeReport === 'missingPhotos') {
+    return `${rows.length} missing checkpoint(s)`;
+  }
+
+  if (activeReport === 'billing') {
+    const notBilled = rows.filter((row) => row.cells.status === 'Not Billed').length;
+    return `${notBilled} job(s) not yet billed`;
+  }
+
+  return `${officers.length} officers on record`;
 }
 
 function exportReport(title: string, columns: ReportColumn[], rows: ReportRow[], startDate: string, endDate: string) {
