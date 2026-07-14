@@ -65,12 +65,52 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="pn-empty">{children}</div>;
 }
 
+export function Pagination({
+  page,
+  pageCount,
+  from,
+  to,
+  total,
+  label = 'records',
+  onPageChange,
+}: {
+  page: number;
+  pageCount: number;
+  from: number;
+  to: number;
+  total: number;
+  label?: string;
+  onPageChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+
+  return (
+    <div className="pn-pagination" aria-label={`${label} pagination`}>
+      <span>
+        Showing {from}-{to} of {total}
+      </span>
+      <div>
+        <Button disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+          Previous
+        </Button>
+        <strong>
+          Page {page} of {pageCount}
+        </strong>
+        <Button disabled={page === pageCount} onClick={() => onPageChange(Math.min(pageCount, page + 1))}>
+          Next
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function Modal({
   title,
   subtitle,
   children,
   footer,
   headerActions,
+  headerIcon,
   onClose,
   hideHeader = false,
   wide = false,
@@ -80,6 +120,7 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   headerActions?: ReactNode;
+  headerIcon?: ReactNode;
   onClose: () => void;
   hideHeader?: boolean;
   wide?: boolean;
@@ -89,9 +130,12 @@ export function Modal({
       <section className={`pn-modal ${wide ? 'pn-modal-wide' : ''} ${hideHeader ? 'pn-modal-chromeless' : ''}`}>
         {hideHeader ? null : (
           <header className="pn-modal-header">
-            <div>
-              <h2>{title}</h2>
-              {subtitle ? <p>{subtitle}</p> : null}
+            <div className="pn-modal-title-row">
+              {headerIcon ? <span className="pn-modal-header-icon">{headerIcon}</span> : null}
+              <div>
+                <h2>{title}</h2>
+                {subtitle ? <p>{subtitle}</p> : null}
+              </div>
             </div>
             {headerActions}
             <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">

@@ -38,7 +38,23 @@ export const app = new Hono()
   .use(logger())
   .use(cors())
   .use(identity()) // FR-035: resolve caller to HUMAN or AGENT identity
-  .route('/auth', auth)
+  .get('/', (c) =>
+    c.json({
+      ok: true,
+      service: 'pilotnow-api',
+      endpoints: {
+        health: '/health',
+        jobs: '/jobs',
+        officers: '/officers',
+        assignments: '/assignments',
+        proofs: '/proofs',
+        payables: '/payables',
+        billing: '/billing',
+        reports: '/reports',
+        mcp: '/mcp',
+      },
+    }),
+  )
   .route('/health', health)
   .route('/jobs', jobs) // FR-001..003, FR-017 — intake, drafts, completion
   .route('/officers', officers) // FR-005..006 — master data, onboarding

@@ -105,6 +105,7 @@ export function BillingModal({
 
 export function OfficerProfileModal({ officer, jobs, onClose, openJob }: { officer?: Officer; jobs: Job[]; onClose: () => void; openJob: (id: string) => void }) {
   if (!officer) return null;
+  const officerCode = officer.code ?? officer.id;
 
   const history = jobs
     .map((job) => {
@@ -125,12 +126,12 @@ export function OfficerProfileModal({ officer, jobs, onClose, openJob }: { offic
   const officerTone = officer.status === 'Active' ? 'success' : officer.status === 'Blocked' ? 'danger' : 'muted';
 
   return (
-    <Modal title={officer.name} subtitle={`${officer.id} / ${officer.phone} / ${money(officer.rate)}/h`} onClose={onClose} wide footer={<Button onClick={onClose}>Close</Button>}>
+    <Modal title={officer.name} subtitle={`${officerCode} / ${officer.phone} / ${money(officer.rate)}/h`} onClose={onClose} wide footer={<Button onClick={onClose}>Close</Button>}>
       <div className="pn-profile-head">
         <span>{initials(officer.name)}</span>
         <div>
           <strong>{officer.name}</strong>
-          <small>{officer.id} / {officer.phone} / {money(officer.rate)}/h</small>
+          <small>{officerCode} / {officer.phone} / {money(officer.rate)}/h</small>
         </div>
         <Badge tone={officerTone}>{officer.status}</Badge>
         <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC received' : 'IC missing'}</Badge>
@@ -138,7 +139,7 @@ export function OfficerProfileModal({ officer, jobs, onClose, openJob }: { offic
 
       <div className="pn-profile-label">Officer details</div>
       <div className="pn-profile-grid">
-        <ProfileCell label="OFFICER ID" value={officer.id} mono />
+        <ProfileCell label="OFFICER ID" value={officerCode} mono />
         <ProfileCell label="FULL NAME" value={officer.name} />
         <ProfileCell label="WHATSAPP NUMBER" value={officer.phone} mono />
         <ProfileCell label="DEFAULT HOURLY RATE" value={`${money(officer.rate)}/h`} mono />

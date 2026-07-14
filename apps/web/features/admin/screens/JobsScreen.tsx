@@ -1,9 +1,11 @@
-import { Badge } from '../components/ui';
+import { useEffect, useState } from 'react';
+import { Badge, Pagination } from '../components/ui';
 import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
 
 const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
+const PAGE_SIZE = 8;
 const statusOrder: Partial<Record<JobStatus, number>> = {
   Draft: 0,
   Open: 1,
@@ -16,29 +18,41 @@ const statusOrder: Partial<Record<JobStatus, number>> = {
 export function JobsScreen({
   jobs,
   filter,
+  search,
   setFilter,
   queues,
   openJob,
 }: {
   jobs: Job[];
   filter: JobListFilter;
+  search: string;
   setFilter: (filter: JobListFilter) => void;
-  queues: DashboardQueues;
+  queues?: DashboardQueues;
   openJob: (id: string) => void;
 }) {
-  const statusViews: JobListFilter[] = ['Today', 'Needs staffing', 'Ongoing', 'Missing photos', 'All', ...defaultStatusViews.filter((status) => status !== 'Ongoing')];
-  const queueIds: Partial<Record<JobListFilter, string[]>> = {
-    Today: queues.todayJobs,
-    'Needs staffing': queues.waitingJobs,
-    Ongoing: queues.ongoingJobs,
-    'Missing photos': queues.missingPhotos,
-  };
-  const selectedIds = queueIds[filter];
+  const [page, setPage] = useState(1);
+  const statusViews = ['All', ...defaultStatusViews] as JobListFilter[];
+  const query = search.trim().toLowerCase();
 
-  const filtered = (selectedIds ? jobs.filter((job) => selectedIds.includes(job.id)) : filter === 'All' ? jobs : jobs.filter((job) => job.status === filter))
+  const filtered = jobs
+    .filter((job) => matchesJobFilter(job, filter))
+    .filter((job) => !query || jobSearchText(job).includes(query))
     .slice()
     .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
-  const countFor = (item: JobListFilter) => queueIds[item]?.length ?? (item === 'All' ? jobs.length : jobs.filter((job) => job.status === item).length);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visibleJobs = filtered.slice(start, start + PAGE_SIZE);
+  const from = filtered.length ? start + 1 : 0;
+  const to = Math.min(start + PAGE_SIZE, filtered.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, query]);
+
+  function countFor(item: JobListFilter) {
+    return jobs.filter((job) => matchesJobFilter(job, item)).length;
+  }
 
   return (
     <div className="pn-stack">
@@ -58,7 +72,7 @@ export function JobsScreen({
           <span>Billing</span>
           <span>Status</span>
         </div>
-        {filtered.map((job) => (
+        {visibleJobs.map((job) => (
           <button className="pn-table-row" key={job.id} onClick={() => openJob(job.id)} type="button">
             <span className="pn-mono">{job.id}</span>
             <span>
@@ -87,6 +101,34 @@ export function JobsScreen({
         ))}
         {filtered.length === 0 ? <div className="pn-empty">No jobs match these filters.</div> : null}
       </div>
+      <Pagination from={from} label="Job" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filtered.length} />
     </div>
   );
+}
+
+function matchesJobFilter(job: Job, filter: JobListFilter) {
+  if (filter === 'All') return true;
+  if (filter === 'Today' || filter === 'Needs staffing' || filter === 'Missing photos') return true;
+  return job.status === filter;
+}
+
+function jobSearchText(job: Job) {
+  return [
+    job.id,
+    job.customer,
+    job.location,
+    job.date,
+    dateLabel(job.date),
+    job.start,
+    job.end,
+    `${job.officers.length}/${job.required}`,
+    job.billing,
+    job.status,
+    job.description,
+    job.instructions,
+    job.invoice,
+    job.officers.map((officer) => officer.name).join(' '),
+  ]
+    .join(' ')
+    .toLowerCase();
 }

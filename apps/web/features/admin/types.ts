@@ -66,6 +66,7 @@ export type Job = {
 
 export type Officer = {
   id: string;
+  code?: string;
   name: string;
   phone: string;
   status: OfficerStatus;
