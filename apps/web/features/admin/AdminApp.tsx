@@ -1,9 +1,23 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
-import { BillingIcon, ChevronDownIcon, CopyIcon, DashboardIcon, JobsIcon, OfficersIcon, PaymentIcon, PlusIcon, PrinterIcon, ReportsIcon, SearchIcon, ShieldCheckIcon, SummaryIcon } from './components/icons';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
+import {
+  BillingIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  DashboardIcon,
+  DownloadIcon,
+  JobsIcon,
+  OfficersIcon,
+  PaymentIcon,
+  PlusIcon,
+  PrinterIcon,
+  ReportsIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  SummaryIcon,
+} from './components/icons';
 import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
 import { AdminAccountMenu } from './components/AdminAccountMenu';
@@ -17,8 +31,6 @@ import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromF
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
 import type { OperationsReport } from './lib/reports-api';
-import { TODAY, dateLabel, hours, money, officerStatusLabel, statusTone } from './lib/format';
-import { routeForScreen } from './routes';
 import { BillingScreen } from './screens/BillingScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { JobDetailScreen } from './screens/JobDetailScreen';
@@ -29,7 +41,7 @@ import { ReportsScreen } from './screens/ReportsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
-import { TODAY, dateLabel, hours, money, nextId, normalizeJobStage, officerStatusLabel, officerStatusTone, statusTone } from './lib/format';
+import { TODAY, dateLabel, hours, money, normalizeJobStage, officerStatusLabel, statusTone } from './lib/format';
 import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 type NavigationScreen = Exclude<Screen, 'profile'>;
@@ -107,6 +119,10 @@ function isApiPaymentId(id: string) {
   return UUID_PATTERN.test(id);
 }
 
+function paymentKey(payment: Payment) {
+  return `${payment.jobId}::${payment.officer}`;
+}
+
 function mergePaymentRows(primary: Payment[], secondary: Payment[]) {
   const rows = [...primary];
   const existingById = new Set(rows.map((payment) => payment.id));
@@ -143,14 +159,15 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
           officer: officer.name,
           jobId: job.id,
           jobDate: job.date,
-          hours: officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : hours(job.start, job.end),
+          hours: worked,
           rate: officer.rate,
           status: 'Pending' as const,
           paidDate: '',
-        }))
-      : [],
-  );
-  return [...payments, ...generated.filter((row) => !payments.some((payment) => payment.jobId === row.jobId && payment.officer === row.officer))];
+        });
+      });
+    });
+
+  return rows;
 }
 
 export function AdminApp({
@@ -1097,7 +1114,8 @@ function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: (upd
   );
 }
 
-function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: () => void; copyText: (text: string, message: string) => void }) {
+function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
+  const reportRef = useRef<HTMLDivElement>(null);
   const scheduled = hours(job.start, job.end);
   const received = job.photos.filter((photo) => photo.status === 'received');
   const officerReports = job.officers.map((officer) => {
