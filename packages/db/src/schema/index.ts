@@ -40,6 +40,13 @@ export const actorType = pgEnum('actor_type', ['HUMAN', 'AGENT']);
 
 export const recordState = pgEnum('record_state', ['DRAFT', 'CONFIRMED']);
 
+export const officerStatus = pgEnum('officer_status', [
+  'NEW',
+  'ACTIVE',
+  'INACTIVE',
+  'BLOCKED',
+]);
+
 // --- master data ---
 
 export const customers = pgTable('customers', {
@@ -60,14 +67,17 @@ export const sites = pgTable('sites', {
 // FR-005/FR-006 — officer master; IC stored masked, full record access-controlled
 export const officers = pgTable('officers', {
   id: uuid('id').primaryKey().defaultRandom(),
+  officerCode: text('officer_code').notNull(),
   name: text('name').notNull(),
   phone: text('phone').notNull(),
+  status: officerStatus('status').notNull().default('NEW'),
   active: boolean('active').notNull().default(true),
   icVerified: boolean('ic_verified').notNull().default(false),
   icMasked: text('ic_masked'),
+  defaultHourlyRate: numeric('default_hourly_rate', { precision: 10, scale: 2 }).notNull().default('14.00'),
   onboardingNote: text('onboarding_note'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [uniqueIndex('officers_officer_code_idx').on(t.officerCode)]);
 
 // --- operations ---
 

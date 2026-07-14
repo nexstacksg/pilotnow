@@ -94,6 +94,15 @@ export function CheckIcon(props: IconProps) {
   );
 }
 
+export function XIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </Svg>
+  );
+}
+
 export function BellIcon(props: IconProps) {
   return (
     <Svg {...props}>
