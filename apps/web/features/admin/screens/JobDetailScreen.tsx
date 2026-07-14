@@ -31,6 +31,7 @@ export function JobDetailScreen({
   openReport,
   onEdit,
   copyText,
+  markPosted,
 }: {
   job: Job;
   officers: Officer[];
@@ -44,6 +45,7 @@ export function JobDetailScreen({
   openReport: () => void;
   onEdit: () => void;
   copyText: (text: string, message: string) => void;
+  markPosted: (id: string) => void;
 }) {
   const [addPick, setAddPick] = useState('');
   const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export function JobDetailScreen({
               ? 1
               : 0;
   const stillNeeded = Math.max(0, job.required - job.officers.length);
+  const isFull = job.officers.length >= job.required;
   const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${job.start}–${job.end}\n${job.required} officers needed\n\n${job.description}`;
   const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${job.start}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
 
@@ -215,8 +218,8 @@ export function JobDetailScreen({
               ))}
             </div>
             <div className="pn-add-row">
-              <select value={addPick} onChange={(event) => setAddPick(event.target.value)}>
-                <option value="">Add participating officer...</option>
+              <select value={addPick} onChange={(event) => setAddPick(event.target.value)} disabled={isFull}>
+                <option value="">{isFull ? 'Officer limit reached' : 'Add participating officer...'}</option>
                 {available.map((officer) => (
                   <option key={officer.id} value={officer.id}>
                     {officer.name} · {money(officer.rate)}/h{officer.ic ? '' : ' · IC missing'}
@@ -224,10 +227,10 @@ export function JobDetailScreen({
                 ))}
               </select>
               <Button
-                disabled={!addPick}
+                disabled={isFull || !addPick}
                 variant="primary"
                 onClick={() => {
-                  if (!addPick) return;
+                  if (isFull || !addPick) return;
                   addOfficer(addPick);
                   setAddPick('');
                 }}
@@ -285,6 +288,13 @@ export function JobDetailScreen({
               </div>
             </div>
             <div className="pn-wa-actions">
+              <button className="is-green" onClick={() => {
+                postToWhatsApp(jobMsg);
+                markPosted(job.id);
+              }} type="button">
+                <WhatsAppIcon size={13} />
+                Post to WhatsApp group
+              </button>
               <button onClick={() => copyText(jobMsg, 'Job message copied for WhatsApp')} type="button">
                 <CopyIcon size={13} strokeWidth={2} />
                 Copy job post
@@ -361,6 +371,10 @@ export function JobDetailScreen({
       {selectedRow ? <OfficerAssignmentModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
     </div>
   );
+}
+
+function postToWhatsApp(message: string) {
+  window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

@@ -15,17 +15,23 @@ const statusOrder: Partial<Record<JobStatus, number>> = {
 export function JobsScreen({
   jobs,
   filter,
+  search,
   setFilter,
   openJob,
 }: {
   jobs: Job[];
   filter: JobStatus | 'All';
+  search: string;
   setFilter: (filter: JobStatus | 'All') => void;
   openJob: (id: string) => void;
 }) {
   const statusViews = ['All', ...defaultStatusViews] as (JobStatus | 'All')[];
+  const query = search.trim().toLowerCase();
 
-  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter)).slice().sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+  const filtered = (filter === 'All' ? jobs : jobs.filter((job) => job.status === filter))
+    .filter((job) => !query || jobSearchText(job).includes(query))
+    .slice()
+    .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
 
   return (
     <div className="pn-stack">
@@ -76,4 +82,25 @@ export function JobsScreen({
       </div>
     </div>
   );
+}
+
+function jobSearchText(job: Job) {
+  return [
+    job.id,
+    job.customer,
+    job.location,
+    job.date,
+    dateLabel(job.date),
+    job.start,
+    job.end,
+    `${job.officers.length}/${job.required}`,
+    job.billing,
+    job.status,
+    job.description,
+    job.instructions,
+    job.invoice,
+    job.officers.map((officer) => officer.name).join(' '),
+  ]
+    .join(' ')
+    .toLowerCase();
 }
