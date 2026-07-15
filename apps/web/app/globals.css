@@ -960,6 +960,10 @@ button {
   line-height: 1.4;
 }
 
+.pn-billing-screen .pn-tabs {
+  margin-bottom: 12px;
+}
+
 .pn-table-billing .pn-table-head {
   padding-top: 14px;
   padding-bottom: 14px;

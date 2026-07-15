@@ -69,7 +69,16 @@ export function BillingScreen({
         ))}
         {!filtered.length ? <div className="pn-empty">No completed jobs match this billing filter.</div> : null}
       </div>
-      <Pagination from={from} label="Billing" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filtered.length} />
+      <Pagination
+        from={from}
+        label="Billing"
+        onPageChange={setPage}
+        page={currentPage}
+        pageCount={pageCount}
+        showSinglePage={filtered.length > 0}
+        to={to}
+        total={filtered.length}
+      />
     </div>
   );
 }
