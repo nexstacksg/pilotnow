@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`pn-card ${className}`}>{children}</section>;
@@ -125,15 +126,66 @@ export function Modal({
   hideHeader?: boolean;
   wide?: boolean;
 }) {
+  const titleId = useId();
+  const modalRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    modalRef.current?.focus();
+    return () => previousFocus?.focus();
+  }, []);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+
+    const focusable = Array.from(
+      modalRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+
+    if (!focusable.length) {
+      event.preventDefault();
+      return;
+    }
+
+    const first = focusable[0]!;
+    const last = focusable[focusable.length - 1]!;
+    const active = document.activeElement;
+
+    if (event.shiftKey && active === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   return (
-    <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={title}>
-      <section className={`pn-modal ${wide ? 'pn-modal-wide' : ''} ${hideHeader ? 'pn-modal-chromeless' : ''}`}>
+    <div className="pn-modal-backdrop">
+      <section
+        ref={modalRef}
+        className={`pn-modal ${wide ? 'pn-modal-wide' : ''} ${hideHeader ? 'pn-modal-chromeless' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={hideHeader ? undefined : titleId}
+        aria-label={hideHeader ? title : undefined}
+        tabIndex={-1}
+        onKeyDown={handleKeyDown}
+      >
         {hideHeader ? null : (
           <header className="pn-modal-header">
             <div className="pn-modal-title-row">
               {headerIcon ? <span className="pn-modal-header-icon">{headerIcon}</span> : null}
               <div>
-                <h2>{title}</h2>
+                <h2 id={titleId}>{title}</h2>
                 {subtitle ? <p>{subtitle}</p> : null}
               </div>
             </div>

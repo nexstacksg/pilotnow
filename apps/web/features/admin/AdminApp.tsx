@@ -170,6 +170,23 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
   return rows;
 }
 
+function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
+  const counts = new Map<string, number>();
+
+  jobs.forEach((job) => {
+    const countedKeys = new Set<string>();
+    job.officers.forEach((assigned) => {
+      countedKeys.add(assigned.oid);
+    });
+    countedKeys.forEach((key) => counts.set(key, (counts.get(key) ?? 0) + 1));
+  });
+
+  return officers.map((officer) => {
+    const jobsCount = counts.get(officer.id) ?? counts.get(officer.code ?? '') ?? 0;
+    return jobsCount > officer.jobsCount ? { ...officer, jobsCount } : officer;
+  });
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -201,6 +218,8 @@ export function AdminApp({
   const [officerOpen, setOfficerOpen] = useState(false);
   const [officerProfileId, setOfficerProfileId] = useState<string | null>(null);
   const [officerProfileMode, setOfficerProfileMode] = useState<'view' | 'edit'>('view');
+  const [deleteOfficerId, setDeleteOfficerId] = useState<string | null>(null);
+  const [deletingOfficer, setDeletingOfficer] = useState(false);
   const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
@@ -229,6 +248,9 @@ export function AdminApp({
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
+  const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
+  const deleteOfficerTarget = deleteOfficerId ? officersWithJobCounts.find((officer) => officer.id === deleteOfficerId) : null;
+  const deleteOfficerHasHistory = Boolean(deleteOfficerTarget?.jobsCount);
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
 
   useLayoutEffect(() => {
@@ -583,20 +605,71 @@ export function AdminApp({
   }
 
   async function deleteOfficerProfile(id: string) {
-    const officer = officers.find((item) => item.id === id);
-    const confirmed = window.confirm(`Delete ${officer?.name ?? 'this officer'}? This cannot be undone.`);
-    if (!confirmed) return false;
+    setDeleteOfficerId(id);
+    return false;
+  }
 
+  async function confirmOfficerDelete() {
+    if (!deleteOfficerId) return;
+
+    const id = deleteOfficerId;
+    const officer = officers.find((item) => item.id === id);
+    if (officer?.jobsCount) {
+      flash('Officer has job history. Set the officer to Inactive instead.');
+      return;
+    }
+
+    setDeletingOfficer(true);
     try {
       await deleteOfficer(id);
       setOfficers((items) => items.filter((item) => item.id !== id));
       setOfficerProfileId((value) => (value === id ? null : value));
+      setDeleteOfficerId(null);
       flash(`Officer ${officer?.name ?? id} deleted`);
-      return true;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
       flash(`Could not delete officer. ${reason}`);
-      return false;
+    } finally {
+      setDeletingOfficer(false);
+    }
+  }
+
+  async function deactivateOfficerProfile() {
+    if (!deleteOfficerId || !deleteOfficerTarget) return;
+
+    setDeletingOfficer(true);
+    try {
+      const officer = await updateOfficerFromForm(deleteOfficerId, {
+        name: deleteOfficerTarget.name,
+        phone: deleteOfficerTarget.phone,
+        rate: String(deleteOfficerTarget.rate),
+        ic: deleteOfficerTarget.ic,
+        status: 'Inactive',
+        notes: deleteOfficerTarget.notes ?? '',
+      });
+      setOfficers((items) => items.map((item) => (item.id === deleteOfficerId ? officer : item)));
+      setJobs((items) =>
+        items.map((job) => ({
+          ...job,
+          officers: job.officers.map((assigned) =>
+            assigned.oid === deleteOfficerId
+              ? {
+                  ...assigned,
+                  name: officer.name,
+                  ic: officer.ic,
+                  rate: officer.rate,
+                }
+              : assigned,
+          ),
+        })),
+      );
+      setDeleteOfficerId(null);
+      flash(`Officer ${officer.name} set to Inactive`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not update officer. ${reason}`);
+    } finally {
+      setDeletingOfficer(false);
     }
   }
 
@@ -906,7 +979,7 @@ export function AdminApp({
           {screen === 'officers' ? (
             officersReady ? (
               <OfficersScreen
-                officers={officers}
+                officers={officersWithJobCounts}
                 onDeleteOfficer={deleteOfficerProfile}
                 openOfficer={() => setOfficerOpen(true)}
                 openOfficerEdit={(id) => {
@@ -1020,7 +1093,7 @@ export function AdminApp({
         <OfficerDetailModal
           initialMode={officerProfileMode}
           jobs={jobs}
-          officer={officers.find((officer) => officer.id === officerProfileId)}
+          officer={officersWithJobCounts.find((officer) => officer.id === officerProfileId)}
           payments={financePayments}
           onClose={() => {
             setOfficerProfileId(null);
@@ -1033,6 +1106,46 @@ export function AdminApp({
             openJob(id);
           }}
         />
+      ) : null}
+      {deleteOfficerId ? (
+        <Modal
+          title={deleteOfficerHasHistory ? 'Officer has job history' : 'Delete Officer'}
+          subtitle={`${deleteOfficerTarget?.code ?? deleteOfficerId} / ${deleteOfficerTarget?.name ?? 'Officer'}`}
+          onClose={() => {
+            if (!deletingOfficer) setDeleteOfficerId(null);
+          }}
+          footer={
+            <>
+              <Button disabled={deletingOfficer} onClick={() => setDeleteOfficerId(null)}>
+                Cancel
+              </Button>
+              {deleteOfficerHasHistory ? (
+                <Button disabled={deletingOfficer} variant="primary" onClick={deactivateOfficerProfile}>
+                  {deletingOfficer ? 'Setting inactive...' : 'Set Inactive'}
+                </Button>
+              ) : (
+                <Button disabled={deletingOfficer} variant="danger" onClick={confirmOfficerDelete}>
+                  {deletingOfficer ? 'Deleting...' : 'Delete Officer'}
+                </Button>
+              )}
+            </>
+          }
+        >
+          {deleteOfficerHasHistory ? (
+            <>
+              <p className="pn-modal-copy">
+                {deleteOfficerTarget?.name ?? 'This officer'} has job history, so the record should stay available for assignments, payments, and reports.
+              </p>
+              <p className="pn-modal-note">
+                Set the officer to Inactive to remove them from future operational use.
+              </p>
+            </>
+          ) : (
+            <p className="pn-modal-copy">
+              Delete {deleteOfficerTarget?.name ?? 'this officer'}? This cannot be undone.
+            </p>
+          )}
+        </Modal>
       ) : null}
       {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={financePayments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
       {toast ? <div className="pn-toast">{toast}</div> : null}

@@ -941,7 +941,24 @@ button {
 
 .pn-table-profile-history .pn-table-head,
 .pn-table-profile-history .pn-table-row {
-  grid-template-columns: 78px minmax(0, 1.4fr) 96px 70px 90px 120px 100px;
+  grid-template-columns: 92px minmax(160px, 1fr) 130px 78px 105px 150px 112px;
+  min-width: 900px;
+}
+
+.pn-table-profile-history {
+  overflow-x: auto;
+}
+
+.pn-table-profile-history .pn-table-head > span,
+.pn-table-profile-history .pn-table-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pn-table-profile-history .pn-table-row > span:nth-child(6),
+.pn-table-profile-history .pn-table-row > span:nth-child(7) {
+  overflow: visible;
 }
 
 .pn-table-billing .pn-table-head,
@@ -2927,6 +2944,19 @@ button {
 
 .pn-modal-body {
   padding: 16px 18px;
+}
+
+.pn-modal-copy,
+.pn-modal-note {
+  margin: 0;
+  color: #404040;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.pn-modal-note {
+  margin-top: 8px;
+  color: #A16207;
 }
 
 .pn-form-grid {
