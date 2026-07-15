@@ -120,16 +120,16 @@ export function ProfileScreen() {
                 <div className="pn-profile-fields">
                   <label>Full Name<input autoComplete="name" disabled={loading || saving} onChange={(event) => updateField('name', event.target.value)} required value={profile.name} /></label>
                   <label>Email Address<input autoComplete="email" disabled type="email" value={profile.email} /><small>Email is your login identifier and cannot be changed here.</small></label>
-                  <label>Phone Number<input autoComplete="tel" disabled={loading || saving} onChange={(event) => updateField('phone', event.target.value)} value={profile.phone ?? ''} /></label>
+                  <label>Phone Number<input autoComplete="tel" disabled={loading || saving} onChange={(event) => updateField('phone', event.target.value)} placeholder="e.g. +65 9123 4567" value={profile.phone ?? ''} /></label>
                   <label>Company<input disabled value="PilotNow Security Pte Ltd" /><small>Company name is managed at the tenant level.</small></label>
                 </div>
               </section>
               <section className="pn-profile-panel pn-profile-security"><header><span><LockKeyhole aria-hidden="true" size={16} /></span><h2>Security</h2></header>
                 <div className="pn-profile-password-summary"><span><LockKeyhole aria-hidden="true" size={15} /></span><span><strong>Password</strong><small>{passwordChanged}</small></span><button aria-expanded={passwordOpen} disabled={loading || saving} onClick={() => setPasswordOpen((open) => !open)} type="button">Change</button></div>
                 {passwordOpen ? <div className="pn-profile-password-box">
-                  <label>Current Password<input autoComplete="current-password" onChange={(event) => setCurrentPassword(event.target.value)} type="password" value={currentPassword} /></label>
-                  <label>New Password<input autoComplete="new-password" onChange={(event) => setNewPassword(event.target.value)} type="password" value={newPassword} /></label>
-                  <label>Confirm New Password<input autoComplete="new-password" onChange={(event) => setConfirmPassword(event.target.value)} type="password" value={confirmPassword} /></label>
+                  <label>Current Password<input autoComplete="current-password" onChange={(event) => setCurrentPassword(event.target.value)} placeholder="Enter your current password" type="password" value={currentPassword} /></label>
+                  <label>New Password<input autoComplete="new-password" onChange={(event) => setNewPassword(event.target.value)} placeholder="At least 8 characters with a letter and number" type="password" value={newPassword} /></label>
+                  <label>Confirm New Password<input autoComplete="new-password" onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Re-enter your new password" type="password" value={confirmPassword} /></label>
                   <div className="pn-profile-password-actions"><button disabled={saving} onClick={closePasswordForm} type="button">Cancel</button><button className="is-primary" disabled={saving} onClick={() => void updatePassword()} type="button">{saving ? 'Updating...' : 'Update Password'}</button></div>
                 </div> : null}
               </section>
