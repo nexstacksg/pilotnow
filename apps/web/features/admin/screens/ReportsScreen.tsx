@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarIcon, DownloadIcon } from '../components/icons';
-import { Button, Card } from '../components/ui';
+import { Button, Card, Pagination } from '../components/ui';
 import { dateLabel, jobPay, money } from '../lib/format';
 import type { OperationsReport } from '../lib/reports-api';
 import type { Job, Officer, Payment } from '../types';
@@ -24,6 +24,7 @@ const reportTabs: { key: ReportKey; label: string; title: string }[] = [
   { key: 'officerHistory', label: 'Officer job history report', title: 'Officer job history report' },
 ];
 const defaultReportTab = reportTabs[0] as { key: ReportKey; label: string; title: string };
+const PAGE_SIZE = 8;
 
 const reportColumns: Record<ReportKey, ReportColumn[]> = {
   completed: [
@@ -70,6 +71,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [dateRangeEdited, setDateRangeEdited] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (dateRangeEdited) return;
@@ -106,6 +108,16 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
   const columns = reportColumns[activeReport];
   const active = reportTabs.find((tab) => tab.key === activeReport) ?? defaultReportTab;
   const reportSummary = buildReportSummary(activeReport, rows, officers);
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visibleRows = rows.slice(start, start + PAGE_SIZE);
+  const from = rows.length ? start + 1 : 0;
+  const to = Math.min(start + PAGE_SIZE, rows.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeReport, startDate, endDate]);
 
   return (
     <div className="pn-reports-screen">
@@ -156,7 +168,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
               <span key={column.key}>{column.label}</span>
             ))}
           </div>
-          {rows.map((row) => (
+          {visibleRows.map((row) => (
             <div className="pn-table-row" key={row.id}>
               {columns.map((column) => (
                 <span key={column.key}>{row.cells[column.key]}</span>
@@ -168,6 +180,16 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
 
         <div className="pn-report-total">{reportSummary}</div>
       </Card>
+      <Pagination
+        from={from}
+        label="Report"
+        onPageChange={setPage}
+        page={currentPage}
+        pageCount={pageCount}
+        showSinglePage={rows.length > 0}
+        to={to}
+        total={rows.length}
+      />
     </div>
   );
 }
