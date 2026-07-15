@@ -249,6 +249,7 @@ export function AdminApp({
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
+  const searchPlaceholder = screen === 'officers' ? 'Search officers...' : 'Search jobs, officers...';
   const deleteOfficerTarget = deleteOfficerId ? officersWithJobCounts.find((officer) => officer.id === deleteOfficerId) : null;
   const deleteOfficerHasHistory = Boolean(deleteOfficerTarget?.jobsCount);
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
@@ -935,16 +936,23 @@ export function AdminApp({
           {screen !== 'dashboard' ? (
             <div className="pn-search">
               <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
-              <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder="Search jobs, officers..." value={search} />
+              <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} value={search} />
             </div>
           ) : null}
-          <Button
-            variant="primary"
-            onClick={openCreateJob}
-          >
-            <PlusIcon size={16} strokeWidth={2.2} />
-            Create Job
-          </Button>
+          {screen === 'officers' ? (
+            <Button variant="primary" onClick={() => setOfficerOpen(true)}>
+              <OfficersIcon size={16} strokeWidth={2.2} />
+              Add officer
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              onClick={openCreateJob}
+            >
+              <PlusIcon size={16} strokeWidth={2.2} />
+              Create Job
+            </Button>
+          )}
         </header>
 
         <div className={screen === 'profile' ? 'pn-content pn-profile-content' : 'pn-content'}>
@@ -980,8 +988,8 @@ export function AdminApp({
             officersReady ? (
               <OfficersScreen
                 officers={officersWithJobCounts}
+                search={search}
                 onDeleteOfficer={deleteOfficerProfile}
-                openOfficer={() => setOfficerOpen(true)}
                 openOfficerEdit={(id) => {
                   setOfficerProfileMode('edit');
                   setOfficerProfileId(id);
