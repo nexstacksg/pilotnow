@@ -1021,6 +1021,7 @@ export function AdminApp({
           initialMode={officerProfileMode}
           jobs={jobs}
           officer={officers.find((officer) => officer.id === officerProfileId)}
+          payments={financePayments}
           onClose={() => {
             setOfficerProfileId(null);
             setOfficerProfileMode('view');

@@ -5,7 +5,7 @@ import { Badge, Button, Field, Modal } from './ui';
 import { dateLabel, hours, initials, money, officerStatusLabel, officerStatusTone, statusTone } from '../lib/format';
 import { fetchOfficerAssignmentHistory } from '../lib/officers-api';
 import type { OfficerAssignmentHistory } from '../lib/officers-api';
-import type { Job, Officer, OfficerForm } from '../types';
+import type { Job, Officer, OfficerForm, Payment, PaymentStatus } from '../types';
 
 const emptyOfficerForm: OfficerForm = {
   name: '',
@@ -112,6 +112,7 @@ function OfficerProfileFields({
 export function OfficerDetailModal({
   officer,
   jobs,
+  payments,
   initialMode = 'view',
   onClose,
   onDelete,
@@ -120,6 +121,7 @@ export function OfficerDetailModal({
 }: {
   officer?: Officer;
   jobs: Job[];
+  payments: Payment[];
   initialMode?: 'view' | 'edit';
   onClose: () => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -166,6 +168,16 @@ export function OfficerDetailModal({
 
   if (!officer) return null;
 
+  const paymentById = new Map(payments.map((payment) => [payment.id, payment]));
+  const paymentByJobOfficer = new Map(payments.map((payment) => [`${payment.jobId}::${payment.officer.toLowerCase()}`, payment]));
+  const paymentForHistory = (id: string, jobId: string): Payment | undefined => (
+    paymentById.get(id) ?? paymentByJobOfficer.get(`${jobId}::${officer.name.toLowerCase()}`)
+  );
+  const paymentStatusForHistory = (id: string, jobId: string, fallback: PaymentStatus): PaymentStatus => {
+    const payment = paymentForHistory(id, jobId);
+    return payment?.status === 'Paid' || fallback === 'Paid' ? 'Paid' : 'Pending';
+  };
+
   const history = jobs
     .map((job) => {
       const assigned = job.officers.find((item) => item.oid === officer.id);
@@ -183,7 +195,8 @@ export function OfficerDetailModal({
     worked: item.hours,
     pay: item.payable,
     status: item.status,
-    paymentStatus: item.paymentStatus,
+    paymentId: item.id,
+    paymentStatus: paymentStatusForHistory(item.id, item.jobId, item.paymentStatus),
   }));
   const visibleHistory = dbHistory.length ? dbHistory : history.map(({ job, worked, pay }) => ({
     jobId: job.id,
@@ -192,7 +205,8 @@ export function OfficerDetailModal({
     worked,
     pay,
     status: job.status,
-    paymentStatus: 'Pending' as const,
+    paymentStatus: paymentStatusForHistory('', job.id, 'Pending'),
+    paymentId: '',
   }));
   const completed = visibleHistory.filter((item) => item.status === 'Completed');
   const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
