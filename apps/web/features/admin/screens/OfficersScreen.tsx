@@ -1,49 +1,43 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Button } from '../components/ui';
-import { EyeIcon, MoreVerticalIcon, OfficersIcon, PencilIcon, TrashIcon } from '../components/icons';
+import { EyeIcon, MoreVerticalIcon, PencilIcon, TrashIcon } from '../components/icons';
 import { initials, money } from '../lib/format';
-import type { Officer, OfficerStatus } from '../types';
+import type { Officer } from '../types';
 
 const PAGE_SIZE = 7;
 const STATUS_FILTERS = ['All', 'New', 'Active', 'Inactive', 'Blocked'] as const;
-const IC_FILTERS = ['All', 'Verified', 'Missing'] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number];
-type IcFilter = (typeof IC_FILTERS)[number];
 
 export function OfficersScreen({
   officers,
+  search,
   onDeleteOfficer,
-  openOfficer,
   openOfficerEdit,
   openOfficerProfile,
 }: {
   officers: Officer[];
+  search: string;
   onDeleteOfficer: (id: string) => Promise<boolean>;
-  openOfficer: () => void;
   openOfficerEdit: (id: string) => void;
   openOfficerProfile: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
-  const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
-  const [icFilter, setIcFilter] = useState<IcFilter>('All');
   const [openActionId, setOpenActionId] = useState<string | null>(null);
+  const query = search.trim().toLowerCase();
 
   const filteredOfficers = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return officers.filter((officer) => {
-      const officerCode = officer.code ?? officer.id;
-      const matchesQuery =
-        !normalizedQuery ||
-        officer.name.toLowerCase().includes(normalizedQuery) ||
-        officer.phone.toLowerCase().includes(normalizedQuery) ||
-        officerCode.toLowerCase().includes(normalizedQuery);
-      const matchesStatus = statusFilter === 'All' || officer.status === statusFilter;
-      const matchesIc = icFilter === 'All' || (icFilter === 'Verified' ? officer.ic : !officer.ic);
-      return matchesQuery && matchesStatus && matchesIc;
-    });
-  }, [icFilter, officers, query, statusFilter]);
+    return officers
+      .filter((officer) => statusFilter === 'All' || officer.status === statusFilter)
+      .filter((officer) => !query || officerSearchText(officer).includes(query));
+  }, [officers, query, statusFilter]);
+  const statusCounts = useMemo(() => (
+    STATUS_FILTERS.reduce<Record<StatusFilter, number>>((counts, status) => {
+      counts[status] = status === 'All' ? officers.length : officers.filter((officer) => officer.status === status).length;
+      return counts;
+    }, { All: 0, New: 0, Active: 0, Inactive: 0, Blocked: 0 })
+  ), [officers]);
 
   const pageCount = Math.max(1, Math.ceil(filteredOfficers.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -70,18 +64,12 @@ export function OfficersScreen({
     };
   }, [openActionId]);
 
-  function updateQuery(value: string) {
-    setQuery(value);
+  useEffect(() => {
     setPage(1);
-  }
+  }, [query, statusFilter]);
 
-  function updateStatus(value: OfficerStatus | 'All') {
+  function updateStatus(value: StatusFilter) {
     setStatusFilter(value);
-    setPage(1);
-  }
-
-  function updateIc(value: IcFilter) {
-    setIcFilter(value);
     setPage(1);
   }
 
@@ -89,41 +77,13 @@ export function OfficersScreen({
     <div className="pn-stack">
       <div className="pn-officer-toolbar">
         <p>Officer database. Add new officers who volunteered via WhatsApp.</p>
-        <Button variant="primary" onClick={openOfficer}>
-          <OfficersIcon size={16} strokeWidth={2.2} />
-          Add officer
-        </Button>
       </div>
-      <div className="pn-officer-filters">
-        <label className="pn-officer-search">
-          <span>Search officers</span>
-          <input
-            aria-label="Search officers by name, phone, or officer code"
-            placeholder="Name, phone, or code"
-            value={query}
-            onChange={(event) => updateQuery(event.target.value)}
-          />
-        </label>
-        <label>
-          <span>Status</span>
-          <select value={statusFilter} onChange={(event) => updateStatus(event.target.value as StatusFilter)}>
-            {STATUS_FILTERS.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>IC</span>
-          <select value={icFilter} onChange={(event) => updateIc(event.target.value as IcFilter)}>
-            {IC_FILTERS.map((filter) => (
-              <option key={filter} value={filter}>
-                {filter === 'All' ? 'All IC statuses' : filter}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className="pn-tabs">
+        {STATUS_FILTERS.map((status) => (
+          <button className={statusFilter === status ? 'active' : ''} key={status} onClick={() => updateStatus(status)} type="button">
+            {status} · {statusCounts[status]}
+          </button>
+        ))}
       </div>
       <div className="pn-table pn-table-officer-list">
         <div className="pn-table-head">
@@ -218,7 +178,7 @@ export function OfficersScreen({
         ))}
         {!visibleOfficers.length ? (
           <div className="pn-table-empty">
-            No officers match the current filters.
+            No officers match this status filter.
           </div>
         ) : null}
       </div>
@@ -245,9 +205,10 @@ export function OfficersScreen({
 function officerSearchText(officer: Officer) {
   return [
     officer.id,
+    officer.code,
     officer.name,
     officer.phone,
-    officer.ic ? 'IC yes' : 'No IC',
+    officer.ic ? 'IC yes verified' : 'No IC missing',
     officer.rate,
     `${officer.rate}/h`,
     officer.jobsCount,
