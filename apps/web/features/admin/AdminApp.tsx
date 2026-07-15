@@ -187,7 +187,7 @@ export function AdminApp({
   initialBillId?: string | null;
   initialOfficerProfileId?: string | null;
 }) {
-  const [screen, setScreen] = useState<Screen>(() => initialScreenForPath(initialScreen));
+  const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
   const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
@@ -222,6 +222,7 @@ export function AdminApp({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
+  const [screenPersistenceReady, setScreenPersistenceReady] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const fallbackJob = jobsSeed[0] as Job;
@@ -238,11 +239,13 @@ export function AdminApp({
     setBillingFilter(initialBillingFilter);
     setBillId(initialBillId);
     setOfficerProfileId(initialOfficerProfileId);
+    setScreenPersistenceReady(true);
   }, [initialBillId, initialBillingFilter, initialJobFilter, initialJobId, initialOfficerProfileId, initialScreen, initialSummaryJobId]);
 
   useEffect(() => {
+    if (!screenPersistenceReady) return;
     window.localStorage.setItem('pilotnow:last-screen', screen);
-  }, [screen]);
+  }, [screen, screenPersistenceReady]);
 
   const stats = useMemo(() => {
     const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
@@ -1018,6 +1021,7 @@ export function AdminApp({
           initialMode={officerProfileMode}
           jobs={jobs}
           officer={officers.find((officer) => officer.id === officerProfileId)}
+          payments={financePayments}
           onClose={() => {
             setOfficerProfileId(null);
             setOfficerProfileMode('view');
