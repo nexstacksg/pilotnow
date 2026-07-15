@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronDown, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, LogOut, UserRound, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { http } from '../../../lib/api';
+import { Button, Modal } from './ui';
 
 type AdminUser = { id: string; email: string; name: string; role: string; avatarUrl: string | null };
 
@@ -16,6 +17,8 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
   const router = useRouter();
   const [open, setOpen] = useState(defaultOpen);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,6 +51,7 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
   }, [router]);
 
   async function handleLogout() {
+    setLoggingOut(true);
     try {
       await http.post('/auth/logout');
     } finally {
@@ -75,7 +79,7 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
             <UserRound aria-hidden="true" size={14} strokeWidth={1.7} />
             View profile
           </Link>
-          <button className="is-danger" onClick={handleLogout} role="menuitem" type="button">
+          <button className="is-danger" onClick={() => { setOpen(false); setLogoutConfirmOpen(true); }} role="menuitem" type="button">
             <LogOut aria-hidden="true" size={14} strokeWidth={1.7} />
             Log out
           </button>
@@ -95,6 +99,34 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
         </span>
         <ChevronDown aria-hidden="true" size={14} strokeWidth={1.6} />
       </button>
+      {logoutConfirmOpen ? (
+        <Modal
+          title="Log out of PilotNow?"
+          hideHeader
+          onClose={() => setLogoutConfirmOpen(false)}
+        >
+          <div className="pn-logout-confirmation">
+            <button aria-label="Close logout confirmation" className="pn-logout-confirm-close" disabled={loggingOut} onClick={() => setLogoutConfirmOpen(false)} type="button">
+              <X aria-hidden="true" size={17} />
+            </button>
+            <span className="pn-logout-confirm-icon">
+              <LogOut aria-hidden="true" size={22} strokeWidth={1.8} />
+            </span>
+            <div className="pn-logout-confirm-copy">
+              <h2>Log out of PilotNow?</h2>
+              <p>Are you sure you want to log out?</p>
+              <small>You’ll need to sign in again to access your account.</small>
+            </div>
+            <div className="pn-logout-confirm-actions">
+              <Button disabled={loggingOut} onClick={() => setLogoutConfirmOpen(false)}>Cancel</Button>
+              <Button disabled={loggingOut} onClick={() => void handleLogout()} variant="danger">
+                <LogOut aria-hidden="true" size={15} strokeWidth={1.8} />
+                {loggingOut ? 'Logging out...' : 'Log out'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }
