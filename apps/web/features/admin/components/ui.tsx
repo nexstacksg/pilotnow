@@ -73,6 +73,7 @@ export function Pagination({
   to,
   total,
   label = 'records',
+  showSinglePage = false,
   onPageChange,
 }: {
   page: number;
@@ -81,9 +82,10 @@ export function Pagination({
   to: number;
   total: number;
   label?: string;
+  showSinglePage?: boolean;
   onPageChange: (page: number) => void;
 }) {
-  if (pageCount <= 1) return null;
+  if (pageCount <= 1 && !showSinglePage) return null;
 
   return (
     <div className="pn-pagination" aria-label={`${label} pagination`}>

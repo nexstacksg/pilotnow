@@ -1,6 +1,9 @@
-import { Badge, Button } from '../components/ui';
+import { useEffect, useState } from 'react';
+import { Badge, Button, Pagination } from '../components/ui';
 import { dateLabel } from '../lib/format';
 import type { BillingFilter, Job } from '../types';
+
+const PAGE_SIZE = 8;
 
 export function BillingScreen({
   jobs,
@@ -13,8 +16,19 @@ export function BillingScreen({
   setFilter: (filter: BillingFilter) => void;
   openBill: (id: string) => void;
 }) {
+  const [page, setPage] = useState(1);
   const filters: BillingFilter[] = ['All', 'Not Billed', 'Billed'];
   const filtered = filter === 'All' ? jobs : jobs.filter((job) => job.billing === filter);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const visibleJobs = filtered.slice(start, start + PAGE_SIZE);
+  const from = filtered.length ? start + 1 : 0;
+  const to = Math.min(start + PAGE_SIZE, filtered.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
 
   return (
     <div className="pn-billing-screen">
@@ -35,7 +49,7 @@ export function BillingScreen({
           <span>Billed</span>
           <span>Status</span>
         </div>
-        {filtered.map((job) => (
+        {visibleJobs.map((job) => (
           <div className="pn-table-row" key={job.id}>
             <span className="pn-mono pn-billing-job">{job.id}</span>
             <span className="pn-billing-customer">{job.customer}</span>
@@ -55,6 +69,16 @@ export function BillingScreen({
         ))}
         {!filtered.length ? <div className="pn-empty">No completed jobs match this billing filter.</div> : null}
       </div>
+      <Pagination
+        from={from}
+        label="Billing"
+        onPageChange={setPage}
+        page={currentPage}
+        pageCount={pageCount}
+        showSinglePage={filtered.length > 0}
+        to={to}
+        total={filtered.length}
+      />
     </div>
   );
 }
