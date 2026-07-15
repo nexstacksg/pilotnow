@@ -3870,6 +3870,110 @@ button {
   color: #c51d1d;
 }
 
+.pn-logout-confirmation {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px 2px;
+  text-align: center;
+}
+
+.pn-logout-confirm-close {
+  position: absolute;
+  top: -12px;
+  right: -16px;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #a3a3a3;
+  cursor: pointer;
+}
+
+.pn-logout-confirm-close:hover {
+  background: #f5f5f5;
+  color: #262626;
+}
+
+.pn-logout-confirm-close:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.pn-logout-confirm-icon {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fff1f0;
+  color: #c51d1d;
+  box-shadow: 0 8px 24px rgb(197 29 29 / 10%);
+}
+
+.pn-logout-confirm-copy {
+  margin-top: 18px;
+}
+
+.pn-logout-confirm-copy h2,
+.pn-logout-confirm-copy p,
+.pn-logout-confirm-copy small {
+  margin: 0;
+}
+
+.pn-logout-confirm-copy h2 {
+  color: #111;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+
+.pn-logout-confirm-copy p {
+  margin-top: 8px;
+  color: #404040;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pn-logout-confirm-copy small {
+  display: block;
+  margin-top: 5px;
+  color: #8a8a8a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.pn-logout-confirm-actions {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.pn-logout-confirm-actions .pn-btn {
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 6px;
+}
+
+.pn-logout-confirm-actions .pn-btn-danger {
+  border-color: #c51d1d;
+  background: #c51d1d;
+  color: #fff;
+  box-shadow: 0 5px 14px rgb(197 29 29 / 18%);
+}
+
+.pn-logout-confirm-actions .pn-btn-danger:hover {
+  border-color: #a91515;
+  background: #a91515;
+}
+
 .pn-profile-account-trigger {
   display: flex;
   width: 100%;
