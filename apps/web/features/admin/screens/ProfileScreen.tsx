@@ -141,7 +141,12 @@ export function ProfileScreen() {
         <form className="pn-profile-form" onSubmit={submitProfile}>
           <div className="pn-profile-scroll"><div className="pn-profile-layout">
             <aside className="pn-profile-identity-card">
-              <div className="pn-profile-avatar-wrap"><span className="pn-profile-avatar">{profile.avatarUrl ? <img alt={`${profile.name} profile`} src={profile.avatarUrl} /> : initials}</span><span className="pn-profile-camera"><Camera aria-hidden="true" size={14} /></span></div>
+              <div className="pn-profile-avatar-wrap">
+                <span aria-label={loading ? 'Loading profile photo' : undefined} className={`pn-profile-avatar${loading ? ' is-loading' : ''}`}>
+                  {loading ? null : profile.avatarUrl ? <img alt={`${profile.name} profile`} src={profile.avatarUrl} /> : initials}
+                </span>
+                {!loading ? <span className="pn-profile-camera"><Camera aria-hidden="true" size={14} /></span> : null}
+              </div>
               <label className="pn-profile-photo-button">Change Photo<input accept="image/png,image/jpeg,image/webp" disabled={loading || saving} onChange={selectPhoto} type="file" /></label>
               <strong>{profile.name || 'Loading profile...'}</strong><span>{account?.role || 'Operations Admin'}</span><div className="pn-profile-member">Member since {memberSince}</div>
             </aside>

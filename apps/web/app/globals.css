@@ -4142,6 +4142,33 @@ button {
   object-fit: cover;
 }
 
+.pn-profile-avatar-wrap .pn-profile-avatar.is-loading {
+  position: relative;
+  overflow: hidden;
+  background: #ededed;
+}
+
+.pn-profile-avatar-wrap .pn-profile-avatar.is-loading::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 65%) 50%, transparent 70%);
+  content: '';
+  transform: translateX(-100%);
+  animation: pn-profile-avatar-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes pn-profile-avatar-loading {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-profile-avatar-wrap .pn-profile-avatar.is-loading::after {
+    animation: none;
+  }
+}
+
 .pn-profile-camera {
   position: absolute;
   right: 1px;
