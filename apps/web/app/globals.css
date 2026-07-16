@@ -4029,6 +4029,27 @@ button {
   font-size: 9.5px;
 }
 
+.pn-profile-account-loading {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: #ededed;
+  color: transparent !important;
+  user-select: none;
+}
+
+.pn-profile-account-loading.is-name {
+  min-width: 96px;
+}
+
+.pn-profile-account-loading.is-detail {
+  min-width: 72px;
+}
+
+.pn-profile-account-trigger:disabled {
+  cursor: wait;
+}
+
 .pn-profile-account-trigger > svg {
   color: #aaa;
 }
