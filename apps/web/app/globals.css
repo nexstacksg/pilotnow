@@ -345,6 +345,10 @@ button {
   align-items: start;
 }
 
+.pn-dashboard-grid {
+  align-items: stretch;
+}
+
 .pn-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

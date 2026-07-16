@@ -38,7 +38,7 @@ export function DashboardScreen({
         <StatCard ariaLabel="Open jobs with missing hourly photos" icon={<CameraOffIcon size={16} stroke="#FF3B30" strokeWidth={2} />} label="Missing hourly photos" value={metrics.missingPhotos} hint="needs follow-up" tone="danger" onClick={() => openJobs('Missing photos')} />
       </div>
 
-      <div className="pn-grid-two">
+      <div className="pn-grid-two pn-dashboard-grid">
         <Card className="pn-table-card">
           <div className="pn-section-head">
             <h2>Today's jobs</h2>
@@ -54,7 +54,7 @@ export function DashboardScreen({
                 <span>Officers</span>
                 <span>Status</span>
               </div>
-              {snapshot.todayJobs.map((job) => (
+              {snapshot.todayJobs.slice(0, 5).map((job) => (
                 <button className="pn-table-row" key={job.id} onClick={() => openJob(job.id)} type="button">
                   <span>
                     <strong className="pn-mono">{job.id}</strong>
