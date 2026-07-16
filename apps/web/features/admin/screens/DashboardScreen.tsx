@@ -147,7 +147,7 @@ export function DashboardScreen({
               </span>
             </div>
             {snapshot.unbilledJobs.length ? (
-              snapshot.unbilledJobs.map((job) => (
+              snapshot.unbilledJobs.slice(0, 3).map((job) => (
                 <button className="pn-list-row" key={job.id} onClick={() => openBilling(job.id)} type="button">
                   <span>
                     <strong>{job.customer}</strong>
