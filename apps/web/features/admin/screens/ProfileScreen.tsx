@@ -65,15 +65,43 @@ export function ProfileScreen() {
   }
 
   function selectPhoto(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget;
     const file = event.target.files?.[0];
     if (!file) return;
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 1_000_000) {
       setMessage('Choose a PNG, JPEG, or WebP image under 1 MB');
+      input.value = '';
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setProfile((current) => ({ ...current, avatarUrl: String(reader.result) }));
-    reader.onerror = () => setMessage('Could not read that profile photo');
+    reader.onload = async () => {
+      const avatarUrl = String(reader.result);
+      setProfile((current) => ({ ...current, avatarUrl }));
+      setSaving(true);
+      try {
+        const { profile: updated } = await saveProfile({
+          name: profile.name,
+          phone: profile.phone,
+          avatarUrl,
+        });
+        const details = { name: updated.name, email: updated.email, phone: updated.phone, avatarUrl: updated.avatarUrl };
+        setAccount(updated);
+        setProfile(details);
+        setSavedProfile(details);
+        window.dispatchEvent(new CustomEvent('pilotnow:profile-updated', { detail: updated }));
+        setMessage('Profile photo updated');
+      } catch (error) {
+        setProfile((current) => ({ ...current, avatarUrl: savedProfile.avatarUrl }));
+        setMessage(profileErrorMessage(error, 'Could not update profile photo'));
+      } finally {
+        setSaving(false);
+        input.value = '';
+      }
+    };
+    reader.onerror = () => {
+      input.value = '';
+      setMessage('Could not read that profile photo');
+    };
     reader.readAsDataURL(file);
   }
 
