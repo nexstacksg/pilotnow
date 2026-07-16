@@ -116,7 +116,6 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
             </span>
             <div className="pn-logout-confirm-copy">
               <h2>Log out of PilotNow?</h2>
-              <p>Are you sure you want to log out?</p>
               <small>You’ll need to sign in again to access your account.</small>
             </div>
             <div className="pn-logout-confirm-actions">
