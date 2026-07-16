@@ -120,7 +120,7 @@ export function DashboardScreen({
               </span>
             </div>
             {snapshot.missingProofs.length ? (
-              snapshot.missingProofs.map((proof) => (
+              snapshot.missingProofs.slice(0, 2).map((proof) => (
                 <button className="pn-list-row" key={`${proof.jobId}-${proof.officer}-${proof.expectedAt}`} onClick={() => openJob(proof.jobId)} type="button">
                   <span>
                     <strong>{proof.customer}</strong>
