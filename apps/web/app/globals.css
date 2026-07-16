@@ -345,6 +345,10 @@ button {
   align-items: start;
 }
 
+.pn-dashboard-grid {
+  align-items: stretch;
+}
+
 .pn-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -4029,6 +4033,27 @@ button {
   font-size: 9.5px;
 }
 
+.pn-profile-account-loading {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: #ededed;
+  color: transparent !important;
+  user-select: none;
+}
+
+.pn-profile-account-loading.is-name {
+  min-width: 96px;
+}
+
+.pn-profile-account-loading.is-detail {
+  min-width: 72px;
+}
+
+.pn-profile-account-trigger:disabled {
+  cursor: wait;
+}
+
 .pn-profile-account-trigger > svg {
   color: #aaa;
 }
@@ -4119,6 +4144,33 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.pn-profile-avatar-wrap .pn-profile-avatar.is-loading {
+  position: relative;
+  overflow: hidden;
+  background: #ededed;
+}
+
+.pn-profile-avatar-wrap .pn-profile-avatar.is-loading::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / 65%) 50%, transparent 70%);
+  content: '';
+  transform: translateX(-100%);
+  animation: pn-profile-avatar-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes pn-profile-avatar-loading {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pn-profile-avatar-wrap .pn-profile-avatar.is-loading::after {
+    animation: none;
+  }
 }
 
 .pn-profile-camera {

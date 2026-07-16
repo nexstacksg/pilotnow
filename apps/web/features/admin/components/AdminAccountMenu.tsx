@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, LogOut, UserRound, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -60,8 +59,9 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
     }
   }
 
-  const displayName = user?.name ?? 'PilotNow Admin';
-  const displayInitials = initials(displayName);
+  const accountLoaded = user !== null;
+  const displayName = user?.name ?? '';
+  const displayInitials = user ? initials(displayName) : '';
   const avatar = user?.avatarUrl;
 
   return (
@@ -71,14 +71,14 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
           <div className="pn-profile-account-summary">
             <span className="pn-profile-mini-avatar">{avatar ? <img alt="" src={avatar} /> : displayInitials}</span>
             <span>
-              <strong>{displayName}</strong>
-              <small>{user?.email ?? ''}</small>
+              <strong className={!accountLoaded ? 'pn-profile-account-loading is-name' : undefined}>{accountLoaded ? displayName : 'Loading account'}</strong>
+              <small className={!accountLoaded ? 'pn-profile-account-loading is-detail' : undefined}>{user?.email ?? 'Loading account details'}</small>
             </span>
           </div>
-          <Link href="/profile" onClick={() => setOpen(false)} role="menuitem">
+          <a href="/profile" onClick={() => setOpen(false)} role="menuitem">
             <UserRound aria-hidden="true" size={14} strokeWidth={1.7} />
             View profile
-          </Link>
+          </a>
           <button className="is-danger" onClick={() => { setOpen(false); setLogoutConfirmOpen(true); }} role="menuitem" type="button">
             <LogOut aria-hidden="true" size={14} strokeWidth={1.7} />
             Log out
@@ -88,14 +88,16 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
       <button
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-busy={!accountLoaded}
         className="pn-profile-account-trigger"
+        disabled={!accountLoaded}
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
         <span className="pn-profile-trigger-avatar">{avatar ? <img alt="" src={avatar} /> : displayInitials}</span>
         <span>
-          <strong>{displayName}</strong>
-          <small>{user?.role ?? 'Operations Admin'}</small>
+          <strong className={!accountLoaded ? 'pn-profile-account-loading is-name' : undefined}>{accountLoaded ? displayName : 'Loading account'}</strong>
+          <small className={!accountLoaded ? 'pn-profile-account-loading is-detail' : undefined}>{user?.role ?? 'Loading account details'}</small>
         </span>
         <ChevronDown aria-hidden="true" size={14} strokeWidth={1.6} />
       </button>
@@ -114,7 +116,6 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
             </span>
             <div className="pn-logout-confirm-copy">
               <h2>Log out of PilotNow?</h2>
-              <p>Are you sure you want to log out?</p>
               <small>You’ll need to sign in again to access your account.</small>
             </div>
             <div className="pn-logout-confirm-actions">

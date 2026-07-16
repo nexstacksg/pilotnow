@@ -6,6 +6,7 @@ export type AdminProfile = {
   name: string;
   email: string;
   phone: string | null;
+  company: string;
   avatarUrl: string | null;
   role: string;
   createdAt: string;
@@ -16,7 +17,7 @@ export async function fetchProfile() {
   return http.get<{ profile: AdminProfile }>('/auth/profile');
 }
 
-export async function saveProfile(profile: Pick<AdminProfile, 'name' | 'phone' | 'avatarUrl'>) {
+export async function saveProfile(profile: Pick<AdminProfile, 'name' | 'email' | 'phone' | 'company' | 'avatarUrl'>) {
   return http.put<{ profile: AdminProfile }>('/auth/profile', profile);
 }
 
