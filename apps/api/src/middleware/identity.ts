@@ -21,10 +21,17 @@ const PUBLIC_PATHS = new Set([
   '/auth/password-reset/verify',
   '/auth/password-reset/complete',
 ]);
+function isPublicOfficerJobPath(path: string) {
+  return /^\/officer-jobs\/[^/]+(?:\/(?:check-in|check-out|evidence|evidence-upload|evidence-file))?$/.test(path);
+}
+
+function isPublicSignReportPath(path: string) {
+  return /^\/jobs\/[^/]+\/sign-report$/.test(path);
+}
 
 export function identity(): MiddlewareHandler {
   return async (c, next) => {
-    if (c.req.method === 'OPTIONS' || PUBLIC_PATHS.has(c.req.path)) {
+    if (c.req.method === 'OPTIONS' || PUBLIC_PATHS.has(c.req.path) || isPublicOfficerJobPath(c.req.path) || isPublicSignReportPath(c.req.path)) {
       await next();
       return;
     }

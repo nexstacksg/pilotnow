@@ -10,10 +10,11 @@ export type Screen =
   | 'profile';
 
 export type JobStatus =
-  | 'Draft'
-  | 'Open'
-  | 'Assigned'
-  | 'Ongoing'
+  | 'Draft Created'
+  | 'Posted/Waiting'
+  | 'Officers confirmed'
+  | 'Job ongoing'
+  | 'Awaiting sign-off'
   | 'Completed'
   | 'Cancelled';
 
@@ -41,6 +42,7 @@ export type PhotoCheckpoint = {
   status: PhotoStatus;
   by: string;
   at: string;
+  mediaRef?: string;
   note?: string;
 };
 

@@ -34,7 +34,7 @@ export function DashboardScreen({
       <div className="pn-stats">
         <StatCard ariaLabel="Open today's jobs" icon={<CalendarIcon size={16} stroke="#0A0A0A" strokeWidth={2} />} label="Today's jobs" value={metrics.todayJobs} hint={`scheduled for ${dateLabel(snapshot.operatingDate)}`} tone="muted" onClick={() => openJobs('Today')} />
         <StatCard ariaLabel="Open jobs waiting for officers" icon={<ClockIcon size={16} stroke="#8A5A00" strokeWidth={2} />} label="Waiting for officers" value={metrics.waitingJobs} hint={`${metrics.officersNeeded} officers still needed`} tone="warning" onClick={() => openJobs('Needs staffing')} />
-        <StatCard ariaLabel="Open ongoing jobs" icon={<TargetIcon size={16} stroke="#1F4FA3" strokeWidth={2} />} label="Ongoing jobs" value={metrics.ongoingJobs} hint="officers on duty now" tone="info" onClick={() => openJobs('Ongoing')} />
+        <StatCard ariaLabel="Open ongoing jobs" icon={<TargetIcon size={16} stroke="#1F4FA3" strokeWidth={2} />} label="Ongoing jobs" value={metrics.ongoingJobs} hint="officers on duty now" tone="info" onClick={() => openJobs('Job ongoing')} />
         <StatCard ariaLabel="Open jobs with missing hourly photos" icon={<CameraOffIcon size={16} stroke="#FF3B30" strokeWidth={2} />} label="Missing hourly photos" value={metrics.missingPhotos} hint="needs follow-up" tone="danger" onClick={() => openJobs('Missing photos')} />
       </div>
 

@@ -4,16 +4,8 @@ import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
 
-const defaultStatusViews: JobStatus[] = ['Draft', 'Open', 'Assigned', 'Ongoing', 'Completed', 'Cancelled'];
+const defaultStatusViews: JobStatus[] = ['Draft Created', 'Posted/Waiting', 'Officers confirmed', 'Job ongoing', 'Awaiting sign-off', 'Completed', 'Cancelled'];
 const PAGE_SIZE = 8;
-const statusOrder: Partial<Record<JobStatus, number>> = {
-  Draft: 0,
-  Open: 1,
-  Assigned: 2,
-  Ongoing: 3,
-  Completed: 4,
-  Cancelled: 5,
-};
 
 export function JobsScreen({
   jobs,
@@ -36,9 +28,7 @@ export function JobsScreen({
 
   const filtered = jobs
     .filter((job) => matchesJobFilter(job, filter))
-    .filter((job) => !query || jobSearchText(job).includes(query))
-    .slice()
-    .sort((a, b) => (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99));
+    .filter((job) => !query || jobSearchText(job).includes(query));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * PAGE_SIZE;
@@ -95,7 +85,7 @@ export function JobsScreen({
               <Badge tone={statusTone[job.status]} dot>
                 {job.status}
               </Badge>
-              {/* {job.posted && job.status !== 'Draft' ? <small>WhatsApp posted</small> : null} */}
+              {/* {job.posted && job.status !== 'Draft Created' ? <small>WhatsApp posted</small> : null} */}
             </span>
           </button>
         ))}

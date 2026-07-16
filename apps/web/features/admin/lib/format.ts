@@ -45,13 +45,14 @@ export function jobPay(job: Job) {
 }
 
 export function scheduledStatus(job: Job, now = new Date()): JobStatus {
-  if (job.status === 'Cancelled' || job.status === 'Completed' || job.status === 'Draft') return job.status;
+  if (job.status === 'Cancelled' || job.status === 'Completed') return job.status;
+  if (job.status === 'Draft Created' && !job.posted) return job.status;
+  if (job.officers.length && job.officers.every((officer) => officer.actualEnd)) return 'Awaiting sign-off';
   const start = new Date(`${job.date}T${job.start}:00`);
   const end = new Date(`${job.date}T${job.end}:00`);
   if (end <= start) end.setDate(end.getDate() + 1);
-  if (now >= end) return 'Completed';
-  if (now >= start) return 'Ongoing';
-  return job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed) ? 'Assigned' : 'Open';
+  if (now >= start) return 'Job ongoing';
+  return job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed) ? 'Officers confirmed' : 'Posted/Waiting';
 }
 
 export function normalizeJobStage(job: Job, now = new Date()): Job {
@@ -68,10 +69,11 @@ export function normalizeJobStage(job: Job, now = new Date()): Job {
 }
 
 export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
-  Draft: 'muted',
-  Open: 'warning',
-  Assigned: 'info',
-  Ongoing: 'info',
+  'Draft Created': 'muted',
+  'Posted/Waiting': 'warning',
+  'Officers confirmed': 'info',
+  'Job ongoing': 'info',
+  'Awaiting sign-off': 'warning',
   Completed: 'success',
   Cancelled: 'danger',
 };

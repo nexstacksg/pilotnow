@@ -22,6 +22,24 @@ type ApiJob = {
   recordState: ApiRecordState;
   postedToGroupAt: string | null;
   createdAt: string;
+  assignments?: {
+    officerId: string;
+    officerName: string;
+    icVerified: boolean;
+    rate: string | number | null;
+    confirmed: boolean;
+    onDuty: boolean;
+    checkInAt: string | null;
+    checkOutAt: string | null;
+  }[];
+  proofPhotos?: {
+    id: string;
+    officerId: string;
+    officerName: string;
+    mediaRef: string;
+    proofWindow: string | null;
+    receivedAt: string;
+  }[];
 };
 
 async function withServerMessage<T>(request: Promise<T>) {
@@ -41,10 +59,10 @@ async function withServerMessage<T>(request: Promise<T>) {
 function statusFromApi(job: ApiJob): JobStatus {
   if (job.status === 'CANCELLED') return 'Cancelled';
   if (job.status === 'COMPLETED') return 'Completed';
-  if (job.status === 'IN_PROGRESS') return 'Ongoing';
-  if (job.status === 'ASSIGNED') return 'Assigned';
-  if (job.recordState === 'DRAFT' || !job.postedToGroupAt) return 'Draft';
-  return 'Open';
+  if (job.status === 'IN_PROGRESS') return 'Job ongoing';
+  if (job.status === 'ASSIGNED') return 'Officers confirmed';
+  if (!job.postedToGroupAt) return 'Draft Created';
+  return 'Posted/Waiting';
 }
 
 function splitIso(value: string) {
@@ -57,9 +75,45 @@ function jobDateTime(date: string, time: string, nextDay = false) {
   return value.toISOString();
 }
 
+function timeLabel(value: string | null) {
+  return value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+}
+
+function proofTimeLabel(proofWindow: string | null, receivedAt: string) {
+  if (proofWindow && !proofWindow.includes('T')) return proofWindow;
+  if (proofWindow?.includes('T')) return timeLabel(proofWindow.slice(0, 16));
+  return timeLabel(receivedAt);
+}
+
 function mergeJob(apiJob: ApiJob, previous?: Job): Job {
   const start = splitIso(apiJob.startAt);
   const end = splitIso(apiJob.endAt);
+  const previousOfficers = previous?.officers ?? [];
+  const officers = apiJob.assignments?.length
+    ? apiJob.assignments.map((assignment) => {
+      const existing = previousOfficers.find((officer) => officer.oid === assignment.officerId);
+      return {
+        oid: assignment.officerId,
+        name: assignment.officerName,
+        ic: assignment.icVerified,
+        rate: Number(assignment.rate ?? existing?.rate ?? 0),
+        confirmed: assignment.confirmed,
+        onDuty: assignment.onDuty,
+        actualStart: timeLabel(assignment.checkInAt) || existing?.actualStart || '',
+        actualEnd: timeLabel(assignment.checkOutAt) || existing?.actualEnd || '',
+      };
+    })
+    : previousOfficers;
+  const photos = apiJob.proofPhotos?.length
+    ? apiJob.proofPhotos.map((photo) => ({
+      time: proofTimeLabel(photo.proofWindow, photo.receivedAt),
+      status: 'received' as const,
+      by: photo.officerName,
+      at: timeLabel(photo.receivedAt),
+      mediaRef: `/api/jobs/${encodeURIComponent(apiJob.id)}/proof-photos/${encodeURIComponent(photo.id)}`,
+      note: photo.proofWindow ?? undefined,
+    }))
+    : previous?.photos ?? [];
 
   return {
     id: apiJob.id,
@@ -74,22 +128,26 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     description: apiJob.requestRaw || previous?.description || 'No description provided.',
     instructions: apiJob.instructions || '',
     cancelReason: apiJob.status === 'CANCELLED' ? previous?.cancelReason || 'Cancelled by admin' : '',
-    officers: previous?.officers.length ? previous.officers : [],
-    photos: previous?.photos.length ? previous.photos : [],
+    officers,
+    photos,
     billing: apiJob.billingStatus === 'BILLED' ? 'Billed' : 'Not Billed',
     invoice: apiJob.invoiceNumber ?? previous?.invoice ?? '',
     billedDate: apiJob.billedAt ? apiJob.billedAt.slice(0, 10) : previous?.billedDate ?? '',
   };
 }
 
+function newestApiJobsFirst(a: ApiJob, b: ApiJob) {
+  return b.createdAt.localeCompare(a.createdAt);
+}
+
 export async function fetchJobs(current: Job[]) {
   const payload = await withServerMessage(http.get<{ items: ApiJob[] }>('/jobs'));
-  return payload.items.map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
+  return payload.items.slice().sort(newestApiJobsFirst).map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
 }
 
 export async function fetchCompletedJobs(current: Job[]) {
   const payload = await withServerMessage(http.get<{ items: ApiJob[] }>('/jobs?status=COMPLETED'));
-  return payload.items.map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
+  return payload.items.slice().sort(newestApiJobsFirst).map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
 }
 
 export async function createJobFromForm(form: JobForm) {
@@ -126,6 +184,11 @@ export async function updateJobFromForm(id: string, form: JobForm, previous?: Jo
   return mergeJob(payload.item, previous);
 }
 
+export async function markJobPostedInApi(id: string, previous?: Job) {
+  const payload = await withServerMessage(http.post<{ item: ApiJob }>(`/jobs/${id}/post`, {}));
+  return mergeJob(payload.item, previous);
+}
+
 export async function completeJobInApi(id: string, previous?: Job) {
   const payload = await withServerMessage(http.post<{ item: ApiJob }>(`/jobs/${id}/complete`));
   return mergeJob(payload.item, previous);
@@ -134,4 +197,12 @@ export async function completeJobInApi(id: string, previous?: Job) {
 export async function cancelJobInApi(id: string, previous?: Job) {
   const payload = await withServerMessage(http.delete<{ item: ApiJob }>(`/jobs/${id}`));
   return mergeJob(payload.item, previous);
+}
+
+export async function createOfficerJobToken(jobId: string, hp: string) {
+  return withServerMessage(http.post<{ token: string; expiresAt: string }>(`/officer-jobs/${encodeURIComponent(jobId)}/token`, { hp }));
+}
+
+export async function createSignReportToken(jobId: string) {
+  return withServerMessage(http.post<{ token: string }>(`/jobs/${encodeURIComponent(jobId)}/sign-token`, {}));
 }

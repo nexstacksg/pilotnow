@@ -79,11 +79,11 @@ function statusToApi(status: OfficerStatus): ApiOfficerStatus {
 }
 
 function jobStatusFromApi(status: ApiJobStatus): JobStatus {
-  if (status === 'ASSIGNED') return 'Assigned';
-  if (status === 'IN_PROGRESS') return 'Ongoing';
+  if (status === 'ASSIGNED') return 'Officers confirmed';
+  if (status === 'IN_PROGRESS') return 'Job ongoing';
   if (status === 'COMPLETED') return 'Completed';
   if (status === 'CANCELLED') return 'Cancelled';
-  return 'Open';
+  return 'Posted/Waiting';
 }
 
 function paymentStatusFromApi(status: ApiPaymentStatus): PaymentStatus {

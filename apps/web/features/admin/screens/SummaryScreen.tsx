@@ -115,7 +115,7 @@ function SummaryDetail({ job, onBack }: { job: Job; onBack: () => void }) {
   const scheduled = hours(job.start, job.end);
   const rows = job.officers.map((officer) => {
     const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
-    const actual = `${officer.actualStart || job.start} - ${officer.actualEnd || job.end}`;
+    const actual = `${officer.actualStart || '--:--'} - ${officer.actualEnd || '--:--'}`;
     return { officer, actual, worked, pay: worked * officer.rate };
   });
   const total = rows.reduce((sum, row) => sum + row.pay, 0);

@@ -26,7 +26,7 @@ import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
-import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, updateJobFromForm } from './lib/jobs-api';
+import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
 import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
@@ -305,8 +305,8 @@ export function AdminApp({
     const pendingPayments = financePayments.filter((payment) => payment.status === 'Pending').length;
     return {
       todayJobs: jobs.filter((job) => job.date === TODAY && job.status !== 'Cancelled').length,
-      openJobs: jobs.filter((job) => job.status === 'Open').length,
-      ongoingJobs: jobs.filter((job) => job.status === 'Ongoing').length,
+      openJobs: jobs.filter((job) => job.status === 'Posted/Waiting').length,
+      ongoingJobs: jobs.filter((job) => job.status === 'Job ongoing').length,
       missingPhotos: jobs.flatMap((job) => job.photos).filter((photo) => photo.status === 'missing').length,
       officersNeeded: jobs.reduce((sum, job) => sum + Math.max(0, job.required - job.officers.length), 0),
       pendingPayments,
@@ -530,8 +530,15 @@ export function AdminApp({
     }));
   }
 
-  function markJobPosted(id: string) {
+  async function markJobPosted(id: string) {
+    const current = jobs.find((job) => job.id === id);
     updateJob(id, (job) => ({ ...job, posted: true }));
+    try {
+      const job = await markJobPostedInApi(id, current);
+      setJobs((items) => items.map((item) => normalizeJobStage(item.id === id ? { ...item, ...job } : item)));
+    } catch {
+      flash('WhatsApp post saved locally only. API did not update.');
+    }
   }
 
   async function cancelJob(id: string) {
@@ -549,23 +556,21 @@ export function AdminApp({
     const current = jobs.find((job) => job.id === id);
     try {
       const job = await completeJobInApi(id, current);
-      setJobs((items) =>
-        items.map((item) =>
-          item.id === id
-            ? normalizeJobStage({
-                ...job,
-                officers: item.officers.map((officer) => ({
-                  ...officer,
-                  confirmed: true,
-                  onDuty: true,
-                  actualStart: officer.actualStart || item.start,
-                  actualEnd: officer.actualEnd || item.end,
-                })),
-                photos: item.photos.length ? item.photos : job.photos,
-              })
-            : normalizeJobStage(item),
-        ),
-      );
+      setJobs((items) => {
+        const existing = items.find((item) => item.id === id);
+        const completed = normalizeJobStage({
+          ...job,
+          officers: (existing?.officers ?? job.officers).map((officer) => ({
+            ...officer,
+            confirmed: true,
+            onDuty: true,
+            actualStart: officer.actualStart || existing?.start || job.start,
+            actualEnd: officer.actualEnd || existing?.end || job.end,
+          })),
+          photos: existing?.photos.length ? existing.photos : job.photos,
+        });
+        return [completed, ...items.filter((item) => item.id !== id).map((item) => normalizeJobStage(item))];
+      });
       flash('Job marked as completed');
     } catch {
       flash('Could not complete job. Check that it is confirmed in the API.', 'error');
@@ -573,6 +578,12 @@ export function AdminApp({
   }
 
   function removeOfficerFromJob(oid: string) {
+    const assigned = selectedJob.officers.find((officer) => officer.oid === oid);
+    if (!assigned) return;
+    if (assigned.confirmed || assigned.onDuty || assigned.actualStart || assigned.actualEnd) {
+      flash('Cannot remove officer after confirmation, check-in, or on-duty status');
+      return;
+    }
     updateJob(selectedJob.id, (job) => ({
       ...job,
       officers: job.officers.filter((officer) => officer.oid !== oid),
@@ -848,8 +859,8 @@ export function AdminApp({
             const existing = current.find((job) => job.id === item.id);
             return normalizeJobStage({
               ...item,
-              officers: existing?.officers.length ? existing.officers : item.officers,
-              photos: existing?.photos.length ? existing.photos : item.photos,
+              officers: item.officers.length ? item.officers : existing?.officers ?? [],
+              photos: item.photos.length ? item.photos : existing?.photos ?? [],
             });
           }),
         );
@@ -1338,7 +1349,7 @@ function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
   const received = job.photos.filter((photo) => photo.status === 'received');
   const officerReports = job.officers.map((officer) => {
     const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
-    const actualHours = `${officer.actualStart || job.start} - ${officer.actualEnd || job.end}`;
+    const actualHours = `${officer.actualStart || '--:--'} - ${officer.actualEnd || '--:--'}`;
     const evidencePhotos = job.photos.filter((photo) => photo.by === officer.name).length;
     return { officer, worked, actualHours, evidencePhotos, payable: worked * officer.rate };
   });

@@ -1800,7 +1800,7 @@ button {
 
 .pn-job-detail .pn-table-officers .pn-table-head,
 .pn-job-detail .pn-table-officers .pn-table-row {
-  grid-template-columns: minmax(160px, 1fr) 58px 74px 96px 110px 34px;
+  grid-template-columns: minmax(150px, 1fr) 58px 70px 96px 110px 42px 34px;
   padding: 9px 12px;
 }
 
@@ -1862,6 +1862,16 @@ button {
   border-color: #CDE9D5;
   background: #E8F5EC;
   color: #0A7A3B;
+}
+
+.pn-job-detail .pn-table-officers a.pn-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  text-decoration: none;
+}
+
+.pn-job-detail .pn-table-officers {
+  overflow: visible;
 }
 
 .pn-job-detail .pn-card textarea {
@@ -2948,6 +2958,41 @@ button {
   background: #fff;
   color: #A3A3A3;
   font-size: 13px;
+}
+
+.pn-tooltip-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.pn-tooltip-btn::after {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  z-index: 20;
+  width: max-content;
+  max-width: 260px;
+  padding: 8px 10px;
+  border: 1px solid #D8D8D8;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  color: #111;
+  content: attr(data-tooltip);
+  font-size: 12px;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-4px, -50%);
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: normal;
+}
+
+.pn-tooltip-btn:hover::after,
+.pn-tooltip-btn:focus-visible::after {
+  opacity: 1;
+  transform: translate(0, -50%);
 }
 
 .pn-modal-body {
