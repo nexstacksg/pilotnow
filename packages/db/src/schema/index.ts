@@ -72,6 +72,7 @@ export const adminUsers = pgTable(
     passwordHash: text('password_hash').notNull(),
     name: text('name').notNull(),
     phone: text('phone'),
+    company: text('company').notNull().default('PilotNow Security Pte Ltd'),
     avatarUrl: text('avatar_url'),
     role: text('role').notNull().default('Operations Admin'),
     active: boolean('active').notNull().default(true),

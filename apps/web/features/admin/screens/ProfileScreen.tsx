@@ -6,8 +6,8 @@ import { BadgeCheck, Camera, LockKeyhole, UserRound } from 'lucide-react';
 import { changePassword, fetchProfile, profileErrorMessage, saveProfile } from '../lib/profile-api';
 import type { AdminProfile } from '../lib/profile-api';
 
-type ProfileDetails = Pick<AdminProfile, 'name' | 'email' | 'phone' | 'avatarUrl'>;
-const emptyProfile: ProfileDetails = { name: '', email: '', phone: null, avatarUrl: null };
+type ProfileDetails = Pick<AdminProfile, 'name' | 'email' | 'phone' | 'company' | 'avatarUrl'>;
+const emptyProfile: ProfileDetails = { name: '', email: '', phone: null, company: '', avatarUrl: null };
 
 export function ProfileScreen() {
   const [profile, setProfile] = useState(emptyProfile);
@@ -26,7 +26,7 @@ export function ProfileScreen() {
     void fetchProfile()
       .then(({ profile: loaded }) => {
         if (!active) return;
-        const details = { name: loaded.name, email: loaded.email, phone: loaded.phone, avatarUrl: loaded.avatarUrl };
+        const details = { name: loaded.name, email: loaded.email, phone: loaded.phone, company: loaded.company, avatarUrl: loaded.avatarUrl };
         setAccount(loaded);
         setProfile(details);
         setSavedProfile(details);
@@ -42,7 +42,7 @@ export function ProfileScreen() {
     return () => window.clearTimeout(timeout);
   }, [message]);
 
-  function updateField(field: 'name' | 'phone', value: string) {
+  function updateField(field: 'name' | 'email' | 'phone' | 'company', value: string) {
     setProfile((current) => ({ ...current, [field]: value }));
   }
 
@@ -50,8 +50,8 @@ export function ProfileScreen() {
     event.preventDefault();
     setSaving(true);
     try {
-      const { profile: updated } = await saveProfile({ name: profile.name, phone: profile.phone, avatarUrl: profile.avatarUrl });
-      const details = { name: updated.name, email: updated.email, phone: updated.phone, avatarUrl: updated.avatarUrl };
+      const { profile: updated } = await saveProfile(profile);
+      const details = { name: updated.name, email: updated.email, phone: updated.phone, company: updated.company, avatarUrl: updated.avatarUrl };
       setAccount(updated);
       setProfile(details);
       setSavedProfile(details);
@@ -81,10 +81,12 @@ export function ProfileScreen() {
       try {
         const { profile: updated } = await saveProfile({
           name: profile.name,
+          email: profile.email,
           phone: profile.phone,
+          company: profile.company,
           avatarUrl,
         });
-        const details = { name: updated.name, email: updated.email, phone: updated.phone, avatarUrl: updated.avatarUrl };
+        const details = { name: updated.name, email: updated.email, phone: updated.phone, company: updated.company, avatarUrl: updated.avatarUrl };
         setAccount(updated);
         setProfile(details);
         setSavedProfile(details);
@@ -147,9 +149,9 @@ export function ProfileScreen() {
               <section className="pn-profile-panel"><header><span><UserRound aria-hidden="true" size={16} /></span><h1>Profile Information</h1></header>
                 <div className="pn-profile-fields">
                   <label>Full Name<input autoComplete="name" disabled={loading || saving} onChange={(event) => updateField('name', event.target.value)} required value={profile.name} /></label>
-                  <label>Email Address<input autoComplete="email" disabled type="email" value={profile.email} /><small>Email is your login identifier and cannot be changed here.</small></label>
+                  <label>Email Address<input autoComplete="email" disabled={loading || saving} onChange={(event) => updateField('email', event.target.value)} required type="email" value={profile.email} /><small>Email is your login identifier.</small></label>
                   <label>Phone Number<input autoComplete="tel" disabled={loading || saving} onChange={(event) => updateField('phone', event.target.value)} placeholder="e.g. +65 9123 4567" value={profile.phone ?? ''} /></label>
-                  <label>Company<input disabled value="PilotNow Security Pte Ltd" /><small>Company name is managed at the tenant level.</small></label>
+                  <label>Company<input autoComplete="organization" disabled={loading || saving} onChange={(event) => updateField('company', event.target.value)} required value={profile.company} /></label>
                 </div>
               </section>
               <section className="pn-profile-panel pn-profile-security"><header><span><LockKeyhole aria-hidden="true" size={16} /></span><h2>Security</h2></header>

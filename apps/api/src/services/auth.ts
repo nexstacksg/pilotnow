@@ -58,7 +58,6 @@ export async function ensureBootstrapAdmin() {
   const existing = await database
     .select({ id: schema.adminUsers.id })
     .from(schema.adminUsers)
-    .where(eq(schema.adminUsers.email, email))
     .limit(1);
   if (existing.length) return;
 
@@ -100,6 +99,7 @@ export async function findAdminProfileById(id: string) {
       email: schema.adminUsers.email,
       name: schema.adminUsers.name,
       phone: schema.adminUsers.phone,
+      company: schema.adminUsers.company,
       avatarUrl: schema.adminUsers.avatarUrl,
       role: schema.adminUsers.role,
       createdAt: schema.adminUsers.createdAt,
@@ -113,11 +113,18 @@ export async function findAdminProfileById(id: string) {
 
 export async function updateAdminProfile(
   id: string,
-  profile: { name: string; phone: string | null; avatarUrl: string | null },
+  profile: { name: string; email: string; phone: string | null; company: string; avatarUrl: string | null },
 ) {
   const [updated] = await getDb()
     .update(schema.adminUsers)
-    .set({ ...profile, name: profile.name.trim(), phone: profile.phone?.trim() || null, updatedAt: new Date() })
+    .set({
+      ...profile,
+      name: profile.name.trim(),
+      email: profile.email.trim().toLowerCase(),
+      phone: profile.phone?.trim() || null,
+      company: profile.company.trim(),
+      updatedAt: new Date(),
+    })
     .where(and(eq(schema.adminUsers.id, id), eq(schema.adminUsers.active, true)))
     .returning({ id: schema.adminUsers.id });
   return updated ? findAdminProfileById(updated.id) : null;

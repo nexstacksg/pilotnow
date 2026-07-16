@@ -43,6 +43,13 @@
       "when": 1784007552403,
       "tag": "0004_add_admin_profile",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784174400000,
+      "tag": "0005_add_admin_company",
+      "breakpoints": true
     }
   ]
 }

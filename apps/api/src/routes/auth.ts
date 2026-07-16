@@ -43,7 +43,9 @@ const resetCompleteInput = z.object({
 
 const profileInput = z.object({
   name: z.string().trim().min(2).max(100),
+  email: z.string().trim().toLowerCase().email().max(254),
   phone: z.string().trim().max(32).nullable(),
+  company: z.string().trim().min(2).max(150),
   avatarUrl: z.string().max(1_500_000).regex(/^data:image\/(?:png|jpeg|webp);base64,/).nullable(),
 });
 
@@ -128,9 +130,12 @@ export const auth = new Hono()
   .put('/profile', async (c) => {
     const actor = c.get('actor');
     if (actor.type !== 'HUMAN') return c.json({ error: 'Human administrator required' }, 403);
+    const adminId = actor.id.replace(/^user:/, '');
     const parsed = profileInput.safeParse(await c.req.json().catch(() => null));
-    if (!parsed.success) return c.json({ error: 'Enter a valid name, phone number, and profile photo' }, 400);
-    const profile = await updateAdminProfile(actor.id.replace(/^user:/, ''), parsed.data);
+    if (!parsed.success) return c.json({ error: 'Enter a valid name, email address, phone number, company, and profile photo' }, 400);
+    const emailOwner = await findAdminByEmail(parsed.data.email);
+    if (emailOwner && emailOwner.id !== adminId) return c.json({ error: 'That email address is already in use' }, 409);
+    const profile = await updateAdminProfile(adminId, parsed.data);
     if (!profile) return c.json({ error: 'Profile could not be updated' }, 404);
     return c.json({ profile });
   })
