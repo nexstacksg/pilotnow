@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronDown, LogOut, UserRound, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -75,10 +74,10 @@ export function AdminAccountMenu({ defaultOpen = false }: { defaultOpen?: boolea
               <small>{user?.email ?? ''}</small>
             </span>
           </div>
-          <Link href="/profile" onClick={() => setOpen(false)} role="menuitem">
+          <a href="/profile" onClick={() => setOpen(false)} role="menuitem">
             <UserRound aria-hidden="true" size={14} strokeWidth={1.7} />
             View profile
-          </Link>
+          </a>
           <button className="is-danger" onClick={() => { setOpen(false); setLogoutConfirmOpen(true); }} role="menuitem" type="button">
             <LogOut aria-hidden="true" size={14} strokeWidth={1.7} />
             Log out
