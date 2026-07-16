@@ -46,18 +46,27 @@ export function Field({
   label,
   children,
   required = false,
+  error,
+  errorId,
 }: {
   label: string;
   children: ReactNode;
   required?: boolean;
+  error?: string;
+  errorId?: string;
 }) {
   return (
-    <label className="pn-field">
+    <label className={`pn-field ${error ? 'pn-field-invalid' : ''}`}>
       <span>
         {label}
         {required ? <b> *</b> : null}
       </span>
       {children}
+      {error ? (
+        <p className="pn-field-error" id={errorId} role="alert">
+          {error}
+        </p>
+      ) : null}
     </label>
   );
 }

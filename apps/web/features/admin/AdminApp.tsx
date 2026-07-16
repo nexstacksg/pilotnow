@@ -83,6 +83,13 @@ type AdminSearchResult = {
   detail: string;
 };
 
+type Toast = {
+  message: string;
+  tone: 'success' | 'error';
+};
+
+type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
+
 const emptyJobForm: JobForm = {
   customer: '',
   location: '',
@@ -139,6 +146,20 @@ function mergePaymentRows(primary: Payment[], secondary: Payment[]) {
 function mergeServerPayments(serverPayments: Payment[], localPayments: Payment[]) {
   const clientOnly = localPayments.filter((payment) => !isApiPaymentId(payment.id));
   return mergePaymentRows(serverPayments, clientOnly);
+}
+
+function validateOfficerForm(form: OfficerForm) {
+  const errors: OfficerFormErrors = {};
+  const phoneDigits = form.phone.replace(/[^0-9]/g, '');
+
+  if (!form.name.trim()) errors.name = 'Full name is required.';
+  if (!phoneDigits.length) {
+    errors.phone = 'WhatsApp number is required.';
+  } else if (phoneDigits.length < 6) {
+    errors.phone = 'Enter a valid WhatsApp number.';
+  }
+
+  return errors;
 }
 
 function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
@@ -237,7 +258,8 @@ export function AdminApp({
   const [paymentsHydrated, setPaymentsHydrated] = useState(false);
   const [operationsReport, setOperationsReport] = useState<OperationsReport | null>(null);
   const [dashboardSnapshot, setDashboardSnapshot] = useState<DashboardSnapshot | null>(null);
-  const [toast, setToast] = useState('');
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [officerFormErrors, setOfficerFormErrors] = useState<OfficerFormErrors>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeSearchIndex, setActiveSearchIndex] = useState(0);
@@ -312,9 +334,9 @@ export function AdminApp({
     return () => document.removeEventListener('pointerdown', closeSearchOnOutsidePointer);
   }, []);
 
-  function flash(message: string) {
-    setToast(message);
-    window.setTimeout(() => setToast(''), 2200);
+  function flash(message: string, tone: Toast['tone'] = 'success') {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2200);
   }
 
   function copyText(text: string, message: string) {
@@ -419,6 +441,12 @@ export function AdminApp({
     setCreateOpen(true);
   }
 
+  function openCreateOfficer() {
+    setOfficerForm(emptyOfficerForm);
+    setOfficerFormErrors({});
+    setOfficerOpen(true);
+  }
+
   function openEditJob(job: Job) {
     setEditingJobId(job.id);
     setJobForm({
@@ -436,7 +464,7 @@ export function AdminApp({
 
   async function saveJob() {
     if (!jobForm.customer.trim() || !jobForm.location.trim()) {
-      flash('Enter a customer and location first');
+      flash('Enter a customer and location first', 'error');
       return;
     }
     setSavingJob(true);
@@ -451,7 +479,7 @@ export function AdminApp({
       flash(editingJobId ? `Job ${job.id} updated` : `Job ${job.id} created`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not ${editingJobId ? 'update' : 'create'} job. ${reason}`);
+      flash(`Could not ${editingJobId ? 'update' : 'create'} job. ${reason}`, 'error');
     } finally {
       setSavingJob(false);
     }
@@ -461,11 +489,11 @@ export function AdminApp({
     const officer = officers.find((item) => item.id === oid);
     if (!officer || officer.status === 'Blocked') return;
     if (selectedJob.officers.some((item) => item.oid === oid)) {
-      flash('Officer already added to this job');
+      flash('Officer already added to this job', 'error');
       return;
     }
     if (selectedJob.officers.length >= selectedJob.required) {
-      flash(`Officer limit reached for ${selectedJob.id}`);
+      flash(`Officer limit reached for ${selectedJob.id}`, 'error');
       return;
     }
     const jobOfficer: JobOfficer = {
@@ -504,7 +532,7 @@ export function AdminApp({
       setJobs((items) => items.map((item) => normalizeJobStage(item.id === id ? job : item)));
       flash('Job cancelled');
     } catch {
-      flash('Could not cancel job. Check that the API is running.');
+      flash('Could not cancel job. Check that the API is running.', 'error');
     }
   }
 
@@ -531,7 +559,7 @@ export function AdminApp({
       );
       flash('Job marked as completed');
     } catch {
-      flash('Could not complete job. Check that it is confirmed in the API.');
+      flash('Could not complete job. Check that it is confirmed in the API.', 'error');
     }
   }
 
@@ -554,10 +582,12 @@ export function AdminApp({
   }
 
   async function saveOfficer() {
-    if (!officerForm.name.trim() || officerForm.phone.replace(/[^0-9]/g, '').length < 6) {
-      flash('Enter a name and valid WhatsApp number');
+    const errors = validateOfficerForm(officerForm);
+    if (Object.keys(errors).length) {
+      setOfficerFormErrors(errors);
       return;
     }
+    setOfficerFormErrors({});
     setSavingOfficer(true);
     try {
       const officer = await createOfficerFromForm(officerForm);
@@ -567,7 +597,7 @@ export function AdminApp({
       flash(`Officer ${officer.name} added`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not add officer. ${reason}`);
+      flash(`Could not add officer. ${reason}`, 'error');
     } finally {
       setSavingOfficer(false);
     }
@@ -575,7 +605,7 @@ export function AdminApp({
 
   async function updateOfficerProfile(id: string, form: OfficerForm) {
     if (!form.name.trim() || form.phone.replace(/[^0-9]/g, '').length < 6) {
-      flash('Enter a name and valid WhatsApp number');
+      flash('Enter a name and valid WhatsApp number', 'error');
       return false;
     }
     try {
@@ -600,7 +630,7 @@ export function AdminApp({
       return true;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not update officer. ${reason}`);
+      flash(`Could not update officer. ${reason}`, 'error');
       return false;
     }
   }
@@ -616,7 +646,7 @@ export function AdminApp({
     const id = deleteOfficerId;
     const officer = officers.find((item) => item.id === id);
     if (officer?.jobsCount) {
-      flash('Officer has job history. Set the officer to Inactive instead.');
+      flash('Officer has job history. Set the officer to Inactive instead.', 'error');
       return;
     }
 
@@ -629,7 +659,7 @@ export function AdminApp({
       flash(`Officer ${officer?.name ?? id} deleted`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not delete officer. ${reason}`);
+      flash(`Could not delete officer. ${reason}`, 'error');
     } finally {
       setDeletingOfficer(false);
     }
@@ -668,7 +698,7 @@ export function AdminApp({
       flash(`Officer ${officer.name} set to Inactive`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not update officer. ${reason}`);
+      flash(`Could not update officer. ${reason}`, 'error');
     } finally {
       setDeletingOfficer(false);
     }
@@ -693,13 +723,13 @@ export function AdminApp({
       setPayments((items) => items.map((payment) => (payment.id === id ? updated : payment)));
       flash('Payment marked as paid');
     } catch {
-      flash('Payment marked as paid locally - API unavailable');
+      flash('Payment marked as paid locally - API unavailable', 'error');
     }
   }
 
   async function confirmBill() {
     if (!billTarget || !billForm.invoice.trim() || !billForm.billedDate) {
-      flash('Enter invoice number and billed date');
+      flash('Enter invoice number and billed date', 'error');
       return;
     }
     try {
@@ -710,7 +740,7 @@ export function AdminApp({
       flash(`Job ${billTarget.id} marked as billed`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not mark billed. ${reason}`);
+      flash(`Could not mark billed. ${reason}`, 'error');
     }
   }
 
@@ -940,7 +970,7 @@ export function AdminApp({
             </div>
           ) : null}
           {screen === 'officers' ? (
-            <Button variant="primary" onClick={() => setOfficerOpen(true)}>
+            <Button variant="primary" onClick={openCreateOfficer}>
               <OfficersIcon size={16} strokeWidth={2.2} />
               Add officer
             </Button>
@@ -1059,17 +1089,32 @@ export function AdminApp({
         <Modal
           title="Add new officer"
           subtitle="Create a profile for an officer who volunteered."
-          onClose={() => setOfficerOpen(false)}
+          onClose={() => {
+            setOfficerOpen(false);
+            setOfficerFormErrors({});
+          }}
           footer={
             <>
-              <Button onClick={() => setOfficerOpen(false)}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  setOfficerOpen(false);
+                  setOfficerFormErrors({});
+                }}
+              >
+                Cancel
+              </Button>
               <Button disabled={savingOfficer} variant="primary" onClick={saveOfficer}>
                 {savingOfficer ? 'Saving...' : 'Add officer'}
               </Button>
             </>
           }
         >
-          <OfficerFormFields form={officerForm} setForm={setOfficerForm} />
+          <OfficerFormFields
+            errors={officerFormErrors}
+            form={officerForm}
+            setForm={setOfficerForm}
+            onFieldChange={(field) => setOfficerFormErrors((errors) => ({ ...errors, [field]: undefined }))}
+          />
         </Modal>
       ) : null}
 
@@ -1156,7 +1201,11 @@ export function AdminApp({
         </Modal>
       ) : null}
       {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={financePayments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
-      {toast ? <div className="pn-toast">{toast}</div> : null}
+      {toast ? (
+        <div className={`pn-toast pn-toast-${toast.tone}`} role="status" aria-live="polite">
+          {toast.message}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1204,14 +1253,46 @@ function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (f
   );
 }
 
-function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: (updater: (form: OfficerForm) => OfficerForm) => void }) {
+function OfficerFormFields({
+  form,
+  setForm,
+  errors = {},
+  onFieldChange,
+}: {
+  form: OfficerForm;
+  setForm: (updater: (form: OfficerForm) => OfficerForm) => void;
+  errors?: OfficerFormErrors;
+  onFieldChange?: (field: keyof OfficerFormErrors) => void;
+}) {
+  const nameErrorId = errors.name ? 'officer-name-error' : undefined;
+  const phoneErrorId = errors.phone ? 'officer-phone-error' : undefined;
+
   return (
     <div className="pn-form-grid">
-      <Field label="Full name" required>
-        <input placeholder="e.g. Ravi Chandran" value={form.name} onChange={(event) => setForm((item) => ({ ...item, name: event.target.value }))} />
+      <Field label="Full name" required error={errors.name} errorId={nameErrorId}>
+        <input
+          aria-describedby={nameErrorId}
+          aria-invalid={Boolean(errors.name)}
+          placeholder="e.g. Ravi Chandran"
+          value={form.name}
+          onChange={(event) => {
+            onFieldChange?.('name');
+            setForm((item) => ({ ...item, name: event.target.value }));
+          }}
+        />
       </Field>
-      <Field label="WhatsApp number" required>
-        <input className="pn-mono-input" placeholder="+65 8123 4567" value={form.phone} onChange={(event) => setForm((item) => ({ ...item, phone: event.target.value }))} />
+      <Field label="WhatsApp number" required error={errors.phone} errorId={phoneErrorId}>
+        <input
+          aria-describedby={phoneErrorId}
+          aria-invalid={Boolean(errors.phone)}
+          className="pn-mono-input"
+          placeholder="+65 8123 4567"
+          value={form.phone}
+          onChange={(event) => {
+            onFieldChange?.('phone');
+            setForm((item) => ({ ...item, phone: event.target.value }));
+          }}
+        />
       </Field>
       <div className="pn-form-row">
         <Field label="Default hourly rate (S$)">

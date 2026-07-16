@@ -2,6 +2,7 @@ import { Field } from './ui';
 import type { JobForm, OfficerForm } from '../types';
 
 type FormSetter<T> = (updater: (form: T) => T) => void;
+export type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
 
 export function JobFormFields({ form, setForm }: { form: JobForm; setForm: FormSetter<JobForm> }) {
   return (
@@ -42,14 +43,46 @@ export function JobFormFields({ form, setForm }: { form: JobForm; setForm: FormS
   );
 }
 
-export function OfficerFormFields({ form, setForm }: { form: OfficerForm; setForm: FormSetter<OfficerForm> }) {
+export function OfficerFormFields({
+  form,
+  setForm,
+  errors = {},
+  onFieldChange,
+}: {
+  form: OfficerForm;
+  setForm: FormSetter<OfficerForm>;
+  errors?: OfficerFormErrors;
+  onFieldChange?: (field: keyof OfficerFormErrors) => void;
+}) {
+  const nameErrorId = errors.name ? 'officer-name-error' : undefined;
+  const phoneErrorId = errors.phone ? 'officer-phone-error' : undefined;
+
   return (
     <div className="pn-form-grid">
-      <Field label="Full name" required>
-        <input placeholder="e.g. Ravi Chandran" value={form.name} onChange={(event) => setForm((item) => ({ ...item, name: event.target.value }))} />
+      <Field label="Full name" required error={errors.name} errorId={nameErrorId}>
+        <input
+          aria-describedby={nameErrorId}
+          aria-invalid={Boolean(errors.name)}
+          placeholder="e.g. Ravi Chandran"
+          value={form.name}
+          onChange={(event) => {
+            onFieldChange?.('name');
+            setForm((item) => ({ ...item, name: event.target.value }));
+          }}
+        />
       </Field>
-      <Field label="WhatsApp number" required>
-        <input className="pn-mono-input" placeholder="+65 8123 4567" value={form.phone} onChange={(event) => setForm((item) => ({ ...item, phone: event.target.value }))} />
+      <Field label="WhatsApp number" required error={errors.phone} errorId={phoneErrorId}>
+        <input
+          aria-describedby={phoneErrorId}
+          aria-invalid={Boolean(errors.phone)}
+          className="pn-mono-input"
+          placeholder="+65 8123 4567"
+          value={form.phone}
+          onChange={(event) => {
+            onFieldChange?.('phone');
+            setForm((item) => ({ ...item, phone: event.target.value }));
+          }}
+        />
       </Field>
       <div className="pn-form-row">
         <Field label="Default hourly rate (S$)">
