@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
 import { createOfficerJobToken, createSignReportToken } from '../lib/jobs-api';
-import { dateLabel, hours, icDocumentLabel, initials, money, statusTone } from '../lib/format';
+import { dateLabel, hours, icDocumentLabel, initials, money, statusTone, timeLabel, timeRangeLabel } from '../lib/format';
 import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } from '../types';
 
 const lifecycleSteps: { key: JobStatus; label: string }[] = [
@@ -98,8 +98,9 @@ export function JobDetailScreen({
   const activeStep = Math.max(0, visibleLifecycleSteps.findIndex((step) => step.key === job.status));
   const stillNeeded = Math.max(0, job.required - job.officers.length);
   const isFull = job.officers.length >= job.required;
-  const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${job.start}–${job.end}\n${job.required} officers needed\n\n${job.description}`;
-  const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${job.start}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
+  const scheduledTime = timeRangeLabel(job.start, job.end);
+  const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${scheduledTime}\n${job.required} officers needed\n\n${job.description}`;
+  const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${timeLabel(job.start)}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
   const signReportMsg = `Duty Officer Report ${job.id}\n${job.customer}\n${job.location}\n\nPlease review the evidence and sign the DO report:\n${signLink}`;
   const signTokenMutation = useMutation({
     mutationFn: () => createSignReportToken(job.id),
@@ -153,7 +154,7 @@ export function JobDetailScreen({
             </div>
             <div className="pn-metrics">
               <Metric label="Date" value={dateLabel(job.date)} />
-              <Metric label="Time" value={`${job.start}-${job.end}`} />
+              <Metric label="Time" value={scheduledTime} />
               <Metric label="Officers" value={`${job.officers.length} of ${job.required}`} />
               <Metric label="Scheduled" value={`${scheduled}h`} />
             </div>
@@ -409,7 +410,7 @@ export function JobDetailScreen({
             </div>
           </Card>
 
-          <Card className="pn-side-panel">
+          <Card className="pn-side-panel pn-billing-card">
             <div className="pn-billing-head">
               <h2>Billing</h2>
               <Badge tone={job.billing === 'Billed' ? 'success' : 'warning'}>{job.billing}</Badge>
@@ -421,23 +422,29 @@ export function JobDetailScreen({
                 Waiting for all check-outs
               </Button>
             ) : (
-              <div className="pn-copy-block">
-                <label>DO sign report link</label>
-                <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink} />
-                <div className="pn-row">
-                  <Button disabled={!signLink} onClick={() => copyText(signLink, 'Sign report link copied')}>
+              <div className="pn-sign-card">
+                <div className="pn-sign-card-head">
+                  <div>
+                    <LinkIcon size={18} strokeWidth={2.2} />
+                    <strong>Site manager signature</strong>
+                  </div>
+                  <Badge tone="info">PENDING</Badge>
+                </div>
+                <p>Job is finished — share this link with the site manager to capture their sign-off. The status stays Awaiting Signature until they sign.</p>
+                <label className="pn-sign-link">
+                  <LinkIcon size={15} strokeWidth={2} />
+                  <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink} />
+                </label>
+                <div className="pn-sign-actions">
+                  <button disabled={!signLink} onClick={() => copyText(signLink, 'Sign report link copied')} type="button">
                     <CopyIcon size={14} strokeWidth={2} />
                     Copy link
-                  </Button>
-                  <Button disabled={!signLink} onClick={() => copyText(signReportMsg, 'Sign report message copied')}>
+                  </button>
+                  <button disabled={!signLink} onClick={() => copyText(signReportMsg, 'Sign report message copied')} type="button">
                     <MessageIcon size={14} strokeWidth={2} />
                     Copy message
-                  </Button>
+                  </button>
                 </div>
-                <Button disabled={job.status === 'Completed' || job.status === 'Cancelled' || !signLink} variant="primary" onClick={() => completeJob(job.id)}>
-                  <CheckIcon size={16} strokeWidth={2.4} />
-                  Complete job
-                </Button>
               </div>
             )}
             <Button disabled={job.status === 'Cancelled'} variant="danger" onClick={() => cancelJob(job.id)}>
@@ -477,7 +484,7 @@ function OfficerAssignmentModal({
 }) {
   const { officer, profile } = row;
   const workedLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '-';
-  const officerMsg = `Hi ${officer.name}, PilotNow Ops here.\n\nAssignment ${job.id}: ${job.customer} at ${job.location}\nDate: ${dateLabel(job.date)}\nTime: ${job.start}-${job.end}\n\nPlease confirm your availability and remember to post evidence photos during the job.`;
+  const officerMsg = `Hi ${officer.name}, PilotNow Ops here.\n\nAssignment ${job.id}: ${job.customer} at ${job.location}\nDate: ${dateLabel(job.date)}\nTime: ${timeRangeLabel(job.start, job.end)}\n\nPlease confirm your availability and remember to post evidence photos during the job.`;
 
   return (
     <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={`${officer.name} assignment`}>
@@ -519,7 +526,7 @@ function OfficerAssignmentModal({
           <div className="pn-assignment-pay-row">
             <span className={officer.confirmed ? 'is-on' : ''}>{officer.confirmed ? 'Confirmed' : 'Not confirmed'}</span>
             <span>{officer.onDuty ? 'On duty' : 'Off duty'}</span>
-            <strong>Scheduled {job.start}-{job.end}</strong>
+            <strong>Scheduled {timeRangeLabel(job.start, job.end)}</strong>
             <b>{money(row.pay)}</b>
             <small>· {money(officer.rate)}/h</small>
           </div>

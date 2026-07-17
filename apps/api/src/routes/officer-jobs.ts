@@ -130,6 +130,24 @@ function jsonError(c: Context, status: 400 | 401 | 404 | 500, message: string) {
   return c.json({ error: message }, status);
 }
 
+function singaporeMinuteKey(value: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(value);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
+  return Number(`${part('year')}${part('month')}${part('day')}${part('hour')}${part('minute')}`);
+}
+
+function scheduledMinuteKey(value: Date) {
+  return Number(value.toISOString().slice(0, 16).replace(/\D/g, ''));
+}
+
 function signOfficerToken(payload: z.infer<typeof tokenPayload>) {
   const header = base64UrlJson({ alg: 'HS256', typ: 'JWT' });
   const body = base64UrlJson(payload);
@@ -370,6 +388,8 @@ export const officerJobs = new Hono()
     if (!parsed.success) return jsonError(c, 400, 'Invalid check-in payload');
 
     const now = new Date();
+    if (singaporeMinuteKey(now) < scheduledMinuteKey(access.job.startAt)) return jsonError(c, 400, `Check-in opens at ${access.job.startAt.toISOString()}`);
+
     await getDb()
       .update(schema.jobAssignments)
       .set({

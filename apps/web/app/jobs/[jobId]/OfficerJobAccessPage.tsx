@@ -1,8 +1,11 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
+
+const OfficerLocationMap = dynamic(() => import('./OfficerLocationMap').then((module) => module.OfficerLocationMap), { ssr: false });
 
 type OfficerJob = {
   job: { id: string; customer: string; site: string; address: string | null; startAt: string; endAt: string; instructions: string | null; status: string };
@@ -41,6 +44,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [photo, setPhoto] = useState('');
+  const [lateFile, setLateFile] = useState<File | null>(null);
+  const [latePhoto, setLatePhoto] = useState('');
   const [activeSlot, setActiveSlot] = useState<string | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [positionError, setPositionError] = useState('');
@@ -57,14 +62,19 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   const data = jobQuery.data;
   const slots = useMemo(() => data ? buildSlots(data.job.startAt, data.job.endAt) : [], [data]);
   const uploadedByWindow = useMemo(() => new Map((data?.evidencePhotos ?? []).map((item) => [item.proofWindow || 'photo', item])), [data]);
-  const currentSlot = slots.find((slot) => !uploadedByWindow.has(slot.key) && slot.kind === 'hourly') ?? slots.find((slot) => slot.kind === 'hourly') ?? null;
+  const pendingHourlySlots = slots.filter((slot) => slot.kind === 'hourly' && !uploadedByWindow.has(slot.key));
+  const lateSlot = pendingHourlySlots.find((slot) => isSlotLate(slot, now)) ?? null;
+  const currentSlot = pendingHourlySlots.find((slot) => !isSlotLate(slot, now) && !isSlotMissed(slot, now)) ?? null;
   const shiftHours = data ? Math.max(1, Math.round((new Date(data.job.endAt).getTime() - new Date(data.job.startAt).getTime()) / 3_600_000)) : 0;
   const checkedIn = Boolean(data?.assignment.checkInAt || localCheckInAt);
   const checkedOut = Boolean(data?.assignment.checkOutAt || localCheckOutAt);
   const photoCount = (file ? 1 : 0) + (photo.trim() ? 1 : 0);
+  const latePhotoCount = (lateFile ? 1 : 0) + (latePhoto.trim() ? 1 : 0);
   const doneCount = data ? Number(checkedIn) + data.evidencePhotos.filter((item) => item.proofWindow && !['check-in', 'check-out'].includes(item.proofWindow)).length + Number(checkedOut) : 0;
   const checkInTime = timestampTime(data?.assignment.checkInAt ?? localCheckInAt);
+  const checkInOpen = slots[0] ? now >= slots[0].at : false;
   const currentTime = clockTime(now);
+  const uploadCountdown = currentSlot ? countdownLabel(currentSlot.at, now) : '';
 
   async function refreshPosition() {
     setPositionError('');
@@ -83,19 +93,19 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
     let timer: number;
     const tick = () => {
       setNow(new Date());
-      timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000));
+      timer = window.setTimeout(tick, 1_000 - (Date.now() % 1_000));
     };
-    timer = window.setTimeout(tick, 60_000 - (Date.now() % 60_000));
+    timer = window.setTimeout(tick, 1_000 - (Date.now() % 1_000));
     return () => window.clearTimeout(timer);
   }, []);
 
-  async function uploadPhoto() {
+  async function uploadPhoto(sourceFile = file, sourcePhoto = photo) {
     if (!data) throw new Error('Job not loaded');
-    if (photo.trim()) return photo.trim();
-    if (!file) throw new Error('Add a photo first');
+    if (sourcePhoto.trim()) return sourcePhoto.trim();
+    if (!sourceFile) throw new Error('Add a photo first');
 
     const form = new FormData();
-    form.set('photo', file);
+    form.set('photo', sourceFile);
     return (await readJson<{ mediaRef: string }>(await fetch(apiPath(jobId, hp, token, '/evidence-file'), {
       method: 'POST',
       body: form,
@@ -104,6 +114,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
 
   const attendanceMutation = useMutation({
     mutationFn: async ({ action }: { action: '/check-in' | '/check-out' }) => {
+      if (action === '/check-in' && slots[0] && new Date() < slots[0].at) throw new Error(`Check-in opens at ${scheduledTime(data?.job.startAt ?? null)}`);
       const [latestPosition, mediaRef] = await Promise.all([position ? Promise.resolve(position) : currentPosition(), uploadPhoto()]);
       setPosition(latestPosition);
       return readItem(await fetch(apiPath(jobId, hp, token, action), {
@@ -121,8 +132,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
     },
   });
   const evidenceMutation = useMutation({
-    mutationFn: async (proofWindow: string) => {
-      const mediaRef = await uploadPhoto();
+    mutationFn: async ({ proofWindow, file: evidenceFile = file, photo: evidencePhoto = photo }: { proofWindow: string; file?: File | null; photo?: string }) => {
+      const mediaRef = await uploadPhoto(evidenceFile, evidencePhoto);
       return readItem(await fetch(apiPath(jobId, hp, token, '/evidence'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -133,6 +144,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
       queryClient.setQueryData(queryKey, item);
       setFile(null);
       setPhoto('');
+      setLateFile(null);
+      setLatePhoto('');
       setActiveSlot(null);
     },
   });
@@ -157,9 +170,14 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           positionError={positionError}
           setFile={setFile}
           setPhoto={setPhoto}
-          onBack={() => setShowCheckoutForm(false)}
+          onBack={() => {
+            setFile(null);
+            setPhoto('');
+            setShowCheckoutForm(false);
+          }}
           onRefreshLocation={refreshPosition}
           onSubmit={() => attendanceMutation.mutate({ action: '/check-out' })}
+          currentTime={currentTime}
         />
       ) : checkedIn ? (
         <>
@@ -168,17 +186,21 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           {currentSlot ? (
             <Panel>
               <div style={styles.panelHead}><span>NEXT UPLOAD - {currentSlot.time}</span><Badge>Upcoming</Badge></div>
-              <div style={styles.timer}>09:43</div>
-              <p style={styles.centerMuted}>Nothing to do yet - we will notify you at {currentSlot.time}.</p>
-              <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+              <div style={styles.timer}>{uploadCountdown}</div>
+              <p style={styles.centerMuted}>Next upload opens at {currentSlot.time}.</p>
+              <PhotoControls disabled={!isSlotReady(currentSlot, now)} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+              <button disabled={busy || !isSlotReady(currentSlot, now) || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: currentSlot.key })} style={styles.lateButton} type="button">Submit photo</button>
             </Panel>
           ) : null}
-          <LateEvidenceCard busy={busy} file={file} photo={photo} photoCount={photoCount} setFile={setFile} setPhoto={setPhoto} submit={() => evidenceMutation.mutate('12:00')} />
+          {lateSlot ? <LateEvidenceCard busy={busy} file={lateFile} photo={latePhoto} photoCount={latePhotoCount} setFile={setLateFile} setPhoto={setLatePhoto} slot={lateSlot} submit={() => evidenceMutation.mutate({ proofWindow: lateSlot.key, file: lateFile, photo: latePhoto })} /> : null}
           <Panel>
             <div style={styles.panelHead}><strong>Today's evidence</strong><span>{doneCount} OF {slots.length} DONE</span></div>
             {slots.map((slot) => {
               const done = slot.kind === 'check-in' ? checkedIn : slot.kind === 'check-out' ? checkedOut : uploadedByWindow.has(slot.key);
               const selected = activeSlot === slot.key;
+              const ready = isSlotReady(slot, now);
+              const late = isSlotLate(slot, now);
+              const missed = isSlotMissed(slot, now);
               const title = slot.kind === 'check-in' && checkedIn ? `Checked in · GPS + ${checkInProofCount(data)} photo${checkInProofCount(data) === 1 ? '' : 's'}` : slot.title;
               const rowTime = slot.kind === 'check-in' && checkedIn ? checkInTime : slot.time;
               return (
@@ -186,18 +208,22 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
                   <span style={styles.mono}>{rowTime}</span>
                   <span style={{ ...styles.dot, background: done ? '#11875D' : '#D4D4D4' }} />
                   <span style={styles.slotTitle}>{title}</span>
-                  {done ? <Badge tone="success">Done</Badge> : slot.kind === 'hourly' ? <button style={styles.tinyButton} onClick={() => setActiveSlot(selected ? null : slot.key)} type="button">{selected ? 'Close' : 'Upload'}</button> : <Badge>Upcoming</Badge>}
+                  {done ? <Badge tone="success">Done</Badge> : missed ? <Badge tone="danger">Missed</Badge> : late ? <Badge tone="danger">Upload Late</Badge> : slot.kind === 'hourly' ? <button disabled={!ready} style={styles.tinyButton} onClick={() => setActiveSlot(selected ? null : slot.key)} type="button">{selected ? 'Close' : 'Upload'}</button> : <Badge>Upcoming</Badge>}
                   {selected ? (
                     <div style={styles.inlineUpload}>
-                      <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
-                      <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate(slot.key)} style={styles.lateButton} type="button">Submit {slot.time} evidence</button>
+                      <PhotoControls disabled={!ready} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+                      <button disabled={busy || !ready || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: slot.key })} style={styles.lateButton} type="button">Submit {slot.time} evidence</button>
                     </div>
                   ) : null}
                 </div>
               );
             })}
           </Panel>
-          <button onClick={() => setShowCheckoutForm(true)} style={styles.secondaryAction} type="button">Check out</button>
+          <button onClick={() => {
+            setFile(null);
+            setPhoto('');
+            setShowCheckoutForm(true);
+          }} style={styles.secondaryAction} type="button">Check out</button>
         </>
       ) : (
         <>
@@ -207,9 +233,9 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           <LocationPanel data={data} onRefresh={refreshPosition} position={position} positionError={positionError} />
           <Panel>
             <div style={styles.panelHead}><strong>Login proof photo</strong><span>{photoCount} ADDED - MIN 1</span></div>
-            <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+            <PhotoControls disabled={!checkInOpen} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
           </Panel>
-          <button disabled={busy || photoCount === 0 || !position} onClick={() => attendanceMutation.mutate({ action: '/check-in' })} style={styles.primaryAction} type="button">{busy ? 'Checking in...' : `Confirm check-in - ${currentTime}`}</button>
+          <button disabled={busy || !checkInOpen || photoCount === 0 || !position} onClick={() => attendanceMutation.mutate({ action: '/check-in' })} style={styles.primaryAction} type="button">{busy ? 'Checking in...' : checkInOpen ? `Confirm check-in - ${currentTime}` : `Check-in opens at ${scheduledTime(data.job.startAt)}`}</button>
           <p style={styles.footerNote}>Location and photos are sent to your admin on confirm.</p>
         </>
       )}
@@ -217,7 +243,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   );
 }
 
-function CheckoutForm({ busy, data, file, photo, photoCount, position, positionError, setFile, setPhoto, onBack, onRefreshLocation, onSubmit }: { busy: boolean; data: OfficerJob; file: File | null; photo: string; photoCount: number; position: Position | null; positionError: string; setFile: (file: File | null) => void; setPhoto: (value: string) => void; onBack: () => void; onRefreshLocation: () => void; onSubmit: () => void }) {
+function CheckoutForm({ busy, data, file, photo, photoCount, position, positionError, setFile, setPhoto, onBack, onRefreshLocation, onSubmit, currentTime }: { busy: boolean; data: OfficerJob; file: File | null; photo: string; photoCount: number; position: Position | null; positionError: string; setFile: (file: File | null) => void; setPhoto: (value: string) => void; onBack: () => void; onRefreshLocation: () => void; onSubmit: () => void; currentTime: string }) {
   return (
     <>
       <TitleBlock kicker={`CHECK-OUT - ${data.job.id}`} title="End of shift" badge="Link verified" subtitle="Confirm your location and add a final proof photo." />
@@ -226,7 +252,7 @@ function CheckoutForm({ busy, data, file, photo, photoCount, position, positionE
         <div style={styles.panelHead}><strong>Check-out photos</strong><span>{photoCount} ADDED - MIN 1</span></div>
         <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
       </Panel>
-      <button disabled={busy || photoCount === 0 || !position} onClick={onSubmit} style={styles.primaryAction} type="button">{busy ? 'Checking out...' : `Confirm check-out · ${scheduledTime(data.job.endAt)}`}</button>
+      <button disabled={busy || photoCount === 0 || !position} onClick={onSubmit} style={styles.primaryAction} type="button">{busy ? 'Checking out...' : `Confirm check-out - ${currentTime}`}</button>
       <button disabled={busy} onClick={onBack} style={styles.backToShift} type="button">Back to shift</button>
     </>
   );
@@ -236,17 +262,18 @@ function SubmitError({ error }: { error: unknown }) {
   return error ? <div style={styles.errorBox}>{error instanceof Error ? error.message : 'Could not submit. Please try again.'}</div> : null;
 }
 
-function LateEvidenceCard({ busy, file, photo, photoCount, setFile, setPhoto, submit }: { busy: boolean; file: File | null; photo: string; photoCount: number; setFile: (file: File | null) => void; setPhoto: (value: string) => void; submit: () => void }) {
+function LateEvidenceCard({ busy, file, photo, photoCount, setFile, setPhoto, slot, submit }: { busy: boolean; file: File | null; photo: string; photoCount: number; setFile: (file: File | null) => void; setPhoto: (value: string) => void; slot: Slot; submit: () => void }) {
+  const lockTime = formatTime(new Date(slot.at.getTime() + 30 * 60_000));
   return (
     <section style={styles.lateCard}>
       <div style={styles.lateHead}>
-        <strong>△&nbsp; 12:00 evidence — missed</strong>
-        <span>LATE UNTIL&nbsp; 13:00</span>
+        <strong>△&nbsp; {slot.time} evidence - missed</strong>
+        <span>LATE UNTIL&nbsp; {lockTime}</span>
       </div>
       <div style={styles.lateBody}>
-        <p>You can still upload for the 12:00 hour — it will be marked Late. At 13:00 this window locks as Missed. Your admin has been notified.</p>
+        <p>You can still upload for the {slot.time} hour - it will be marked Late. At {lockTime} this window locks as Missed. Your admin has been notified.</p>
         <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
-        <button disabled={busy || photoCount === 0} onClick={submit} style={styles.lateButton} type="button">Submit 12:00 evidence as late</button>
+        <button disabled={busy || photoCount === 0} onClick={submit} style={styles.lateButton} type="button">Submit {slot.time} evidence as late</button>
       </div>
     </section>
   );
@@ -264,7 +291,7 @@ function Summary({ data, doneCount, localCheckInAt, localCheckOutAt, shiftHours,
       <Panel>
         <div style={styles.stats}>
           <Stat label="ON SITE" value={`${shiftHours}h`} />
-          <Stat label="EVIDENCE" value={`${Math.max(0, doneCount - 2)}/${Math.max(0, slots.length - 2)}`} tone="#B7791F" />
+          <Stat label="EVIDENCE" value={`${doneCount}/${slots.length}`} tone="#B7791F" />
           <Stat label="MISSED" value={String(missed)} tone="#FF3B30" />
         </div>
       </Panel>
@@ -306,21 +333,24 @@ function AssignmentPanel({ data, shiftHours }: { data: OfficerJob; shiftHours: n
 }
 
 function LocationPanel({ data, onRefresh, position, positionError }: { data: OfficerJob; onRefresh: () => void; position: Position | null; positionError: string }) {
-  const lat = position?.latitude.toString() ?? data.assignment.checkInLatitude;
-  const lng = position?.longitude.toString() ?? data.assignment.checkInLongitude;
+  const lat = position?.latitude ?? numberOrNull(data.assignment.checkInLatitude) ?? 1.2939;
+  const lng = position?.longitude ?? numberOrNull(data.assignment.checkInLongitude) ?? 103.8560;
+  const center: [number, number] = [lat, lng];
   return (
     <Panel>
       <div style={styles.panelHead}>
         <strong>Your location</strong>
         {position ? <Badge tone="success">• GPS locked · ±8 m</Badge> : <button style={styles.tinyButton} onClick={onRefresh} type="button">Enable GPS</button>}
       </div>
-      <div className="officer-map" style={styles.map}><span style={styles.pin}>•</span><b>{position ? 'GPS CAPTURED' : 'MAP PREVIEW'}</b></div>
+      <div className="officer-map" style={styles.map}>
+        <OfficerLocationMap center={center} />
+      </div>
       <div style={styles.mapFoot}><span>{positionError || data.job.site}</span><span>{gps(lat, lng)}</span></div>
     </Panel>
   );
 }
 
-function PhotoControls({ file, photo, setFile, setPhoto }: { file: File | null; photo: string; setFile: (file: File | null) => void; setPhoto: (value: string) => void }) {
+function PhotoControls({ disabled = false, file, photo, setFile, setPhoto }: { disabled?: boolean; file: File | null; photo: string; setFile: (file: File | null) => void; setPhoto: (value: string) => void }) {
   const preview = useObjectUrl(file);
   return (
     <div style={styles.photoBlock}>
@@ -328,7 +358,7 @@ function PhotoControls({ file, photo, setFile, setPhoto }: { file: File | null; 
         {file ? <Thumb label={file.name} onClear={() => setFile(null)} src={preview} /> : null}
       </div>
       <div className="officer-photo-actions" style={styles.photoActions}>
-        <label style={styles.fileButton}>Camera<input accept="image/*" capture="environment" hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
+        <label style={{ ...styles.fileButton, ...(disabled ? styles.fileButtonDisabled : {}) }}>Camera<input accept="image/*" capture="environment" disabled={disabled} hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
       </div>
     </div>
   );
@@ -348,18 +378,33 @@ function Badge({ children, tone = 'muted' }: { children: React.ReactNode; tone?:
 }
 
 function Stat({ label, value, tone = '#0A0A0A' }: { label: string; value: string; tone?: string }) {
-  return <div><strong style={{ color: tone }}>{value}</strong><span>{label}</span></div>;
+  return <div style={styles.stat}><strong style={{ ...styles.statValue, color: tone }}>{value}</strong><span style={styles.statLabel}>{label}</span></div>;
 }
 
 function buildSlots(startAt: string, endAt: string): Slot[] {
-  const start = new Date(startAt);
-  const end = new Date(endAt);
+  const start = todayAtTime(timeKey(startAt));
+  const end = todayAtTime(timeKey(endAt));
+  if (end <= start) end.setDate(end.getDate() + 1);
   const slots: Slot[] = [{ key: 'check-in', time: scheduledTime(startAt), title: 'Check-in - GPS + photo', kind: 'check-in', at: start }];
   for (const at = new Date(start.getTime() + 3_600_000); at < end; at.setHours(at.getHours() + 1)) {
-    slots.push({ key: scheduledTime(at.toISOString()), time: scheduledTime(at.toISOString()), title: 'Hourly evidence - 1 photo', kind: 'hourly', at: new Date(at) });
+    const key = dateTimeKey(at);
+    slots.push({ key, time: formatTimeKey(key), title: 'Hourly evidence - 1 photo', kind: 'hourly', at: new Date(at) });
   }
   slots.push({ key: 'check-out', time: scheduledTime(endAt), title: 'Check-out - GPS + photo', kind: 'check-out', at: end });
   return slots;
+}
+
+function isSlotReady(slot: Slot, now: Date) {
+  return slot.kind !== 'hourly' || now >= slot.at;
+}
+
+function isSlotLate(slot: Slot, now: Date) {
+  const elapsed = now.getTime() - slot.at.getTime();
+  return slot.kind === 'hourly' && elapsed > 5 * 60_000 && elapsed <= 30 * 60_000;
+}
+
+function isSlotMissed(slot: Slot, now: Date) {
+  return slot.kind === 'hourly' && now.getTime() > slot.at.getTime() + 30 * 60_000;
 }
 
 function checkInProofCount(data: OfficerJob) {
@@ -387,19 +432,58 @@ function useObjectUrl(file: File | null) {
 }
 
 function scheduledTime(value: string | null) {
-  return value ? value.slice(11, 16) : '--:--';
+  return value ? formatTimeKey(timeKey(value)) : '--:--';
 }
 
 function timestampTime(value: string | null) {
-  return value ? new Date(value).toTimeString().slice(0, 5) : '--:--';
+  return value ? formatTime(new Date(value)) : '--:--';
 }
 
 function clockTime(value: Date) {
-  return value.toTimeString().slice(0, 5);
+  return formatTime(value);
 }
 
-function gps(lat: string | null, lng: string | null) {
-  return lat && lng ? `${Number(lat).toFixed(4)} N, ${Number(lng).toFixed(4)} E` : '1.2939 N, 103.8560 E';
+function countdownLabel(target: Date, now: Date) {
+  const seconds = Math.max(0, Math.ceil((target.getTime() - now.getTime()) / 1_000));
+  const hours = Math.floor(seconds / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  const secs = seconds % 60;
+  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : `${minutes}:${String(secs).padStart(2, '0')}`;
+}
+
+function timeKey(value: string | null) {
+  return value ? value.slice(11, 16) : '--:--';
+}
+
+function dateTimeKey(value: Date) {
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatTime(value: Date) {
+  return value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function formatTimeKey(value: string) {
+  const [hour = '0', minute = '00'] = value.split(':');
+  const date = new Date();
+  date.setHours(Number(hour), Number(minute), 0, 0);
+  return formatTime(date);
+}
+
+function todayAtTime(value: string) {
+  const [hour = '0', minute = '00'] = value.split(':');
+  const date = new Date();
+  date.setHours(Number(hour), Number(minute), 0, 0);
+  return date;
+}
+
+function numberOrNull(value: string | null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function gps(lat: number, lng: number) {
+  return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
 
 const appFont = "'Geist', -apple-system, system-ui, sans-serif";
@@ -447,24 +531,25 @@ const styles: Record<string, CSSProperties> = {
   assignmentHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, height: 42, padding: '0 14px', borderBottom: '1px solid #E8E8E8', fontSize: 14 },
   badge: { display: 'inline-flex', alignItems: 'center', height: 21, border: '1px solid #DADADA', borderRadius: 3, background: '#FAFAFA', color: '#525252', padding: '0 6px', fontFamily: appFont, fontSize: 10, whiteSpace: 'nowrap' },
   infoRow: { display: 'grid', gridTemplateColumns: '120px 1fr', alignItems: 'center', minHeight: 38, padding: '0 14px', borderBottom: '1px solid #EFEFEF', fontSize: 14 },
-  map: { position: 'relative', display: 'grid', height: 150, placeItems: 'center', margin: '0 12px', backgroundImage: 'linear-gradient(#E5E5E5 1px, transparent 1px), linear-gradient(90deg, #E5E5E5 1px, transparent 1px)', backgroundSize: '42px 42px', backgroundColor: '#F7F7F7', color: '#525252', fontFamily: appFont, fontSize: 11 },
-  pin: { display: 'grid', width: 42, height: 42, placeItems: 'center', borderRadius: 999, background: '#FFDCDC', color: '#FF3B30', fontSize: 28, lineHeight: 0 },
+  map: { position: 'relative', height: 150, margin: '0 12px', overflow: 'hidden', background: '#F7F7F7' },
+  leafletMap: { width: '100%', height: '100%' },
   mapFoot: { display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 12px', color: '#737373', fontSize: 12 },
   photoBlock: { padding: 12 },
   thumbs: { display: 'flex', gap: 10, minHeight: 0, marginBottom: 10 },
   thumb: { position: 'relative', display: 'grid', width: 110, height: 92, placeItems: 'center', border: '1px solid #E2E2E2', borderRadius: 6, background: '#F4F4F4', color: '#8A8A8A', fontFamily: appFont, fontSize: 11, overflow: 'hidden', padding: 8 },
   thumbImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
-  clearThumb: { position: 'absolute', top: 4, right: 4, width: 17, height: 17, border: '1px solid #DDD', borderRadius: 999, background: '#FFF', color: '#9A9A9A', lineHeight: 1 },
+  clearThumb: { position: 'absolute', top: 4, right: 4, zIndex: 1, width: 17, height: 17, border: '1px solid #DDD', borderRadius: 999, background: '#FFF', color: '#9A9A9A', lineHeight: 1 },
   photoActions: { display: 'grid', gridTemplateColumns: '1fr', gap: 8 },
   fileButton: { display: 'grid', height: 38, placeItems: 'center', border: '1px solid #D4D4D4', borderRadius: 4, background: '#FFFFFF', fontSize: 12, fontWeight: 700 },
+  fileButtonDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   primaryAction: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#050505', color: '#FFFFFF', fontSize: 13, fontWeight: 800 },
   secondaryAction: { width: '100%', height: 44, border: '1px solid #DADADA', borderRadius: 4, background: '#FFFFFF', color: '#0A0A0A', fontSize: 13, fontWeight: 800 },
   backToShift: { display: 'block', width: '100%', height: 52, marginTop: 18, border: 0, background: 'transparent', color: '#525252', fontSize: 16, fontWeight: 700 },
   footerNote: { margin: '8px 0 0', color: '#A3A3A3', textAlign: 'center', fontSize: 10 },
   timer: { margin: '20px 0 6px', textAlign: 'center', fontFamily: appFont, fontSize: 42, fontWeight: 900 },
   centerMuted: { margin: '0 20px 14px', color: '#737373', textAlign: 'center', fontSize: 12 },
-  slotRow: { display: 'grid', gridTemplateColumns: '44px 10px 1fr auto', alignItems: 'center', gap: 9, padding: '9px 10px', borderTop: '1px solid #EFEFEF', fontSize: 12 },
-  mono: { fontFamily: appFont, fontWeight: 700 },
+  slotRow: { display: 'grid', gridTemplateColumns: '70px 10px 1fr auto', alignItems: 'center', gap: 9, padding: '9px 10px', borderTop: '1px solid #EFEFEF', fontSize: 12 },
+  mono: { fontFamily: appFont, fontWeight: 700, whiteSpace: 'nowrap' },
   dot: { width: 7, height: 7, borderRadius: 999 },
   slotTitle: { minWidth: 0 },
   tinyButton: { border: '1px solid #FFD2D2', borderRadius: 3, background: '#FFF7F7', color: '#D92D20', padding: '3px 6px', fontSize: 10 },
@@ -475,5 +560,8 @@ const styles: Record<string, CSSProperties> = {
   lateButton: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#FF9D9D', color: '#FFFFFF', fontSize: 14, fontWeight: 800 },
   successMark: { display: 'grid', width: 42, height: 42, placeItems: 'center', margin: '34px auto 14px', borderRadius: 999, background: '#050505', color: '#FFFFFF', fontSize: 22 },
   summaryTitle: { margin: 0, textAlign: 'center', fontSize: 18 },
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' },
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, padding: 8 },
+  stat: { display: 'grid', gap: 2, minHeight: 54, placeItems: 'center', border: '1px solid #ECECEC', borderRadius: 6, background: '#FAFAFA' },
+  statValue: { fontSize: 20, lineHeight: 1, fontWeight: 900 },
+  statLabel: { color: '#737373', fontSize: 10, fontWeight: 800, letterSpacing: 0.6 },
 };
