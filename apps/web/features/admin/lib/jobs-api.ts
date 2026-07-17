@@ -25,6 +25,7 @@ type ApiJob = {
   assignments?: {
     officerId: string;
     officerName: string;
+    officerPhone?: string;
     icVerified: boolean;
     rate: string | number | null;
     confirmed: boolean;
@@ -110,6 +111,7 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
       return {
         oid: assignment.officerId,
         name: assignment.officerName,
+        phone: assignment.officerPhone,
         ic: assignment.icVerified,
         rate: Number(assignment.rate ?? existing?.rate ?? 0),
         confirmed: assignment.confirmed,

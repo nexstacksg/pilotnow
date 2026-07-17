@@ -61,7 +61,8 @@ export function JobDetailScreen({
     },
     onSuccess: ({ jobId, phone, token }) => {
       const url = `${window.location.origin}/jobs/${encodeURIComponent(jobId)}?hp=${encodeURIComponent(phone)}&token=${encodeURIComponent(token)}`;
-      copyText(url, "Copied officer's duty link");
+      setLinkError('');
+      copyText(url, "copied the officer's duty link");
     },
     onError: (error) => {
       setLinkError(error instanceof Error ? error.message : 'Could not create officer link');
@@ -150,15 +151,6 @@ export function JobDetailScreen({
                   <BillingIcon size={14} strokeWidth={2} />
                   Job Report
                 </Button>
-                <button
-                  className="pn-icon-btn pn-whatsapp-copy-btn"
-                  onClick={() => copyText(jobMsg, 'WhatsApp message copied')}
-                  type="button"
-                  aria-label="Copy WhatsApp message"
-                  title="Copy WhatsApp message"
-                >
-                  <MessageIcon size={20} strokeWidth={1.8} />
-                </button>
                 <Button onClick={onEdit}>
                   <PencilIcon size={14} strokeWidth={2} />
                   Edit
@@ -227,8 +219,9 @@ export function JobDetailScreen({
               </div>
               {job.officers.map((officer) => {
                 const officerProfile = officers.find((item) => item.id === officer.oid || item.code === officer.oid);
-                const phone = officerProfile?.phone.replace(/\D/g, '');
+                const phone = (officerProfile?.phone || officer.phone || '').replace(/\D/g, '');
                 const officerCode = officerProfile?.code ?? officer.oid;
+                const linkTooltip = "copy the officer's duty link(check-in, check-out, photo upload)";
                 const canRemove = !officer.confirmed && !officer.onDuty && !officer.actualStart && !officer.actualEnd;
                 return (
                   <div className="pn-table-row" key={officer.oid}>
@@ -256,20 +249,20 @@ export function JobDetailScreen({
                       </Button>
                     </span>
                     <span>
-                      {phone ? (
-                        <button
-                          className="pn-icon-btn pn-tooltip-btn"
-                          data-tooltip="Copy the officer's duty link(check-in/check-out/photo upload)"
-                          disabled={linkMutation.isPending}
-                          onClick={() => linkMutation.mutate({ jobId: job.id, phone })}
-                          type="button"
-                          aria-label={`Copy duty link for ${officer.name}`}
-                        >
-                          <LinkIcon size={14} strokeWidth={2} />
-                        </button>
-                      ) : (
-                        <span className="pn-muted">-</span>
-                      )}
+                      <button
+                        className="pn-icon-btn pn-tooltip-btn"
+                        data-tooltip={linkTooltip}
+                        disabled={linkMutation.isPending}
+                        onClick={() => {
+                          setLinkError('');
+                          if (phone) linkMutation.mutate({ jobId: job.id, phone });
+                        }}
+                        title={linkTooltip}
+                        type="button"
+                        aria-label={`Copy duty link for ${officer.name}`}
+                      >
+                        <LinkIcon size={14} strokeWidth={2} />
+                      </button>
                     </span>
                     <span>
                       <button className="pn-icon-btn pn-delete-btn" disabled={!canRemove} onClick={() => removeOfficer(officer.oid)} type="button" aria-label={canRemove ? `Remove ${officer.name}` : `${officer.name} cannot be removed after confirmation or attendance`}>
@@ -346,12 +339,14 @@ export function JobDetailScreen({
         <div className="pn-stack">
           <Card>
             <div className="pn-whatsapp-head">
-              <span>
-                <WhatsAppIcon />
-              </span>
-              <div>
-                <h2>WhatsApp workflow</h2>
-                <small>{job.posted ? 'Group post sent' : 'Not posted yet'}</small>
+              <div className="pn-whatsapp-title">
+                <span>
+                  <WhatsAppIcon />
+                </span>
+                <div>
+                  <h2>WhatsApp workflow</h2>
+                  <small>{job.posted ? 'Group post sent' : 'Not posted yet'}</small>
+                </div>
               </div>
             </div>
             <div className="pn-wa-actions">

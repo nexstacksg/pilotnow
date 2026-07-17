@@ -29,6 +29,7 @@ export type PhotoStatus = 'received' | 'missing' | 'upcoming';
 export type JobOfficer = {
   oid: string;
   name: string;
+  phone?: string;
   ic: boolean;
   rate: number;
   confirmed: boolean;

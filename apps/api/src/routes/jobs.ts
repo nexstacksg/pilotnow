@@ -208,6 +208,7 @@ async function serializeJobWithAssignments(row: {
     assignments: assignments.map((item) => ({
       officerId: item.officers.id,
       officerName: item.officers.name,
+      officerPhone: item.officers.phone,
       icVerified: item.officers.icVerified,
       rate: item.job_assignments.rateAgreed ?? item.job_assignments.rateOffered ?? item.officers.defaultHourlyRate,
       confirmed: item.job_assignments.ackStatus === 'ACKNOWLEDGED',
@@ -596,6 +597,9 @@ export const jobs = new Hono()
     }
     if (row.job.recordState !== 'CONFIRMED') {
       return jsonError(c, 400, 'Only confirmed jobs can be completed');
+    }
+    if (row.job.status === 'CANCELLED' || row.job.status === 'COMPLETED') {
+      return jsonError(c, 400, 'This job cannot be completed');
     }
 
     await getDb().update(schema.jobs).set({ status: 'COMPLETED' }).where(eq(schema.jobs.id, row.job.id));

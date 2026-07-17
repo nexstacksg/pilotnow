@@ -1763,30 +1763,6 @@ button {
   font-size: 12.5px;
 }
 
-.pn-job-detail .pn-whatsapp-copy-btn {
-  display: inline-grid;
-  width: 52px;
-  height: 52px;
-  place-items: center;
-  flex: 0 0 52px;
-  border-color: #DADADA;
-  border-radius: 8px;
-  color: #404040;
-  cursor: pointer;
-  box-shadow: 0 0 0 0 transparent;
-}
-
-.pn-job-detail .pn-whatsapp-copy-btn:hover {
-  border-color: #C7C7C7;
-  background: #FAFAFA;
-  color: #0A0A0A;
-}
-
-.pn-job-detail .pn-whatsapp-copy-btn:focus-visible {
-  outline: 3px solid #2F63F2;
-  outline-offset: 3px;
-}
-
 .pn-job-detail .pn-copy-block {
   margin-top: 15px;
 }
@@ -1930,11 +1906,19 @@ button {
 .pn-whatsapp-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 9px;
   margin-bottom: 13px;
 }
 
-.pn-whatsapp-head > span {
+.pn-whatsapp-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.pn-whatsapp-title > span {
   display: grid;
   width: 30px;
   height: 30px;
@@ -3119,6 +3103,10 @@ button {
   background: #fff;
   color: #A3A3A3;
   font-size: 13px;
+}
+
+.pn-icon-btn:disabled {
+  opacity: .55;
 }
 
 .pn-tooltip-btn {

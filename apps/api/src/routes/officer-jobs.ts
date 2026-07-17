@@ -382,7 +382,6 @@ export const officerJobs = new Hono()
     if (!parsed.success) return jsonError(c, 400, 'Invalid check-in payload');
 
     const now = new Date();
-    if (now < access.job.startAt) return jsonError(c, 400, `Check-in opens at ${access.job.startAt.toISOString()}`);
 
     await getDb()
       .update(schema.jobAssignments)

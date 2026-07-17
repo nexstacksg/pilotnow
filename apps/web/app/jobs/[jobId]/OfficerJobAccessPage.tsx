@@ -63,8 +63,11 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   const slots = useMemo(() => data ? buildSlots(data.job.startAt, data.job.endAt) : [], [data]);
   const uploadedByWindow = useMemo(() => new Map((data?.evidencePhotos ?? []).map((item) => [item.proofWindow || 'photo', item])), [data]);
   const pendingHourlySlots = slots.filter((slot) => slot.kind === 'hourly' && !uploadedByWindow.has(slot.key));
-  const lateSlot = pendingHourlySlots.find((slot) => isSlotLate(slot, now)) ?? null;
-  const currentSlot = pendingHourlySlots.find((slot) => !isSlotLate(slot, now) && !isSlotMissed(slot, now)) ?? null;
+  const scheduledNow = data ? alignTimeToDate(now, new Date(data.job.startAt)) : now;
+  const actualNextUploadSlot = pendingHourlySlots.find((slot) => !isSlotLate(slot, now) && !isSlotMissed(slot, now)) ?? null;
+  const nextUploadSlot = actualNextUploadSlot ?? pendingHourlySlots.find((slot) => !isSlotLate(slot, scheduledNow) && !isSlotMissed(slot, scheduledNow)) ?? null;
+  const uploadClock = actualNextUploadSlot ? now : scheduledNow;
+  const lateSlot = pendingHourlySlots.find((slot) => isSlotLate(slot, uploadClock)) ?? null;
   const shiftHours = data ? Math.max(1, Math.round((new Date(data.job.endAt).getTime() - new Date(data.job.startAt).getTime()) / 3_600_000)) : 0;
   const checkedIn = Boolean(data?.assignment.checkInAt || localCheckInAt);
   const checkedOut = Boolean(data?.assignment.checkOutAt || localCheckOutAt);
@@ -72,9 +75,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   const latePhotoCount = (lateFile ? 1 : 0) + (latePhoto.trim() ? 1 : 0);
   const doneCount = data ? Number(checkedIn) + data.evidencePhotos.filter((item) => item.proofWindow && !['check-in', 'check-out'].includes(item.proofWindow)).length + Number(checkedOut) : 0;
   const checkInTime = timestampTime(data?.assignment.checkInAt ?? localCheckInAt);
-  const checkInOpen = slots[0] ? now >= slots[0].at : false;
   const currentTime = clockTime(now);
-  const uploadCountdown = currentSlot ? countdownLabel(currentSlot.at, now) : '';
+  const uploadCountdown = nextUploadSlot ? countdownLabel(nextUploadSlot.at, uploadClock) : '';
 
   async function refreshPosition() {
     setPositionError('');
@@ -90,13 +92,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   }, [data?.assignment.checkInAt, data?.assignment.checkOutAt]);
 
   useEffect(() => {
-    let timer: number;
-    const tick = () => {
-      setNow(new Date());
-      timer = window.setTimeout(tick, 1_000 - (Date.now() % 1_000));
-    };
-    timer = window.setTimeout(tick, 1_000 - (Date.now() % 1_000));
-    return () => window.clearTimeout(timer);
+    const timer = window.setInterval(() => setNow(new Date()), 1_000);
+    return () => window.clearInterval(timer);
   }, []);
 
   async function uploadPhoto(sourceFile = file, sourcePhoto = photo) {
@@ -114,7 +111,6 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
 
   const attendanceMutation = useMutation({
     mutationFn: async ({ action }: { action: '/check-in' | '/check-out' }) => {
-      if (action === '/check-in' && slots[0] && new Date() < slots[0].at) throw new Error(`Check-in opens at ${scheduledTime(data?.job.startAt ?? null)}`);
       const [latestPosition, mediaRef] = await Promise.all([position ? Promise.resolve(position) : currentPosition(), uploadPhoto()]);
       setPosition(latestPosition);
       return readItem(await fetch(apiPath(jobId, hp, token, action), {
@@ -181,41 +177,41 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
         />
       ) : checkedIn ? (
         <>
-          <TitleBlock kicker={`ON SHIFT - ${data.job.id}`} title={data.job.site} badge={`Checked in ${checkInTime}`} />
+          <TitleBlock kicker={`ON SHIFT · ${data.job.id}`} title={data.job.site} badge={`Checked in ${checkInTime}`} />
           <SubmitError error={submitError} />
-          {currentSlot ? (
+          {nextUploadSlot ? (
             <Panel>
-              <div style={styles.panelHead}><span>NEXT UPLOAD - {currentSlot.time}</span><Badge>Upcoming</Badge></div>
+              <div style={styles.panelHead}><span>NEXT UPLOAD · {nextUploadSlot.time}</span><Badge>Upcoming</Badge></div>
               <div style={styles.uploadCardBody}>
                 <span style={styles.startsIn}>STARTS IN</span>
                 <div style={styles.uploadTimer}>{uploadCountdown}</div>
-                <p style={styles.centerMuted}>Nothing to do yet — we'll notify you at {currentSlot.time}.</p>
-                <NextUploadControls disabled={!isSlotReady(currentSlot, now)} file={file} setFile={setFile} />
-                {isSlotReady(currentSlot, now) ? (
-                  <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: currentSlot.key })} style={styles.lateButton} type="button">Submit photo</button>
+                <p style={styles.centerMuted}>Nothing to do yet — we'll notify you at {nextUploadSlot.time}.</p>
+                <NextUploadControls disabled={!isSlotReady(nextUploadSlot, uploadClock)} file={file} setFile={setFile} />
+                {isSlotReady(nextUploadSlot, uploadClock) ? (
+                  <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: nextUploadSlot.key })} style={styles.lateButton} type="button">Submit {nextUploadSlot.time} evidence</button>
                 ) : (
-                  <p style={styles.tooEarly}>Too early — the upload window opens at {currentSlot.time} for 5 mins.</p>
+                  <p style={styles.tooEarly}>Too early — the upload window opens at {nextUploadSlot.time}.</p>
                 )}
               </div>
             </Panel>
           ) : null}
-          {lateSlot ? <LateEvidenceCard busy={busy} file={lateFile} photo={latePhoto} photoCount={latePhotoCount} setFile={setLateFile} setPhoto={setLatePhoto} slot={lateSlot} submit={() => evidenceMutation.mutate({ proofWindow: lateSlot.key, file: lateFile, photo: latePhoto })} /> : null}
+          {lateSlot ? <LateEvidenceCard busy={busy} file={lateFile} photoCount={latePhotoCount} setFile={setLateFile} slot={lateSlot} submit={() => evidenceMutation.mutate({ proofWindow: lateSlot.key, file: lateFile, photo: latePhoto })} /> : null}
           <Panel>
             <div style={styles.panelHead}><strong>Today's evidence</strong><span>{doneCount} OF {slots.length} DONE</span></div>
             {slots.map((slot) => {
               const done = slot.kind === 'check-in' ? checkedIn : slot.kind === 'check-out' ? checkedOut : uploadedByWindow.has(slot.key);
               const selected = activeSlot === slot.key;
-              const ready = isSlotReady(slot, now);
-              const late = isSlotLate(slot, now);
-              const missed = isSlotMissed(slot, now);
-              const title = slot.kind === 'check-in' && checkedIn ? `Checked in · GPS + ${checkInProofCount(data)} photo${checkInProofCount(data) === 1 ? '' : 's'}` : slot.title;
+              const ready = isSlotReady(slot, uploadClock);
+              const late = isSlotLate(slot, uploadClock);
+              const missed = isSlotMissed(slot, uploadClock);
+              const title = evidenceRowTitle(slot, data, checkedIn, uploadedByWindow, nextUploadSlot, late);
               const rowTime = slot.kind === 'check-in' && checkedIn ? checkInTime : slot.time;
               return (
                 <div key={slot.key} style={styles.slotRow}>
                   <span style={styles.mono}>{rowTime}</span>
                   <span style={{ ...styles.dot, background: done ? '#11875D' : '#D4D4D4' }} />
                   <span style={styles.slotTitle}>{title}</span>
-                  {done ? <Badge tone="success">Done</Badge> : missed ? <Badge tone="danger">Missed</Badge> : late ? <Badge tone="danger">Upload Late</Badge> : slot.kind === 'hourly' ? <button disabled={!ready} style={styles.tinyButton} onClick={() => setActiveSlot(selected ? null : slot.key)} type="button">{selected ? 'Close' : 'Upload'}</button> : <Badge>Upcoming</Badge>}
+                  {done ? <Badge tone="success">Done</Badge> : missed ? <Badge tone="danger">Missed</Badge> : late ? <Badge tone="danger">Upload late</Badge> : slot.kind === 'hourly' && ready ? <button style={styles.tinyButton} onClick={() => setActiveSlot(selected ? null : slot.key)} type="button">{selected ? 'Close' : 'Upload'}</button> : <Badge>Upcoming</Badge>}
                   {selected ? (
                     <div style={styles.inlineUpload}>
                       <PhotoControls disabled={!ready} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
@@ -240,9 +236,9 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           <LocationPanel data={data} onRefresh={refreshPosition} position={position} positionError={positionError} />
           <Panel>
             <div style={styles.panelHead}><strong>Login proof photo</strong><span>{photoCount} ADDED - MIN 1</span></div>
-            <PhotoControls disabled={!checkInOpen} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+            <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
           </Panel>
-          <button disabled={busy || !checkInOpen || photoCount === 0 || !position} onClick={() => attendanceMutation.mutate({ action: '/check-in' })} style={styles.primaryAction} type="button">{busy ? 'Checking in...' : checkInOpen ? `Confirm check-in - ${currentTime}` : `Check-in opens at ${scheduledTime(data.job.startAt)}`}</button>
+          <button disabled={busy || photoCount === 0 || !position} onClick={() => attendanceMutation.mutate({ action: '/check-in' })} style={styles.primaryAction} type="button">{busy ? 'Checking in...' : `Confirm check-in (${currentTime})`}</button>
           <p style={styles.footerNote}>Location and photos are sent to your admin on confirm.</p>
         </>
       )}
@@ -269,17 +265,17 @@ function SubmitError({ error }: { error: unknown }) {
   return error ? <div style={styles.errorBox}>{error instanceof Error ? error.message : 'Could not submit. Please try again.'}</div> : null;
 }
 
-function LateEvidenceCard({ busy, file, photo, photoCount, setFile, setPhoto, slot, submit }: { busy: boolean; file: File | null; photo: string; photoCount: number; setFile: (file: File | null) => void; setPhoto: (value: string) => void; slot: Slot; submit: () => void }) {
+function LateEvidenceCard({ busy, file, photoCount, setFile, slot, submit }: { busy: boolean; file: File | null; photoCount: number; setFile: (file: File | null) => void; slot: Slot; submit: () => void }) {
   const lockTime = formatTime(new Date(slot.at.getTime() + 30 * 60_000));
   return (
     <section style={styles.lateCard}>
       <div style={styles.lateHead}>
-        <strong>△&nbsp; {slot.time} evidence - missed</strong>
+        <strong>△&nbsp; {slot.time} evidence — missed</strong>
         <span>LATE UNTIL&nbsp; {lockTime}</span>
       </div>
       <div style={styles.lateBody}>
-        <p>You can still upload for the {slot.time} hour - it will be marked Late. At {lockTime} this window locks as Missed. Your admin has been notified.</p>
-        <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
+        <p>You can still upload for the {slot.time} hour — it will be marked Late. At {lockTime} this window locks as Missed. Your admin has been notified.</p>
+        <NextUploadControls file={file} setFile={setFile} />
         <button disabled={busy || photoCount === 0} onClick={submit} style={styles.lateButton} type="button">Submit {slot.time} evidence as late</button>
       </div>
     </section>
@@ -378,9 +374,8 @@ function NextUploadControls({ disabled = false, file, setFile }: { disabled?: bo
       <div style={styles.thumbs}>
         {file ? <Thumb label={file.name} onClear={() => setFile(null)} src={preview} /> : null}
       </div>
-      <div className="officer-photo-actions" style={styles.nextUploadActions}>
+      <div className="officer-photo-actions officer-next-upload-actions" style={styles.nextUploadActions}>
         <label style={{ ...styles.fileButton, ...(disabled ? styles.fileButtonDisabled : {}) }}>▧&nbsp; Camera<input accept="image/*" capture="environment" disabled={disabled} hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
-        <label style={{ ...styles.fileButton, ...(disabled ? styles.fileButtonDisabled : {}) }}>▧&nbsp; Gallery<input accept="image/*" disabled={disabled} hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
       </div>
     </div>
   );
@@ -413,6 +408,24 @@ function buildSlots(startAt: string, endAt: string): Slot[] {
   }
   slots.push({ key: 'check-out', time: scheduledTime(endAt), title: 'Check-out - GPS + photo', kind: 'check-out', at: end });
   return slots;
+}
+
+function alignTimeToDate(timeSource: Date, dateSource: Date) {
+  const time = singaporeTimeParts(timeSource);
+  const date = singaporeDateParts(dateSource);
+  return new Date(`${date.year}-${date.month}-${date.day}T${time.hour}:${time.minute}:00+08:00`);
+}
+
+function evidenceRowTitle(slot: Slot, data: OfficerJob, checkedIn: boolean, uploadedByWindow: Map<string, OfficerJob['evidencePhotos'][number]>, currentSlot: Slot | null, late: boolean) {
+  if (slot.kind === 'check-in') {
+    const proofCount = checkedIn ? checkInProofCount(data) : 1;
+    return `Check-in · GPS + ${proofCount} photo${proofCount === 1 ? '' : 's'}`;
+  }
+  if (slot.kind === 'check-out') return 'Check-out · GPS + photo';
+  if (uploadedByWindow.has(slot.key)) return 'Hourly evidence · 1 photo';
+  if (late) return 'Hourly evidence · late window open';
+  if (currentSlot?.key === slot.key) return 'Hourly evidence · next up';
+  return 'Hourly evidence';
 }
 
 function isSlotReady(slot: Slot, now: Date) {
@@ -461,7 +474,7 @@ function timestampTime(value: string | null) {
 }
 
 function clockTime(value: Date) {
-  return value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return formatTime(value);
 }
 
 function countdownLabel(target: Date, now: Date) {
@@ -469,7 +482,7 @@ function countdownLabel(target: Date, now: Date) {
   const hours = Math.floor(seconds / 3_600);
   const minutes = Math.floor((seconds % 3_600) / 60);
   const secs = seconds % 60;
-  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  return `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 function dateTimeKey(value: Date) {
@@ -478,15 +491,12 @@ function dateTimeKey(value: Date) {
 }
 
 function formatTime(value: Date) {
-  return value.toLocaleTimeString('en-US', { timeZone: 'Asia/Singapore', hour: 'numeric', minute: '2-digit', hour12: true });
+  return value.toLocaleTimeString('en-GB', { timeZone: 'Asia/Singapore', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 function formatTimeKey(value: string) {
   const [hour = '0', minute = '00'] = value.split(':');
-  const hourNumber = Number(hour);
-  const period = hourNumber >= 12 ? 'PM' : 'AM';
-  const displayHour = hourNumber % 12 || 12;
-  return `${displayHour}:${minute.padStart(2, '0')} ${period}`;
+  return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
 }
 
 function singaporeTimeParts(value: Date) {
@@ -498,6 +508,17 @@ function singaporeTimeParts(value: Date) {
   }).formatToParts(value);
   const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
   return { hour: part('hour'), minute: part('minute') };
+}
+
+function singaporeDateParts(value: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(value);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '01';
+  return { year: part('year'), month: part('month'), day: part('day') };
 }
 
 function numberOrNull(value: string | null) {
@@ -563,7 +584,7 @@ const styles: Record<string, CSSProperties> = {
   thumbImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
   clearThumb: { position: 'absolute', top: 4, right: 4, zIndex: 1, width: 17, height: 17, border: '1px solid #DDD', borderRadius: 999, background: '#FFF', color: '#9A9A9A', lineHeight: 1 },
   photoActions: { display: 'grid', gridTemplateColumns: '1fr', gap: 8 },
-  nextUploadActions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
+  nextUploadActions: { display: 'grid', gridTemplateColumns: '1fr', gap: 8 },
   fileButton: { display: 'grid', height: 38, placeItems: 'center', border: '1px solid #D4D4D4', borderRadius: 4, background: '#FFFFFF', fontSize: 12, fontWeight: 700 },
   fileButtonDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   primaryAction: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#050505', color: '#FFFFFF', fontSize: 13, fontWeight: 800 },
