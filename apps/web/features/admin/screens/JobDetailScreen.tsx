@@ -146,6 +146,15 @@ export function JobDetailScreen({
                   <BillingIcon size={14} strokeWidth={2} />
                   Job Report
                 </Button>
+                <button
+                  className="pn-icon-btn pn-whatsapp-copy-btn"
+                  onClick={() => copyText(jobMsg, 'WhatsApp message copied')}
+                  type="button"
+                  aria-label="Copy WhatsApp message"
+                  title="Copy WhatsApp message"
+                >
+                  <MessageIcon size={20} strokeWidth={1.8} />
+                </button>
                 <Button onClick={onEdit}>
                   <PencilIcon size={14} strokeWidth={2} />
                   Edit

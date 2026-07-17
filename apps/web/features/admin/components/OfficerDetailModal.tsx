@@ -115,6 +115,7 @@ export function OfficerDetailModal({
   payments,
   initialMode = 'view',
   onClose,
+  copyText,
   onDelete,
   onSave,
   openJob,
@@ -124,6 +125,7 @@ export function OfficerDetailModal({
   payments: Payment[];
   initialMode?: 'view' | 'edit';
   onClose: () => void;
+  copyText: (text: string, message: string) => void;
   onDelete: (id: string) => Promise<boolean>;
   onSave: (id: string, form: OfficerForm) => Promise<boolean>;
   openJob: (id: string) => void;
@@ -214,6 +216,21 @@ export function OfficerDetailModal({
   const officerTone = officerStatusTone[officer.status];
   const officerId = officer.id;
   const officerCode = officer.code ?? officer.id;
+  const officerNotes = noteText(officer.notes);
+  const officerMessage = [
+    'PilotNow Officer Profile',
+    `Officer ID: ${officerCode}`,
+    `Full name: ${officer.name}`,
+    `WhatsApp number: ${officer.phone}`,
+    `Default hourly rate: ${money(officer.rate)}/h`,
+    `IC status: ${officer.ic ? 'Received' : 'Not received'}`,
+    `Officer status: ${officer.status}`,
+    `Jobs with us: ${visibleHistory.length}`,
+    `Completed jobs: ${completed.length}`,
+    `Hours worked: ${totalHours.toFixed(2)}h`,
+    `Total earned: ${money(totalPay)}`,
+    `Notes: ${officerNotes || 'No notes on file.'}`,
+  ].join('\n');
 
   async function saveProfile() {
     setSaving(true);
@@ -282,7 +299,7 @@ export function OfficerDetailModal({
           <small>{officerCode} / {officer.phone} / {money(officer.rate)}/h</small>
         </div>
         <div className="pn-profile-actions">
-          <button className="pn-icon-btn" type="button" aria-label={`Message ${officer.name}`}>
+          <button className="pn-icon-btn" onClick={() => copyText(officerMessage, 'WhatsApp message copied')} type="button" aria-label={`Copy ${officer.name} WhatsApp message`}>
             <MessageIcon size={16} strokeWidth={2} />
           </button>
           <Button onClick={() => setEditing((value) => !value)}>
