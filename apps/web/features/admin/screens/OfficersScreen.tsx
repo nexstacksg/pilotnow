@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Badge, Button } from '../components/ui';
+import { Badge, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { EyeIcon, MoreVerticalIcon, PencilIcon, TrashIcon } from '../components/icons';
 import { initials, money } from '../lib/format';
 import type { Officer } from '../types';
 
-const PAGE_SIZE = 7;
 const STATUS_FILTERS = ['All', 'New', 'Active', 'Inactive', 'Blocked'] as const;
 
 type StatusFilter = (typeof STATUS_FILTERS)[number];
@@ -23,6 +22,7 @@ export function OfficersScreen({
   openOfficerProfile: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('All');
   const [openActionId, setOpenActionId] = useState<string | null>(null);
   const query = search.trim().toLowerCase();
@@ -39,12 +39,12 @@ export function OfficersScreen({
     }, { All: 0, New: 0, Active: 0, Inactive: 0, Blocked: 0 })
   ), [officers]);
 
-  const pageCount = Math.max(1, Math.ceil(filteredOfficers.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filteredOfficers.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleOfficers = useMemo(() => filteredOfficers.slice(start, start + PAGE_SIZE), [filteredOfficers, start]);
+  const start = (currentPage - 1) * pageSize;
+  const visibleOfficers = useMemo(() => filteredOfficers.slice(start, start + pageSize), [filteredOfficers, pageSize, start]);
   const from = filteredOfficers.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, filteredOfficers.length);
+  const to = Math.min(start + pageSize, filteredOfficers.length);
 
   useEffect(() => {
     if (!openActionId) return;
@@ -66,7 +66,7 @@ export function OfficersScreen({
 
   useEffect(() => {
     setPage(1);
-  }, [query, statusFilter]);
+  }, [pageSize, query, statusFilter]);
 
   function updateStatus(value: StatusFilter) {
     setStatusFilter(value);
@@ -182,22 +182,7 @@ export function OfficersScreen({
           </div>
         ) : null}
       </div>
-      {pageCount > 1 ? <div className="pn-pagination" aria-label="Officer pagination">
-        <span>
-          Showing {from}-{to} of {filteredOfficers.length}
-        </span>
-        <div>
-          <Button disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>
-            Previous
-          </Button>
-          <strong>
-            Page {currentPage} of {pageCount}
-          </strong>
-          <Button disabled={currentPage === pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))}>
-            Next
-          </Button>
-        </div>
-      </div> : null}
+      <Pagination from={from} label="Officer" onPageChange={setPage} onPageSizeChange={setPageSize} page={currentPage} pageCount={pageCount} pageSize={pageSize} showSinglePage to={to} total={filteredOfficers.length} />
     </div>
   );
 }

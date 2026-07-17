@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeftIcon, CopyIcon } from '../components/icons';
-import { Badge, Button, Card, Pagination } from '../components/ui';
+import { Badge, Button, Card, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { fetchCompletedJobs } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, jobPay, money } from '../lib/format';
 import type { Job } from '../types';
-
-const PAGE_SIZE = 8;
 
 export function SummaryScreen({
   jobs,
@@ -22,16 +20,17 @@ export function SummaryScreen({
   const [localDetailJobId, setLocalDetailJobId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const activeDetailJobId = detailJobId ?? localDetailJobId;
   const detailJob = summaryJobs.find((job) => job.id === activeDetailJobId);
   const openDetail = openSummaryJob ?? setLocalDetailJobId;
   const closeDetail = closeSummaryJob ?? (() => setLocalDetailJobId(null));
-  const pageCount = Math.max(1, Math.ceil(summaryJobs.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(summaryJobs.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleJobs = summaryJobs.slice(start, start + PAGE_SIZE);
+  const start = (currentPage - 1) * pageSize;
+  const visibleJobs = summaryJobs.slice(start, start + pageSize);
   const from = summaryJobs.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, summaryJobs.length);
+  const to = Math.min(start + pageSize, summaryJobs.length);
 
   useEffect(() => {
     setSummaryJobs(jobs);
@@ -39,7 +38,7 @@ export function SummaryScreen({
 
   useEffect(() => {
     setPage(1);
-  }, [summaryJobs.length]);
+  }, [pageSize, summaryJobs.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +104,7 @@ export function SummaryScreen({
           </button>
         ))}
       </div>
-      <Pagination from={from} label="Completed job" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={summaryJobs.length} />
+      <Pagination from={from} label="Completed job" onPageChange={setPage} onPageSizeChange={setPageSize} page={currentPage} pageCount={pageCount} pageSize={pageSize} showSinglePage to={to} total={summaryJobs.length} />
       {!summaryJobs.length ? <p className="pn-muted">No completed jobs recorded yet.</p> : null}
     </div>
   );

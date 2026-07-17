@@ -75,6 +75,9 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="pn-empty">{children}</div>;
 }
 
+export const DEFAULT_PAGE_SIZE = 10;
+export const ROWS_PER_PAGE_OPTIONS = [10, 25, 50] as const;
+
 export function Pagination({
   page,
   pageCount,
@@ -83,7 +86,10 @@ export function Pagination({
   total,
   label = 'records',
   showSinglePage = false,
+  pageSize,
+  rowsPerPageOptions = ROWS_PER_PAGE_OPTIONS,
   onPageChange,
+  onPageSizeChange,
 }: {
   page: number;
   pageCount: number;
@@ -92,15 +98,31 @@ export function Pagination({
   total: number;
   label?: string;
   showSinglePage?: boolean;
+  pageSize: number;
+  rowsPerPageOptions?: readonly number[];
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }) {
+  if (!total) return null;
   if (pageCount <= 1 && !showSinglePage) return null;
 
   return (
     <div className="pn-pagination" aria-label={`${label} pagination`}>
-      <span>
-        Showing {from}-{to} of {total}
-      </span>
+      <div className="pn-pagination-meta">
+        <label>
+          Rows per page
+          <select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+            {rowsPerPageOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span>
+          Showing {from}-{to} of {total}
+        </span>
+      </div>
       <div>
         <Button disabled={page === 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
           Previous

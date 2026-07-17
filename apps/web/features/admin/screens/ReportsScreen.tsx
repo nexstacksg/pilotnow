@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarIcon, DownloadIcon } from '../components/icons';
-import { Button, Card, Pagination } from '../components/ui';
+import { Button, Card, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { dateLabel, jobPay, money } from '../lib/format';
 import type { OperationsReport } from '../lib/reports-api';
 import type { Job, Officer, Payment } from '../types';
@@ -24,7 +24,6 @@ const reportTabs: { key: ReportKey; label: string; title: string }[] = [
   { key: 'officerHistory', label: 'Officer job history report', title: 'Officer job history report' },
 ];
 const defaultReportTab = reportTabs[0] as { key: ReportKey; label: string; title: string };
-const PAGE_SIZE = 8;
 
 const reportColumns: Record<ReportKey, ReportColumn[]> = {
   completed: [
@@ -72,6 +71,7 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [dateRangeEdited, setDateRangeEdited] = useState(false);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const query = search.trim().toLowerCase();
 
   useEffect(() => {
@@ -111,16 +111,16 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
   const columns = reportColumns[activeReport];
   const active = reportTabs.find((tab) => tab.key === activeReport) ?? defaultReportTab;
   const reportSummary = buildReportSummary(activeReport, rows, officers);
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleRows = rows.slice(start, start + PAGE_SIZE);
+  const start = (currentPage - 1) * pageSize;
+  const visibleRows = rows.slice(start, start + pageSize);
   const from = rows.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, rows.length);
+  const to = Math.min(start + pageSize, rows.length);
 
   useEffect(() => {
     setPage(1);
-  }, [activeReport, endDate, query, startDate]);
+  }, [activeReport, endDate, pageSize, query, startDate]);
 
   return (
     <div className="pn-reports-screen">
@@ -187,8 +187,10 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
         from={from}
         label="Report"
         onPageChange={setPage}
+        onPageSizeChange={setPageSize}
         page={currentPage}
         pageCount={pageCount}
+        pageSize={pageSize}
         showSinglePage={rows.length > 0}
         to={to}
         total={rows.length}

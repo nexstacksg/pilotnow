@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Badge, Button, Pagination } from '../components/ui';
+import { Badge, Button, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { dateLabel } from '../lib/format';
 import type { BillingFilter, Job } from '../types';
-
-const PAGE_SIZE = 8;
 
 export function BillingScreen({
   jobs,
@@ -19,21 +17,22 @@ export function BillingScreen({
   openBill: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const filters: BillingFilter[] = ['All', 'Not Billed', 'Billed'];
   const query = search.trim().toLowerCase();
   const filtered = jobs
     .filter((job) => filter === 'All' || job.billing === filter)
     .filter((job) => !query || billingSearchText(job).includes(query));
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleJobs = filtered.slice(start, start + PAGE_SIZE);
+  const start = (currentPage - 1) * pageSize;
+  const visibleJobs = filtered.slice(start, start + pageSize);
   const from = filtered.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, filtered.length);
+  const to = Math.min(start + pageSize, filtered.length);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, query]);
+  }, [filter, pageSize, query]);
 
   return (
     <div className="pn-billing-screen">
@@ -78,8 +77,10 @@ export function BillingScreen({
         from={from}
         label="Billing"
         onPageChange={setPage}
+        onPageSizeChange={setPageSize}
         page={currentPage}
         pageCount={pageCount}
+        pageSize={pageSize}
         showSinglePage={filtered.length > 0}
         to={to}
         total={filtered.length}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Badge, Pagination } from '../components/ui';
+import { Badge, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import type { DashboardQueues } from '../lib/dashboard-api';
 import { dateLabel, statusTone } from '../lib/format';
 import type { Job, JobListFilter, JobStatus } from '../types';
@@ -23,6 +23,7 @@ export function JobsScreen({
   openJob: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const statusViews = ['All', ...defaultStatusViews] as JobListFilter[];
   const query = search.trim().toLowerCase();
 
@@ -31,14 +32,14 @@ export function JobsScreen({
     .filter((job) => !query || jobSearchText(job).includes(query));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visibleJobs = filtered.slice(start, start + PAGE_SIZE);
+  const start = (currentPage - 1) * pageSize;
+  const visibleJobs = filtered.slice(start, start + pageSize);
   const from = filtered.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, filtered.length);
+  const to = Math.min(start + pageSize, filtered.length);
 
   useEffect(() => {
     setPage(1);
-  }, [filter, query]);
+  }, [filter, pageSize, query]);
 
   function countFor(item: JobListFilter) {
     return jobs.filter((job) => matchesJobFilter(job, item)).length;
@@ -91,7 +92,7 @@ export function JobsScreen({
         ))}
         {filtered.length === 0 ? <div className="pn-empty">No jobs match these filters.</div> : null}
       </div>
-      <Pagination from={from} label="Job" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filtered.length} />
+      <Pagination from={from} label="Job" onPageChange={setPage} onPageSizeChange={setPageSize} page={currentPage} pageCount={pageCount} pageSize={pageSize} showSinglePage to={to} total={filtered.length} />
     </div>
   );
 }
