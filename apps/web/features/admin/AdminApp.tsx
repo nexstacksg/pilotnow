@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import type { KeyboardEvent, ReactNode } from 'react';
 import {
   BillingIcon,
+  CheckIcon,
   ChevronDownIcon,
   CopyIcon,
   DashboardIcon,
@@ -339,9 +340,26 @@ export function AdminApp({
     window.setTimeout(() => setToast(null), 2200);
   }
 
-  function copyText(text: string, message: string) {
-    void navigator.clipboard?.writeText(text);
-    flash(message || 'Copied to clipboard');
+  async function copyText(text: string, message: string) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      flash(message || 'Copied to clipboard');
+    } catch {
+      flash('Could not copy message', 'error');
+    }
   }
 
   function navigateToScreen(nextScreen: Screen) {
@@ -1152,6 +1170,7 @@ export function AdminApp({
             setOfficerProfileId(null);
             setOfficerProfileMode('view');
           }}
+          copyText={copyText}
           onDelete={deleteOfficerProfile}
           onSave={updateOfficerProfile}
           openJob={(id) => {
@@ -1203,6 +1222,7 @@ export function AdminApp({
       {payOfficer ? <PaymentHistoryModal officer={payOfficer} payments={financePayments} onClose={() => setPayOfficer(null)} openJob={openJob} /> : null}
       {toast ? (
         <div className={`pn-toast pn-toast-${toast.tone}`} role="status" aria-live="polite">
+          {toast.tone === 'success' ? <CheckIcon size={17} strokeWidth={2.4} /> : null}
           {toast.message}
         </div>
       ) : null}

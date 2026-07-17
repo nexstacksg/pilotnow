@@ -1734,6 +1734,30 @@ button {
   font-size: 12.5px;
 }
 
+.pn-job-detail .pn-whatsapp-copy-btn {
+  display: inline-grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  flex: 0 0 52px;
+  border-color: #DADADA;
+  border-radius: 8px;
+  color: #404040;
+  cursor: pointer;
+  box-shadow: 0 0 0 0 transparent;
+}
+
+.pn-job-detail .pn-whatsapp-copy-btn:hover {
+  border-color: #C7C7C7;
+  background: #FAFAFA;
+  color: #0A0A0A;
+}
+
+.pn-job-detail .pn-whatsapp-copy-btn:focus-visible {
+  outline: 3px solid #2F63F2;
+  outline-offset: 3px;
+}
+
 .pn-job-detail .pn-copy-block {
   margin-top: 15px;
 }
@@ -3430,18 +3454,27 @@ button {
   bottom: 24px;
   left: 50%;
   z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   transform: translateX(-50%);
   border-radius: 6px;
-  padding: 11px 18px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
+  padding: 14px 22px;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 22%);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .pn-toast-success {
-  border: 1px solid #ABEFC6;
-  background: #067647;
+  border: 1px solid rgb(255 255 255 / 10%);
+  background: #0A0A0A;
   color: #fff;
+}
+
+.pn-toast-success svg {
+  color: #3DDC64;
 }
 
 .pn-toast-error {
