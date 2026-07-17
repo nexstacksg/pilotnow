@@ -643,6 +643,27 @@ button {
   gap: 10px;
 }
 
+.pn-pagination-meta {
+  flex-wrap: wrap;
+}
+
+.pn-pagination-meta label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.pn-pagination-meta select {
+  height: 34px;
+  border: 1px solid #D4D4D4;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #262626;
+  font: inherit;
+  font-weight: 600;
+  padding: 0 28px 0 10px;
+}
+
 .pn-pagination strong {
   color: #262626;
   font-size: 12.5px;

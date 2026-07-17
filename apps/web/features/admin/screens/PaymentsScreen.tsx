@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarIcon, CheckIcon, ClockIcon } from '../components/icons';
-import { Badge, Button, Card, Pagination } from '../components/ui';
+import { Badge, Button, Card, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { dateLabel, money } from '../lib/format';
 import type { Payment, PaymentStatus } from '../types';
 
 type PaymentFilter = 'All' | PaymentStatus;
 
 const paymentFilters: PaymentFilter[] = ['All', 'Pending', 'Paid'];
-const PAGE_SIZE = 8;
 
 function paymentAmount(payment: Payment) {
   return payment.hours * payment.rate;
@@ -27,6 +26,7 @@ export function PaymentsScreen({
   const [statusFilter, setStatusFilter] = useState<PaymentFilter>('All');
   const [jobDate, setJobDate] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const query = search.trim().toLowerCase();
 
   const pending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + paymentAmount(payment), 0);
@@ -42,16 +42,16 @@ export function PaymentsScreen({
     [jobDate, payments, query, statusFilter],
   );
   const filteredTotal = filteredPayments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
-  const pageCount = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filteredPayments.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const visiblePayments = filteredPayments.slice(start, start + PAGE_SIZE);
+  const start = (currentPage - 1) * pageSize;
+  const visiblePayments = filteredPayments.slice(start, start + pageSize);
   const from = filteredPayments.length ? start + 1 : 0;
-  const to = Math.min(start + PAGE_SIZE, filteredPayments.length);
+  const to = Math.min(start + pageSize, filteredPayments.length);
 
   useEffect(() => {
     setPage(1);
-  }, [jobDate, query, statusFilter]);
+  }, [jobDate, pageSize, query, statusFilter]);
 
   return (
     <div className="pn-stack">
@@ -140,7 +140,7 @@ export function PaymentsScreen({
         ))}
         {!filteredPayments.length ? <div className="pn-empty">No payments match these filters.</div> : null}
       </div>
-      <Pagination from={from} label="Payment" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filteredPayments.length} />
+      <Pagination from={from} label="Payment" onPageChange={setPage} onPageSizeChange={setPageSize} page={currentPage} pageCount={pageCount} pageSize={pageSize} showSinglePage to={to} total={filteredPayments.length} />
     </div>
   );
 }
