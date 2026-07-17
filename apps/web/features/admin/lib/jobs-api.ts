@@ -66,17 +66,32 @@ function statusFromApi(job: ApiJob): JobStatus {
 }
 
 function splitIso(value: string) {
-  return { date: value.slice(0, 10), time: value.slice(11, 16) };
+  const parts = singaporeParts(value);
+  return { date: `${parts.year}-${parts.month}-${parts.day}`, time: `${parts.hour}:${parts.minute}` };
 }
 
 function jobDateTime(date: string, time: string, nextDay = false) {
-  const value = new Date(`${date}T${time}:00.000Z`);
+  const value = new Date(`${date}T${time}:00+08:00`);
   if (nextDay) value.setUTCDate(value.getUTCDate() + 1);
   return value.toISOString();
 }
 
 function timeLabel(value: string | null) {
-  return value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+  return value ? `${singaporeParts(value).hour}:${singaporeParts(value).minute}` : '';
+}
+
+function singaporeParts(value: string) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(value));
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
+  return { year: part('year'), month: part('month'), day: part('day'), hour: part('hour'), minute: part('minute') };
 }
 
 function proofTimeLabel(proofWindow: string | null, receivedAt: string) {
@@ -205,4 +220,9 @@ export async function createOfficerJobToken(jobId: string, hp: string) {
 
 export async function createSignReportToken(jobId: string) {
   return withServerMessage(http.post<{ token: string }>(`/jobs/${encodeURIComponent(jobId)}/sign-token`, {}));
+}
+
+export async function assignOfficerToJob(jobId: string, officerId: string, previous?: Job) {
+  const payload = await withServerMessage(http.post<{ item: ApiJob }>(`/jobs/${encodeURIComponent(jobId)}/assignments`, { officerId }));
+  return mergeJob(payload.item, previous);
 }

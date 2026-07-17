@@ -67,7 +67,7 @@ export function JobDetailScreen({
       setLinkError(error instanceof Error ? error.message : 'Could not create officer link');
     },
   });
-  const available = officers.filter((officer) => officer.status === 'Active' && !job.officers.some((assigned) => assigned.oid === officer.id));
+  const available = officers.filter((officer) => officer.status === 'Active' && !job.officers.some((assigned) => assigned.oid === officer.id || assigned.oid === officer.code));
   const scheduled = hours(job.start, job.end);
   const selectedOfficer = job.officers.find((officer) => officer.oid === selectedOfficerId);
   const selectedWorked = selectedOfficer
@@ -101,25 +101,29 @@ export function JobDetailScreen({
   const scheduledTime = timeRangeLabel(job.start, job.end);
   const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${scheduledTime}\n${job.required} officers needed\n\n${job.description}`;
   const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${timeLabel(job.start)}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
-  const signReportMsg = `Duty Officer Report ${job.id}\n${job.customer}\n${job.location}\n\nPlease review the evidence and sign the DO report:\n${signLink}`;
+  const signUrl = (token: string) => `${window.location.origin}/sign/${encodeURIComponent(job.id)}?token=${encodeURIComponent(token)}`;
+  const signMessage = (url: string) => `Duty Officer Report ${job.id}\n${job.customer}\n${job.location}\n\nPlease review the evidence and sign the DO report:\n${url}`;
   const signTokenMutation = useMutation({
     mutationFn: () => createSignReportToken(job.id),
     onSuccess: ({ token }) => {
-      setSignLink(`${window.location.origin}/sign/${encodeURIComponent(job.id)}?token=${encodeURIComponent(token)}`);
+      setSignLink(signUrl(token));
     },
     onError: (error) => {
       setLinkError(error instanceof Error ? error.message : 'Could not create sign report link');
     },
   });
+  function withSignLink(next: (url: string) => void) {
+    if (signLink) {
+      next(signLink);
+      return;
+    }
+    signTokenMutation.mutate(undefined, { onSuccess: ({ token }) => next(signUrl(token)) });
+  }
 
   useEffect(() => {
     setSignLink('');
     setLinkError('');
   }, [job.id]);
-
-  useEffect(() => {
-    if (allOfficersCheckedOut && !signLink && !signTokenMutation.isPending) signTokenMutation.mutate();
-  }, [allOfficersCheckedOut, signLink, signTokenMutation]);
 
   return (
     <div className="pn-stack pn-job-detail">
@@ -222,7 +226,7 @@ export function JobDetailScreen({
                 <span />
               </div>
               {job.officers.map((officer) => {
-                const officerProfile = officers.find((item) => item.id === officer.oid);
+                const officerProfile = officers.find((item) => item.id === officer.oid || item.code === officer.oid);
                 const phone = officerProfile?.phone.replace(/\D/g, '');
                 const officerCode = officerProfile?.code ?? officer.oid;
                 const canRemove = !officer.confirmed && !officer.onDuty && !officer.actualStart && !officer.actualEnd;
@@ -442,14 +446,14 @@ export function JobDetailScreen({
                 <p>Job is finished — share this link with the site manager to capture their sign-off. The status stays Awaiting Signature until they sign.</p>
                 <label className="pn-sign-link">
                   <LinkIcon size={15} strokeWidth={2} />
-                  <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink} />
+                  <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink || 'Click Copy link to generate'} />
                 </label>
                 <div className="pn-sign-actions">
-                  <button disabled={!signLink} onClick={() => copyText(signLink, 'Sign report link copied')} type="button">
+                  <button disabled={signTokenMutation.isPending} onClick={() => withSignLink((url) => copyText(url, 'Sign report link copied'))} type="button">
                     <CopyIcon size={14} strokeWidth={2} />
                     Copy link
                   </button>
-                  <button disabled={!signLink} onClick={() => copyText(signReportMsg, 'Sign report message copied')} type="button">
+                  <button disabled={signTokenMutation.isPending} onClick={() => withSignLink((url) => copyText(signMessage(url), 'Sign report message copied'))} type="button">
                     <MessageIcon size={14} strokeWidth={2} />
                     Copy message
                   </button>

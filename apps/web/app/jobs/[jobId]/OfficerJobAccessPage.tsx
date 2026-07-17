@@ -186,10 +186,17 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           {currentSlot ? (
             <Panel>
               <div style={styles.panelHead}><span>NEXT UPLOAD - {currentSlot.time}</span><Badge>Upcoming</Badge></div>
-              <div style={styles.timer}>{uploadCountdown}</div>
-              <p style={styles.centerMuted}>Next upload opens at {currentSlot.time}.</p>
-              <PhotoControls disabled={!isSlotReady(currentSlot, now)} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
-              <button disabled={busy || !isSlotReady(currentSlot, now) || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: currentSlot.key })} style={styles.lateButton} type="button">Submit photo</button>
+              <div style={styles.uploadCardBody}>
+                <span style={styles.startsIn}>STARTS IN</span>
+                <div style={styles.uploadTimer}>{uploadCountdown}</div>
+                <p style={styles.centerMuted}>Nothing to do yet — we'll notify you at {currentSlot.time}.</p>
+                <NextUploadControls disabled={!isSlotReady(currentSlot, now)} file={file} setFile={setFile} />
+                {isSlotReady(currentSlot, now) ? (
+                  <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: currentSlot.key })} style={styles.lateButton} type="button">Submit photo</button>
+                ) : (
+                  <p style={styles.tooEarly}>Too early — the upload window opens at {currentSlot.time} for 5 mins.</p>
+                )}
+              </div>
             </Panel>
           ) : null}
           {lateSlot ? <LateEvidenceCard busy={busy} file={lateFile} photo={latePhoto} photoCount={latePhotoCount} setFile={setLateFile} setPhoto={setLatePhoto} slot={lateSlot} submit={() => evidenceMutation.mutate({ proofWindow: lateSlot.key, file: lateFile, photo: latePhoto })} /> : null}
@@ -364,6 +371,21 @@ function PhotoControls({ disabled = false, file, photo, setFile, setPhoto }: { d
   );
 }
 
+function NextUploadControls({ disabled = false, file, setFile }: { disabled?: boolean; file: File | null; setFile: (file: File | null) => void }) {
+  const preview = useObjectUrl(file);
+  return (
+    <div style={styles.photoBlock}>
+      <div style={styles.thumbs}>
+        {file ? <Thumb label={file.name} onClear={() => setFile(null)} src={preview} /> : null}
+      </div>
+      <div className="officer-photo-actions" style={styles.nextUploadActions}>
+        <label style={{ ...styles.fileButton, ...(disabled ? styles.fileButtonDisabled : {}) }}>▧&nbsp; Camera<input accept="image/*" capture="environment" disabled={disabled} hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
+        <label style={{ ...styles.fileButton, ...(disabled ? styles.fileButtonDisabled : {}) }}>▧&nbsp; Gallery<input accept="image/*" disabled={disabled} hidden onChange={(event) => setFile(event.target.files?.[0] ?? null)} type="file" /></label>
+      </div>
+    </div>
+  );
+}
+
 function Thumb({ label, onClear, src }: { label: string; onClear: () => void; src?: string }) {
   return <div style={styles.thumb}><button onClick={onClear} style={styles.clearThumb} type="button">×</button>{src ? <img alt="" src={src} style={styles.thumbImage} /> : <span>□</span>}<small>{label}</small></div>;
 }
@@ -382,9 +404,8 @@ function Stat({ label, value, tone = '#0A0A0A' }: { label: string; value: string
 }
 
 function buildSlots(startAt: string, endAt: string): Slot[] {
-  const start = todayAtTime(timeKey(startAt));
-  const end = todayAtTime(timeKey(endAt));
-  if (end <= start) end.setDate(end.getDate() + 1);
+  const start = new Date(startAt);
+  const end = new Date(endAt);
   const slots: Slot[] = [{ key: 'check-in', time: scheduledTime(startAt), title: 'Check-in - GPS + photo', kind: 'check-in', at: start }];
   for (const at = new Date(start.getTime() + 3_600_000); at < end; at.setHours(at.getHours() + 1)) {
     const key = dateTimeKey(at);
@@ -432,7 +453,7 @@ function useObjectUrl(file: File | null) {
 }
 
 function scheduledTime(value: string | null) {
-  return value ? formatTimeKey(timeKey(value)) : '--:--';
+  return value ? formatTime(new Date(value)) : '--:--';
 }
 
 function timestampTime(value: string | null) {
@@ -440,7 +461,7 @@ function timestampTime(value: string | null) {
 }
 
 function clockTime(value: Date) {
-  return formatTime(value);
+  return value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function countdownLabel(target: Date, now: Date) {
@@ -448,33 +469,35 @@ function countdownLabel(target: Date, now: Date) {
   const hours = Math.floor(seconds / 3_600);
   const minutes = Math.floor((seconds % 3_600) / 60);
   const secs = seconds % 60;
-  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : `${minutes}:${String(secs).padStart(2, '0')}`;
-}
-
-function timeKey(value: string | null) {
-  return value ? value.slice(11, 16) : '--:--';
+  return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 function dateTimeKey(value: Date) {
-  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+  const parts = singaporeTimeParts(value);
+  return `${parts.hour}:${parts.minute}`;
 }
 
 function formatTime(value: Date) {
-  return value.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return value.toLocaleTimeString('en-US', { timeZone: 'Asia/Singapore', hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function formatTimeKey(value: string) {
   const [hour = '0', minute = '00'] = value.split(':');
-  const date = new Date();
-  date.setHours(Number(hour), Number(minute), 0, 0);
-  return formatTime(date);
+  const hourNumber = Number(hour);
+  const period = hourNumber >= 12 ? 'PM' : 'AM';
+  const displayHour = hourNumber % 12 || 12;
+  return `${displayHour}:${minute.padStart(2, '0')} ${period}`;
 }
 
-function todayAtTime(value: string) {
-  const [hour = '0', minute = '00'] = value.split(':');
-  const date = new Date();
-  date.setHours(Number(hour), Number(minute), 0, 0);
-  return date;
+function singaporeTimeParts(value: Date) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Singapore',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(value);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
+  return { hour: part('hour'), minute: part('minute') };
 }
 
 function numberOrNull(value: string | null) {
@@ -540,14 +563,19 @@ const styles: Record<string, CSSProperties> = {
   thumbImage: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
   clearThumb: { position: 'absolute', top: 4, right: 4, zIndex: 1, width: 17, height: 17, border: '1px solid #DDD', borderRadius: 999, background: '#FFF', color: '#9A9A9A', lineHeight: 1 },
   photoActions: { display: 'grid', gridTemplateColumns: '1fr', gap: 8 },
+  nextUploadActions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
   fileButton: { display: 'grid', height: 38, placeItems: 'center', border: '1px solid #D4D4D4', borderRadius: 4, background: '#FFFFFF', fontSize: 12, fontWeight: 700 },
   fileButtonDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   primaryAction: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#050505', color: '#FFFFFF', fontSize: 13, fontWeight: 800 },
   secondaryAction: { width: '100%', height: 44, border: '1px solid #DADADA', borderRadius: 4, background: '#FFFFFF', color: '#0A0A0A', fontSize: 13, fontWeight: 800 },
   backToShift: { display: 'block', width: '100%', height: 52, marginTop: 18, border: 0, background: 'transparent', color: '#525252', fontSize: 16, fontWeight: 700 },
   footerNote: { margin: '8px 0 0', color: '#A3A3A3', textAlign: 'center', fontSize: 10 },
+  uploadCardBody: { padding: '18px 10px 12px', textAlign: 'center' },
+  startsIn: { display: 'block', color: '#A3A3A3', fontSize: 10, letterSpacing: 1.5 },
+  uploadTimer: { margin: '4px 0 6px', textAlign: 'center', fontFamily: appFont, fontSize: 44, lineHeight: 1, fontWeight: 900 },
   timer: { margin: '20px 0 6px', textAlign: 'center', fontFamily: appFont, fontSize: 42, fontWeight: 900 },
   centerMuted: { margin: '0 20px 14px', color: '#737373', textAlign: 'center', fontSize: 12 },
+  tooEarly: { margin: '0 0 2px', color: '#A3A3A3', textAlign: 'center', fontSize: 11 },
   slotRow: { display: 'grid', gridTemplateColumns: '70px 10px 1fr auto', alignItems: 'center', gap: 9, padding: '9px 10px', borderTop: '1px solid #EFEFEF', fontSize: 12 },
   mono: { fontFamily: appFont, fontWeight: 700, whiteSpace: 'nowrap' },
   dot: { width: 7, height: 7, borderRadius: 999 },

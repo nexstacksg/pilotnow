@@ -6,10 +6,17 @@ import { PencilIcon } from '../../../features/admin/components/icons';
 
 type Report = {
   id: string;
+  status: string;
   customer: { name: string };
   site: { name: string; address: string | null };
   startAt: string;
   endAt: string;
+  signOff?: {
+    signatureImage: string | null;
+    signedBy: string | null;
+    signerRole: string | null;
+    signedAt: string | null;
+  };
   assignments: {
     officerId: string;
     officerName: string;
@@ -31,6 +38,9 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
   const [tab, setTab] = useState<'images' | 'sign'>('images');
   const [signed, setSigned] = useState(false);
   const [signatureImage, setSignatureImage] = useState('');
+  const [signedAt, setSignedAt] = useState('');
+  const [signerName, setSignerName] = useState('');
+  const [signerRole, setSignerRole] = useState('');
   const [clearSignatureCount, setClearSignatureCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -42,6 +52,15 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : 'Could not load report');
         setReport(body.item);
+        if (body.item?.signOff?.signatureImage) {
+          setSigned(true);
+          setSignatureImage(body.item.signOff.signatureImage);
+          setSignedAt(body.item.signOff.signedAt ?? '');
+          setSignerName(body.item.signOff.signedBy ?? '');
+          setSignerRole(body.item.signOff.signerRole ?? '');
+          setSent(body.item.status === 'COMPLETED');
+          setTab('sign');
+        }
       })
       .catch((err) => setError(err instanceof Error ? err.message : 'Could not load report'));
   }, [jobId, token]);
@@ -61,13 +80,23 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
     setSending(true);
     setError('');
     try {
+      const signedBy = signerName || window.prompt('Signer name')?.trim();
+      if (!signedBy) return;
+      const role = signerRole || window.prompt('Signer role', 'Site Manager')?.trim() || 'Site Manager';
       const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/sign-report`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, signatureImage, signedBy, signerRole: role }),
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof body.error === 'string' ? body.error : 'Could not send report');
+      if (body.item?.signOff?.signatureImage) {
+        setReport(body.item);
+        setSignatureImage(body.item.signOff.signatureImage);
+        setSignedAt(body.item.signOff.signedAt ?? '');
+        setSignerName(body.item.signOff.signedBy ?? signedBy);
+        setSignerRole(body.item.signOff.signerRole ?? role);
+      }
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not send report');
@@ -128,7 +157,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
               </div>
             );
           })}
-          <button onClick={() => setTab('sign')} style={styles.primary} type="button">Process to Sign Report</button>
+          <button onClick={() => setTab('sign')} style={styles.primary} type="button">Proceed to Sign Report</button>
         </section>
       ) : (
         <section style={styles.card}>
@@ -152,19 +181,23 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
           <SignaturePad clearCount={clearSignatureCount} onSigned={(image) => {
             setSignatureImage(image);
             setSigned(true);
+            setSignedAt((value) => value || new Date().toISOString());
           }} />
           <div style={styles.actions}>
             <button onClick={() => {
               setSigned(false);
               setSignatureImage('');
+              setSignedAt('');
+              setSignerName('');
+              setSignerRole('');
               setClearSignatureCount((count) => count + 1);
             }} style={styles.secondary} type="button">Clear</button>
             <button disabled={!signed} style={styles.primary} type="button">Confirm Signature</button>
           </div>
           <div style={styles.signedBox}>
-            <span>Signed by</span><strong>Mr. James Lim</strong>
-            <span>Role</span><strong>Site Manager</strong>
-            <span>Date & Time</span><strong>{signed ? new Date().toLocaleString() : '-'}</strong>
+            <span>Signed by</span><strong>{signerName || '-'}</strong>
+            <span>Role</span><strong>{signerRole || '-'}</strong>
+            <span>Date & Time</span><strong>{signedAt ? new Date(signedAt).toLocaleString() : '-'}</strong>
           </div>
           <div style={styles.actions}>
             <button disabled={!signed} onClick={() => window.print()} style={styles.secondary} type="button">Download PDF</button>
@@ -172,7 +205,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
               {sent ? 'Completed' : sending ? 'Sending...' : 'Send to Admin'}
             </button>
           </div>
-          <PrintableReport report={report} photosByOfficer={photosByOfficer} sent={sent} signatureImage={signatureImage} signed={signed} />
+          <PrintableReport report={report} photosByOfficer={photosByOfficer} sent={sent} signatureImage={signatureImage} signed={signed} signedAt={signedAt} signerName={signerName} signerRole={signerRole} />
         </section>
       )}
     </main>
@@ -267,7 +300,7 @@ function SignaturePad({ clearCount, onSigned }: { clearCount: number; onSigned: 
   );
 }
 
-function PrintableReport({ photosByOfficer, report, sent, signatureImage, signed }: { photosByOfficer: Map<string, Report['proofPhotos']>; report: Report; sent: boolean; signatureImage: string; signed: boolean }) {
+function PrintableReport({ photosByOfficer, report, sent, signatureImage, signed, signedAt, signerName, signerRole }: { photosByOfficer: Map<string, Report['proofPhotos']>; report: Report; sent: boolean; signatureImage: string; signed: boolean; signedAt: string; signerName: string; signerRole: string }) {
   const checkSets = report.assignments.reduce((count, officer) => {
     const photos = photosByOfficer.get(officer.officerId) ?? [];
     return count + Number(photos.some((photo) => photo.proofWindow === 'check-in') && photos.some((photo) => photo.proofWindow === 'check-out'));
@@ -320,8 +353,8 @@ function PrintableReport({ photosByOfficer, report, sent, signatureImage, signed
         <span>SIGNED</span>
       </div>
       <footer>
-        <strong>Mr. James Lim · Site Manager</strong>
-        <b>{signed ? new Date().toLocaleString() : '-'}</b>
+        <strong>{signerName || '-'} · {signerRole || '-'}</strong>
+        <b>{signedAt ? new Date(signedAt).toLocaleString() : '-'}</b>
       </footer>
       <small>Generated by PilotNow · pilotnow.app <span>{docNo} · Page 1 of 1</span></small>
     </section>

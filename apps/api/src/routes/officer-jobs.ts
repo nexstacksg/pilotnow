@@ -130,22 +130,16 @@ function jsonError(c: Context, status: 400 | 401 | 404 | 500, message: string) {
   return c.json({ error: message }, status);
 }
 
-function singaporeMinuteKey(value: Date) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Singapore',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(value);
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
-  return Number(`${part('year')}${part('month')}${part('day')}${part('hour')}${part('minute')}`);
+function isImageContentType(value: string) {
+  return /^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(value);
 }
 
-function scheduledMinuteKey(value: Date) {
-  return Number(value.toISOString().slice(0, 16).replace(/\D/g, ''));
+function isExpectedMediaRef(mediaRef: string, jobCode: string, assignmentId: string) {
+  const cdn = process.env.DO_SPACES_CDN?.replace(/\/+$/, '');
+  if (!cdn) return true;
+  const root = process.env.DO_SPACES_ROOT_PATH?.replace(/^\/+|\/+$/g, '') || 'pilotnow';
+  const prefix = `${root}/evidence/${jobCode}/${assignmentId}`.split('/').map(encodeUriPart).join('/');
+  return mediaRef.startsWith(`${cdn}/${prefix}/`);
 }
 
 function signOfficerToken(payload: z.infer<typeof tokenPayload>) {
@@ -388,7 +382,7 @@ export const officerJobs = new Hono()
     if (!parsed.success) return jsonError(c, 400, 'Invalid check-in payload');
 
     const now = new Date();
-    if (singaporeMinuteKey(now) < scheduledMinuteKey(access.job.startAt)) return jsonError(c, 400, `Check-in opens at ${access.job.startAt.toISOString()}`);
+    if (now < access.job.startAt) return jsonError(c, 400, `Check-in opens at ${access.job.startAt.toISOString()}`);
 
     await getDb()
       .update(schema.jobAssignments)
@@ -403,6 +397,7 @@ export const officerJobs = new Hono()
       .where(eq(schema.jobAssignments.id, access.assignment.id));
 
     if (parsed.data.evidencePhotoUrl) {
+      if (!isExpectedMediaRef(parsed.data.evidencePhotoUrl, access.job.jobCode, access.assignment.id)) return jsonError(c, 400, 'Invalid evidence photo');
       await addEvidence({
         jobId: access.job.id,
         assignmentId: access.assignment.id,
@@ -421,6 +416,7 @@ export const officerJobs = new Hono()
 
     const parsed = evidencePayload.safeParse(await c.req.json().catch(() => undefined));
     if (!parsed.success) return jsonError(c, 400, 'Invalid evidence payload');
+    if (!isExpectedMediaRef(parsed.data.mediaRef, access.job.jobCode, access.assignment.id)) return jsonError(c, 400, 'Invalid evidence photo');
 
     await addEvidence({
       jobId: access.job.id,
@@ -439,6 +435,7 @@ export const officerJobs = new Hono()
 
     const parsed = uploadPayload.safeParse(await c.req.json().catch(() => undefined));
     if (!parsed.success) return jsonError(c, 400, 'Invalid upload payload');
+    if (!isImageContentType(parsed.data.contentType)) return jsonError(c, 400, 'Only image uploads are supported');
 
     const signed = spacesUploadUrl(evidenceKey(access.job.jobCode, access.assignment.id, parsed.data.filename));
     return c.json({ ...signed, method: 'PUT', headers: { ...signed.headers, 'content-type': parsed.data.contentType } });
@@ -451,6 +448,7 @@ export const officerJobs = new Hono()
       const form = await c.req.formData();
       const file = form.get('photo');
       if (!(file instanceof File)) return jsonError(c, 400, 'Photo file is required');
+      if (file.type && !isImageContentType(file.type)) return jsonError(c, 400, 'Only image uploads are supported');
 
       return c.json({ mediaRef: await uploadFileToSpaces(access.job.jobCode, access.assignment.id, file) });
     } catch (error) {
@@ -475,6 +473,7 @@ export const officerJobs = new Hono()
       .where(eq(schema.jobAssignments.id, access.assignment.id));
 
     if (parsed.data.evidencePhotoUrl) {
+      if (!isExpectedMediaRef(parsed.data.evidencePhotoUrl, access.job.jobCode, access.assignment.id)) return jsonError(c, 400, 'Invalid evidence photo');
       await addEvidence({
         jobId: access.job.id,
         assignmentId: access.assignment.id,

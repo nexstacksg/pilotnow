@@ -27,7 +27,7 @@ import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
-import { cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
+import { assignOfficerToJob, cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
 import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
@@ -512,10 +512,10 @@ export function AdminApp({
     }
   }
 
-  function addOfficerToJob(oid: string) {
+  async function addOfficerToJob(oid: string) {
     const officer = officers.find((item) => item.id === oid);
     if (!officer || officer.status === 'Blocked') return;
-    if (selectedJob.officers.some((item) => item.oid === oid)) {
+    if (selectedJob.officers.some((item) => item.oid === oid || item.oid === officer.code)) {
       flash('Officer already added to this job', 'error');
       return;
     }
@@ -523,18 +523,14 @@ export function AdminApp({
       flash(`Officer limit reached for ${selectedJob.id}`, 'error');
       return;
     }
-    const jobOfficer: JobOfficer = {
-      oid: officer.id,
-      name: officer.name,
-      ic: officer.ic,
-      rate: officer.rate,
-      confirmed: false,
-      onDuty: false,
-      actualStart: '',
-      actualEnd: '',
-    };
-    updateJob(selectedJob.id, (job) => ({ ...job, officers: [...job.officers, jobOfficer] }));
-    flash(`${officer.name} added`);
+    try {
+      const updated = await assignOfficerToJob(selectedJob.id, oid, selectedJob);
+      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updated.id ? { ...job, ...updated } : job)));
+      flash(`${officer.name} added`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not add officer. ${reason}`, 'error');
+    }
   }
 
   function toggleOfficer(jobIdValue: string, oid: string, field: 'confirmed' | 'onDuty') {

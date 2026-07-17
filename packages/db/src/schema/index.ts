@@ -149,6 +149,10 @@ export const jobs = pgTable(
     billingStatus: billingStatus('billing_status').notNull().default('NOT_BILLED'),
     invoiceNumber: text('invoice_number'),
     billedAt: timestamp('billed_at', { withTimezone: true }),
+    siteManagerSignature: text('site_manager_signature'),
+    siteManagerSignedBy: text('site_manager_signed_by'),
+    siteManagerSignerRole: text('site_manager_signer_role'),
+    siteManagerSignedAt: timestamp('site_manager_signed_at', { withTimezone: true }),
     // FR-036: agent-created jobs start as DRAFT; human confirmation flips to CONFIRMED
     recordState: recordState('record_state').notNull().default('CONFIRMED'),
     postedToGroupAt: timestamp('posted_to_group_at', { withTimezone: true }),
