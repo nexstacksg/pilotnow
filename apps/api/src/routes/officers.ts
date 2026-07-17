@@ -55,6 +55,13 @@ function payableAmount(hoursWorked: number, rateAgreed: number) {
   return Math.round(hoursWorked * rateAgreed * 100) / 100;
 }
 
+function effectiveHistoryStatus(job: typeof schema.jobs.$inferSelect, now: Date) {
+  if (job.status === 'CANCELLED' || job.status === 'COMPLETED') return job.status;
+  if (now >= job.endAt) return 'COMPLETED' as const;
+  if (now >= job.startAt) return 'IN_PROGRESS' as const;
+  return job.status;
+}
+
 function serializeOfficer(row: typeof schema.officers.$inferSelect & { jobsCount?: number }) {
   return {
     id: row.officerCode,
@@ -168,11 +175,14 @@ export const officers = new Hono()
       .where(eq(schema.jobAssignments.officerId, officer.id))
       .orderBy(desc(schema.jobs.startAt));
 
+    const now = new Date();
+
     return c.json({
       items: rows.map((row) => {
         const hoursWorked = decimal(row.assignment.hoursWorked, scheduledHours(row.job.startAt, row.job.endAt));
         const rateAgreed = decimal(row.assignment.rateAgreed, decimal(row.assignment.rateOffered, decimal(officer.defaultHourlyRate, 14)));
         const payable = decimal(row.assignment.payable, payableAmount(hoursWorked, rateAgreed));
+        const status = effectiveHistoryStatus(row.job, now);
 
         return {
           id: row.assignment.id,
@@ -186,7 +196,7 @@ export const officers = new Hono()
           hoursWorked,
           payable,
           currency: row.assignment.currency,
-          status: row.job.status,
+          status,
           ackStatus: row.assignment.ackStatus,
           paymentStatus: row.assignment.paymentStatus,
         };

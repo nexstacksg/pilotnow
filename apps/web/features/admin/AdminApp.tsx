@@ -234,7 +234,7 @@ export function AdminApp({
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
   const [jobFilter, setJobFilter] = useState<JobListFilter>('All');
   const [billingFilter, setBillingFilter] = useState<BillingFilter>(initialBillingFilter);
-  const [search, setSearch] = useState('');
+  const [searchByScreen, setSearchByScreen] = useState<Partial<Record<Screen, string>>>({});
   const [createOpen, setCreateOpen] = useState(false);
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [officerOpen, setOfficerOpen] = useState(false);
@@ -272,6 +272,7 @@ export function AdminApp({
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
+  const search = searchByScreen[screen] ?? '';
   const searchPlaceholder =
     screen === 'officers'
       ? 'Search officers...'
@@ -444,6 +445,10 @@ export function AdminApp({
       const result = searchResults[activeSearchIndex] ?? searchResults[0];
       if (result) selectSearchResult(result);
     }
+  }
+
+  function updateSearch(value: string) {
+    setSearchByScreen((items) => ({ ...items, [screen]: value }));
   }
 
   function openSummaryJob(id: string) {
@@ -663,6 +668,12 @@ export function AdminApp({
   }
 
   async function deleteOfficerProfile(id: string) {
+    const officer = officers.find((item) => item.id === id);
+    if (officer?.status === 'Inactive') {
+      flash('Inactive officers cannot be deleted.', 'error');
+      return false;
+    }
+
     setDeleteOfficerId(id);
     return false;
   }
@@ -993,7 +1004,7 @@ export function AdminApp({
           {screen !== 'dashboard' ? (
             <div className="pn-search">
               <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
-              <input aria-label="Search" onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} value={search} />
+              <input aria-label="Search" onChange={(event) => updateSearch(event.target.value)} placeholder={searchPlaceholder} value={search} />
             </div>
           ) : null}
           {screen === 'officers' ? (
