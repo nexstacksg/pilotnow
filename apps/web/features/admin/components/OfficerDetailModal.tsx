@@ -217,6 +217,7 @@ export function OfficerDetailModal({
   const officerId = officer.id;
   const officerCode = officer.code ?? officer.id;
   const officerNotes = noteText(officer.notes);
+  const deleteDisabled = officer.status === 'Inactive';
   const officerMessage = [
     'PilotNow Officer Profile',
     `Officer ID: ${officerCode}`,
@@ -246,6 +247,7 @@ export function OfficerDetailModal({
   }
 
   async function deleteProfile() {
+    if (deleteDisabled) return;
     setDeleting(true);
     const ok = await onDelete(officerId);
     if (!ok) setDeleting(false);
@@ -306,7 +308,14 @@ export function OfficerDetailModal({
             <PencilIcon size={15} strokeWidth={2.1} />
             {editing ? 'View' : 'Edit'}
           </Button>
-          <button className="pn-icon-btn pn-profile-delete-btn" type="button" aria-label={`Delete ${officer.name}`} disabled={deleting} onClick={deleteProfile}>
+          <button
+            className="pn-icon-btn pn-profile-delete-btn"
+            type="button"
+            aria-label={`Delete ${officer.name}`}
+            disabled={deleting || deleteDisabled}
+            title={deleteDisabled ? 'Inactive officers cannot be deleted' : undefined}
+            onClick={deleteProfile}
+          >
             <TrashIcon size={16} strokeWidth={2.1} />
           </button>
           <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">

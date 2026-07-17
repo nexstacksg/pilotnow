@@ -663,6 +663,12 @@ export function AdminApp({
   }
 
   async function deleteOfficerProfile(id: string) {
+    const officer = officers.find((item) => item.id === id);
+    if (officer?.status === 'Inactive') {
+      flash('Inactive officers cannot be deleted.', 'error');
+      return false;
+    }
+
     setDeleteOfficerId(id);
     return false;
   }

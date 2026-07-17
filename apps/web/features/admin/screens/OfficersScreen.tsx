@@ -95,87 +95,94 @@ export function OfficersScreen({
           <span>Status</span>
           <span>Action</span>
         </div>
-        {visibleOfficers.map((officer) => (
-          <div
-            className="pn-table-row pn-click-row"
-            key={officer.id}
-            onClick={() => openOfficerProfile(officer.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                openOfficerProfile(officer.id);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-          >
-            <span className="pn-person">
-              <b>{initials(officer.name)}</b>
-              <span>
-                <strong>{officer.name}</strong>
-                <small>{officer.code ?? officer.id}</small>
+        {visibleOfficers.map((officer) => {
+          const deleteDisabled = officer.status === 'Inactive';
+
+          return (
+            <div
+              className="pn-table-row pn-click-row"
+              key={officer.id}
+              onClick={() => openOfficerProfile(officer.id)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openOfficerProfile(officer.id);
+                }
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <span className="pn-person">
+                <b>{initials(officer.name)}</b>
+                <span>
+                  <strong>{officer.name}</strong>
+                  <small>{officer.code ?? officer.id}</small>
+                </span>
               </span>
-            </span>
-            <span>{officer.phone}</span>
-            <span>
-              <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge>
-            </span>
-            <span><strong>{money(officer.rate)}/h</strong></span>
-            <span><strong>{officer.jobsCount}</strong></span>
-            <span>
-              <Badge tone={officer.status === 'Active' ? 'success' : officer.status === 'Blocked' ? 'danger' : officer.status === 'New' ? 'info' : 'muted'}>{officer.status}</Badge>
-            </span>
-            <span className="pn-row-actions" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
-              <button
-                className="pn-action-menu-trigger"
-                type="button"
-                aria-label={`Open actions for ${officer.name}`}
-                aria-expanded={openActionId === officer.id}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setOpenActionId((value) => (value === officer.id ? null : officer.id));
-                }}
-              >
-                <MoreVerticalIcon size={16} strokeWidth={2.2} />
-              </button>
-              {openActionId === officer.id ? (
-                <div className="pn-action-menu" onPointerDown={(event) => event.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenActionId(null);
-                      openOfficerProfile(officer.id);
-                    }}
-                  >
-                    <EyeIcon size={15} strokeWidth={2.1} />
-                    View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpenActionId(null);
-                      openOfficerEdit(officer.id);
-                    }}
-                  >
-                    <PencilIcon size={15} strokeWidth={2.1} />
-                    Edit
-                  </button>
-                  <button
-                    className="is-danger"
-                    type="button"
-                    onClick={() => {
-                      setOpenActionId(null);
-                      void onDeleteOfficer(officer.id);
-                    }}
-                  >
-                    <TrashIcon size={15} strokeWidth={2.1} />
-                    Delete
-                  </button>
-                </div>
-              ) : null}
-            </span>
-          </div>
-        ))}
+              <span>{officer.phone}</span>
+              <span>
+                <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge>
+              </span>
+              <span><strong>{money(officer.rate)}/h</strong></span>
+              <span><strong>{officer.jobsCount}</strong></span>
+              <span>
+                <Badge tone={officer.status === 'Active' ? 'success' : officer.status === 'Blocked' ? 'danger' : officer.status === 'New' ? 'info' : 'muted'}>{officer.status}</Badge>
+              </span>
+              <span className="pn-row-actions" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+                <button
+                  className="pn-action-menu-trigger"
+                  type="button"
+                  aria-label={`Open actions for ${officer.name}`}
+                  aria-expanded={openActionId === officer.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setOpenActionId((value) => (value === officer.id ? null : officer.id));
+                  }}
+                >
+                  <MoreVerticalIcon size={16} strokeWidth={2.2} />
+                </button>
+                {openActionId === officer.id ? (
+                  <div className="pn-action-menu" onPointerDown={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionId(null);
+                        openOfficerProfile(officer.id);
+                      }}
+                    >
+                      <EyeIcon size={15} strokeWidth={2.1} />
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenActionId(null);
+                        openOfficerEdit(officer.id);
+                      }}
+                    >
+                      <PencilIcon size={15} strokeWidth={2.1} />
+                      Edit
+                    </button>
+                    <button
+                      className="is-danger"
+                      disabled={deleteDisabled}
+                      type="button"
+                      title={deleteDisabled ? 'Inactive officers cannot be deleted' : undefined}
+                      onClick={() => {
+                        if (deleteDisabled) return;
+                        setOpenActionId(null);
+                        void onDeleteOfficer(officer.id);
+                      }}
+                    >
+                      <TrashIcon size={15} strokeWidth={2.1} />
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
+              </span>
+            </div>
+          );
+        })}
         {!visibleOfficers.length ? (
           <div className="pn-table-empty">
             No officers match this status filter.
