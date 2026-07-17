@@ -16,15 +16,18 @@ function paymentAmount(payment: Payment) {
 export function PaymentsScreen({
   payments,
   markPaid,
+  search,
   setPayOfficer,
 }: {
   payments: Payment[];
   markPaid: (id: string) => void;
+  search: string;
   setPayOfficer: (officer: string) => void;
 }) {
   const [statusFilter, setStatusFilter] = useState<PaymentFilter>('All');
   const [jobDate, setJobDate] = useState('');
   const [page, setPage] = useState(1);
+  const query = search.trim().toLowerCase();
 
   const pending = payments.filter((payment) => payment.status === 'Pending').reduce((sum, payment) => sum + paymentAmount(payment), 0);
   const paid = payments.filter((payment) => payment.status === 'Paid').reduce((sum, payment) => sum + paymentAmount(payment), 0);
@@ -33,9 +36,10 @@ export function PaymentsScreen({
       payments.filter((payment) => {
         const matchesStatus = statusFilter === 'All' || payment.status === statusFilter;
         const matchesDate = !jobDate || payment.jobDate === jobDate;
-        return matchesStatus && matchesDate;
+        const matchesSearch = !query || paymentSearchText(payment).includes(query);
+        return matchesStatus && matchesDate && matchesSearch;
       }),
-    [jobDate, payments, statusFilter],
+    [jobDate, payments, query, statusFilter],
   );
   const filteredTotal = filteredPayments.reduce((sum, payment) => sum + paymentAmount(payment), 0);
   const pageCount = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
@@ -47,7 +51,7 @@ export function PaymentsScreen({
 
   useEffect(() => {
     setPage(1);
-  }, [jobDate, statusFilter]);
+  }, [jobDate, query, statusFilter]);
 
   return (
     <div className="pn-stack">
@@ -139,4 +143,24 @@ export function PaymentsScreen({
       <Pagination from={from} label="Payment" onPageChange={setPage} page={currentPage} pageCount={pageCount} to={to} total={filteredPayments.length} />
     </div>
   );
+}
+
+function paymentSearchText(payment: Payment) {
+  const total = paymentAmount(payment);
+
+  return [
+    payment.officer,
+    payment.jobId,
+    payment.jobDate,
+    dateLabel(payment.jobDate),
+    payment.hours.toFixed(2),
+    `${payment.hours.toFixed(2)}h`,
+    money(payment.rate),
+    payment.rate.toString(),
+    money(total),
+    total.toString(),
+    payment.status,
+  ]
+    .join(' ')
+    .toLowerCase();
 }

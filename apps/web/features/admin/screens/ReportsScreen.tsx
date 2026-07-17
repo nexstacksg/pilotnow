@@ -65,13 +65,14 @@ const reportColumns: Record<ReportKey, ReportColumn[]> = {
   ],
 };
 
-export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[]; officers: Officer[]; payments: Payment[]; report?: OperationsReport | null }) {
+export function ReportsScreen({ jobs, officers, payments, report, search }: { jobs: Job[]; officers: Officer[]; payments: Payment[]; report?: OperationsReport | null; search: string }) {
   const [activeReport, setActiveReport] = useState<ReportKey>('completed');
   const defaultRange = useMemo(() => defaultDateRange(jobs, payments), [jobs, payments]);
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [dateRangeEdited, setDateRangeEdited] = useState(false);
   const [page, setPage] = useState(1);
+  const query = search.trim().toLowerCase();
 
   useEffect(() => {
     if (dateRangeEdited) return;
@@ -104,7 +105,9 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
     }),
     [completedRows, jobs, payments],
   );
-  const rows = reportRows[activeReport].filter((row) => isWithinDateRange(row.date, startDate, endDate));
+  const rows = reportRows[activeReport]
+    .filter((row) => isWithinDateRange(row.date, startDate, endDate))
+    .filter((row) => !query || reportRowSearchText(row).includes(query));
   const columns = reportColumns[activeReport];
   const active = reportTabs.find((tab) => tab.key === activeReport) ?? defaultReportTab;
   const reportSummary = buildReportSummary(activeReport, rows, officers);
@@ -117,7 +120,7 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
 
   useEffect(() => {
     setPage(1);
-  }, [activeReport, startDate, endDate]);
+  }, [activeReport, endDate, query, startDate]);
 
   return (
     <div className="pn-reports-screen">
@@ -192,6 +195,17 @@ export function ReportsScreen({ jobs, officers, payments, report }: { jobs: Job[
       />
     </div>
   );
+}
+
+function reportRowSearchText(row: ReportRow) {
+  return [
+    row.id,
+    row.date,
+    dateLabel(row.date),
+    ...Object.values(row.cells).map((value) => String(value)),
+  ]
+    .join(' ')
+    .toLowerCase();
 }
 
 function buildCompletedReportRows(jobs: Job[], payments: Payment[], report?: OperationsReport | null) {

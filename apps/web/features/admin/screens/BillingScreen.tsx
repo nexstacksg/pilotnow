@@ -8,17 +8,22 @@ const PAGE_SIZE = 8;
 export function BillingScreen({
   jobs,
   filter,
+  search,
   setFilter,
   openBill,
 }: {
   jobs: Job[];
   filter: BillingFilter;
+  search: string;
   setFilter: (filter: BillingFilter) => void;
   openBill: (id: string) => void;
 }) {
   const [page, setPage] = useState(1);
   const filters: BillingFilter[] = ['All', 'Not Billed', 'Billed'];
-  const filtered = filter === 'All' ? jobs : jobs.filter((job) => job.billing === filter);
+  const query = search.trim().toLowerCase();
+  const filtered = jobs
+    .filter((job) => filter === 'All' || job.billing === filter)
+    .filter((job) => !query || billingSearchText(job).includes(query));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const start = (currentPage - 1) * PAGE_SIZE;
@@ -28,7 +33,7 @@ export function BillingScreen({
 
   useEffect(() => {
     setPage(1);
-  }, [filter]);
+  }, [filter, query]);
 
   return (
     <div className="pn-billing-screen">
@@ -81,4 +86,21 @@ export function BillingScreen({
       />
     </div>
   );
+}
+
+function billingSearchText(job: Job) {
+  return [
+    job.id,
+    job.customer,
+    job.location,
+    job.date,
+    dateLabel(job.date),
+    job.invoice,
+    job.billedDate,
+    job.billedDate ? dateLabel(job.billedDate) : '',
+    job.billing,
+    job.status,
+  ]
+    .join(' ')
+    .toLowerCase();
 }
