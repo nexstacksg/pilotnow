@@ -271,7 +271,16 @@ export function AdminApp({
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
-  const searchPlaceholder = screen === 'officers' ? 'Search officers...' : 'Search jobs, officers...';
+  const searchPlaceholder =
+    screen === 'officers'
+      ? 'Search officers...'
+      : screen === 'payments'
+        ? 'Search payments...'
+        : screen === 'billing'
+          ? 'Search billing...'
+          : screen === 'reports'
+            ? 'Search reports...'
+            : 'Search jobs, officers...';
   const deleteOfficerTarget = deleteOfficerId ? officersWithJobCounts.find((officer) => officer.id === deleteOfficerId) : null;
   const deleteOfficerHasHistory = Boolean(deleteOfficerTarget?.jobsCount);
   const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
@@ -1036,7 +1045,7 @@ export function AdminApp({
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
-          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
+          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} search={search} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
             jobsReady && billingReady ? (
               <BillingScreen
@@ -1046,13 +1055,14 @@ export function AdminApp({
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });
                 }}
+                search={search}
                 setFilter={setBillingFilter}
               />
             ) : (
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} search={search} /> : <LoadingPanel />) : null}
           {screen === 'profile' ? <ProfileScreen /> : null}
         </div>
       </main>
