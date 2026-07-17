@@ -119,6 +119,15 @@ export function JobDetailScreen({
                   <BillingIcon size={14} strokeWidth={2} />
                   Job Report
                 </Button>
+                <button
+                  className="pn-icon-btn pn-whatsapp-copy-btn"
+                  onClick={() => copyText(jobMsg, 'WhatsApp message copied')}
+                  type="button"
+                  aria-label="Copy WhatsApp message"
+                  title="Copy WhatsApp message"
+                >
+                  <MessageIcon size={20} strokeWidth={1.8} />
+                </button>
                 <Button onClick={onEdit}>
                   <PencilIcon size={14} strokeWidth={2} />
                   Edit
@@ -399,7 +408,20 @@ function OfficerAssignmentModal({
 }) {
   const { officer, profile } = row;
   const workedLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '-';
-  const officerMsg = `Hi ${officer.name}, PilotNow Ops here.\n\nAssignment ${job.id}: ${job.customer} at ${job.location}\nDate: ${dateLabel(job.date)}\nTime: ${job.start}-${job.end}\n\nPlease confirm your availability and remember to post evidence photos during the job.`;
+  const officerMsg = [
+    'PilotNow Assignment Details',
+    `Officer: ${officer.name}`,
+    `Assignment: ${job.id}`,
+    `Customer: ${job.customer}`,
+    `Location: ${job.location}`,
+    `Date: ${dateLabel(job.date)}`,
+    `Time: ${job.start}-${job.end}`,
+    `Status: ${job.status}`,
+    `Confirmation: ${officer.confirmed ? 'Confirmed' : 'Not confirmed'}`,
+    `On duty: ${officer.onDuty ? 'Yes' : 'No'}`,
+    `Rate: ${money(officer.rate)}/h`,
+    `Instruction: Please confirm availability and post evidence photos during the job.`,
+  ].join('\n');
 
   return (
     <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={`${officer.name} assignment`}>
