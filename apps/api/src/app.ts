@@ -17,6 +17,7 @@ import { jobs } from './routes/jobs.js';
 import { officers } from './routes/officers.js';
 import { assignments } from './routes/assignments.js';
 import { proofs } from './routes/proofs.js';
+import { officerJobs } from './routes/officer-jobs.js';
 import { payables } from './routes/payables.js';
 import { billing } from './routes/billing.js';
 import { reports } from './routes/reports.js';
@@ -48,6 +49,7 @@ export const app = new Hono()
         officers: '/officers',
         assignments: '/assignments',
         proofs: '/proofs',
+        officerJobs: '/officer-jobs',
         payables: '/payables',
         billing: '/billing',
         reports: '/reports',
@@ -62,6 +64,7 @@ export const app = new Hono()
   .route('/officers', officers) // FR-005..006 — master data, onboarding
   .route('/assignments', assignments) // FR-007..010 — rates, assignment, acknowledgement
   .route('/proofs', proofs) // FR-012..016 — report-on-duty, proof photos, exceptions
+  .route('/officer-jobs', officerJobs) // Officer job access via signed JWT link token
   .route('/payables', payables) // FR-018..021 — hours, payable computation, PAID/UNPAID
   .route('/billing', billing) // FR-022 — BILLED/NOT BILLED
   .route('/reports', reports)

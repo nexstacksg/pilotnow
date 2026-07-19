@@ -7,6 +7,9 @@ export function createDb(connectionString = process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL is not set');
   }
   const pool = new Pool({ connectionString });
+  pool.on('error', (error) => {
+    console.error('Postgres idle client error', error);
+  });
   return drizzle(pool, { schema });
 }
 

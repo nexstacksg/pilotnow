@@ -1,20 +1,23 @@
-import { useState } from 'react';
-import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
+import { useMutation } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
-import { dateLabel, hours, icDocumentLabel, initials, money, statusTone } from '../lib/format';
+import { createOfficerJobToken, createSignReportToken } from '../lib/jobs-api';
+import { dateLabel, hours, icDocumentLabel, initials, money, statusTone, timeLabel, timeRangeLabel } from '../lib/format';
 import type { Job, JobOfficer, JobStatus, Officer, PhotoCheckpoint, Screen } from '../types';
 
 const lifecycleSteps: { key: JobStatus; label: string }[] = [
-  { key: 'Draft', label: 'Draft created' },
-  { key: 'Open', label: 'Posted / Waiting' },
-  { key: 'Assigned', label: 'Officers confirmed' },
-  { key: 'Ongoing', label: 'Job ongoing' },
+  { key: 'Draft Created', label: 'Draft Created' },
+  { key: 'Posted/Waiting', label: 'Posted/Waiting' },
+  { key: 'Officers confirmed', label: 'Officers confirmed' },
+  { key: 'Job ongoing', label: 'Job ongoing' },
+  { key: 'Awaiting sign-off', label: 'Awaiting sign-off' },
   { key: 'Completed', label: 'Completed' },
 ];
 
 const cancelledLifecycleSteps: { key: JobStatus; label: string }[] = [
-  { key: 'Draft', label: 'Draft created' },
-  { key: 'Open', label: 'Posted / Waiting' },
+  { key: 'Draft Created', label: 'Draft Created' },
+  { key: 'Posted/Waiting', label: 'Posted/Waiting' },
   { key: 'Cancelled', label: 'Cancelled' },
 ];
 
@@ -49,7 +52,23 @@ export function JobDetailScreen({
 }) {
   const [addPick, setAddPick] = useState('');
   const [selectedOfficerId, setSelectedOfficerId] = useState<string | null>(null);
-  const available = officers.filter((officer) => officer.status === 'Active' && !job.officers.some((assigned) => assigned.oid === officer.id));
+  const [linkError, setLinkError] = useState('');
+  const [signLink, setSignLink] = useState('');
+  const linkMutation = useMutation({
+    mutationFn: async ({ jobId, phone }: { jobId: string; phone: string }) => ({ jobId, phone, ...(await createOfficerJobToken(jobId, phone)) }),
+    onMutate: () => {
+      setLinkError('');
+    },
+    onSuccess: ({ jobId, phone, token }) => {
+      const url = `${window.location.origin}/jobs/${encodeURIComponent(jobId)}?hp=${encodeURIComponent(phone)}&token=${encodeURIComponent(token)}`;
+      setLinkError('');
+      copyText(url, "copied the officer's duty link");
+    },
+    onError: (error) => {
+      setLinkError(error instanceof Error ? error.message : 'Could not create officer link');
+    },
+  });
+  const available = officers.filter((officer) => officer.status === 'Active' && !job.officers.some((assigned) => assigned.oid === officer.id || assigned.oid === officer.code));
   const scheduled = hours(job.start, job.end);
   const selectedOfficer = job.officers.find((officer) => officer.oid === selectedOfficerId);
   const selectedWorked = selectedOfficer
@@ -74,25 +93,38 @@ export function JobDetailScreen({
   }, 0);
   const confirmedCount = job.officers.filter((officer) => officer.confirmed).length;
   const onDutyCount = job.officers.filter((officer) => officer.onDuty).length;
-  const allOfficersConfirmed = job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed);
-  const allOfficersOnDuty = allOfficersConfirmed && job.officers.every((officer) => officer.onDuty);
+  const checkedOutCount = job.officers.filter((officer) => officer.actualEnd).length;
+  const allOfficersCheckedOut = Boolean(job.officers.length) && job.officers.every((officer) => officer.actualEnd);
   const visibleLifecycleSteps = job.status === 'Cancelled' ? cancelledLifecycleSteps : lifecycleSteps;
-  const activeStep =
-    job.status === 'Cancelled'
-      ? visibleLifecycleSteps.length - 1
-      : job.status === 'Completed'
-        ? 4
-        : allOfficersOnDuty
-          ? 3
-          : allOfficersConfirmed
-            ? 2
-            : job.posted
-              ? 1
-              : 0;
+  const activeStep = Math.max(0, visibleLifecycleSteps.findIndex((step) => step.key === job.status));
   const stillNeeded = Math.max(0, job.required - job.officers.length);
   const isFull = job.officers.length >= job.required;
-  const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${job.start}–${job.end}\n${job.required} officers needed\n\n${job.description}`;
-  const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${job.start}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
+  const scheduledTime = timeRangeLabel(job.start, job.end);
+  const jobMsg = `PilotNow Job ${job.id}\n${job.location}\n${dateLabel(job.date)}, ${scheduledTime}\n${job.required} officers needed\n\n${job.description}`;
+  const reminderMsg = `Reminder — Job ${job.id} at ${job.location} starts today ${timeLabel(job.start)}. Please send your hourly proof photo every hour to this group. – PilotNow Ops`;
+  const signUrl = (token: string) => `${window.location.origin}/sign/${encodeURIComponent(job.id)}?token=${encodeURIComponent(token)}`;
+  const signMessage = (url: string) => `Duty Officer Report ${job.id}\n${job.customer}\n${job.location}\n\nPlease review the evidence and sign the DO report:\n${url}`;
+  const signTokenMutation = useMutation({
+    mutationFn: () => createSignReportToken(job.id),
+    onSuccess: ({ token }) => {
+      setSignLink(signUrl(token));
+    },
+    onError: (error) => {
+      setLinkError(error instanceof Error ? error.message : 'Could not create sign report link');
+    },
+  });
+  function withSignLink(next: (url: string) => void) {
+    if (signLink) {
+      next(signLink);
+      return;
+    }
+    signTokenMutation.mutate(undefined, { onSuccess: ({ token }) => next(signUrl(token)) });
+  }
+
+  useEffect(() => {
+    setSignLink('');
+    setLinkError('');
+  }, [job.id]);
 
   return (
     <div className="pn-stack pn-job-detail">
@@ -119,15 +151,6 @@ export function JobDetailScreen({
                   <BillingIcon size={14} strokeWidth={2} />
                   Job Report
                 </Button>
-                <button
-                  className="pn-icon-btn pn-whatsapp-copy-btn"
-                  onClick={() => copyText(jobMsg, 'WhatsApp message copied')}
-                  type="button"
-                  aria-label="Copy WhatsApp message"
-                  title="Copy WhatsApp message"
-                >
-                  <MessageIcon size={20} strokeWidth={1.8} />
-                </button>
                 <Button onClick={onEdit}>
                   <PencilIcon size={14} strokeWidth={2} />
                   Edit
@@ -136,7 +159,7 @@ export function JobDetailScreen({
             </div>
             <div className="pn-metrics">
               <Metric label="Date" value={dateLabel(job.date)} />
-              <Metric label="Time" value={`${job.start}-${job.end}`} />
+              <Metric label="Time" value={scheduledTime} />
               <Metric label="Officers" value={`${job.officers.length} of ${job.required}`} />
               <Metric label="Scheduled" value={`${scheduled}h`} />
             </div>
@@ -191,47 +214,72 @@ export function JobDetailScreen({
                 <span>Rate</span>
                 <span>Confirm</span>
                 <span>On duty</span>
+                <span>Link</span>
                 <span />
               </div>
-              {job.officers.map((officer) => (
-                <div className="pn-table-row" key={officer.oid}>
-                  <span>
-                    <button className="pn-officer-cell-button" onClick={() => setSelectedOfficerId(officer.oid)} type="button">
-                      <strong>
-                        {officer.name}
-                        <b>›</b>
-                      </strong>
-                    </button>
-                    <small>{officer.actualStart || job.start} - {officer.actualEnd || job.end}</small>
-                  </span>
-                  <span>
-                    <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : icDocumentLabel(officer.ic)}</Badge>
-                  </span>
-                  <span>{money(officer.rate)}/h</span>
-                  <span>
-                    <Button variant={officer.confirmed ? 'primary' : 'secondary'} onClick={() => toggleOfficer(job.id, officer.oid, 'confirmed')}>
-                      {officer.confirmed ? 'Confirmed' : 'Confirm'}
-                    </Button>
-                  </span>
-                  <span>
-                    <Button variant={officer.onDuty ? 'primary' : 'secondary'} onClick={() => toggleOfficer(job.id, officer.oid, 'onDuty')}>
-                      {officer.onDuty ? 'On duty' : 'Mark on duty'}
-                    </Button>
-                  </span>
-                  <span>
-                    <button className="pn-icon-btn pn-delete-btn" onClick={() => removeOfficer(officer.oid)} type="button" aria-label={`Remove ${officer.name}`}>
-                      <TrashIcon size={14} strokeWidth={2} />
-                    </button>
-                  </span>
-                </div>
-              ))}
+              {job.officers.map((officer) => {
+                const officerProfile = officers.find((item) => item.id === officer.oid || item.code === officer.oid);
+                const phone = (officerProfile?.phone || officer.phone || '').replace(/\D/g, '');
+                const officerCode = officerProfile?.code ?? officer.oid;
+                const linkTooltip = "copy the officer's duty link(check-in, check-out, photo upload)";
+                const canRemove = !officer.confirmed && !officer.onDuty && !officer.actualStart && !officer.actualEnd;
+                return (
+                  <div className="pn-table-row" key={officer.oid}>
+                    <span>
+                      <button className="pn-officer-cell-button" onClick={() => setSelectedOfficerId(officer.oid)} type="button">
+                        <strong>
+                          {officer.name}
+                          <b>›</b>
+                        </strong>
+                      </button>
+                      <small>{officerCode} · {officer.actualStart || '--:--'} - {officer.actualEnd || '--:--'}</small>
+                    </span>
+                    <span>
+                      <Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : icDocumentLabel(officer.ic)}</Badge>
+                    </span>
+                    <span>{money(officer.rate)}/h</span>
+                    <span>
+                      <Button variant={officer.confirmed ? 'primary' : 'secondary'} onClick={() => toggleOfficer(job.id, officer.oid, 'confirmed')}>
+                        {officer.confirmed ? 'Confirmed' : 'Confirm'}
+                      </Button>
+                    </span>
+                    <span>
+                      <Button variant={officer.onDuty ? 'primary' : 'secondary'} onClick={() => toggleOfficer(job.id, officer.oid, 'onDuty')}>
+                        {officer.onDuty ? 'On duty' : 'Mark on duty'}
+                      </Button>
+                    </span>
+                    <span>
+                      <button
+                        className="pn-icon-btn pn-tooltip-btn"
+                        data-tooltip={linkTooltip}
+                        disabled={linkMutation.isPending}
+                        onClick={() => {
+                          setLinkError('');
+                          if (phone) linkMutation.mutate({ jobId: job.id, phone });
+                        }}
+                        title={linkTooltip}
+                        type="button"
+                        aria-label={`Copy duty link for ${officer.name}`}
+                      >
+                        <LinkIcon size={14} strokeWidth={2} />
+                      </button>
+                    </span>
+                    <span>
+                      <button className="pn-icon-btn pn-delete-btn" disabled={!canRemove} onClick={() => removeOfficer(officer.oid)} type="button" aria-label={canRemove ? `Remove ${officer.name}` : `${officer.name} cannot be removed after confirmation or attendance`}>
+                        <TrashIcon size={14} strokeWidth={2} />
+                      </button>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
+            {linkError ? <div className="pn-needed-note">{linkError}</div> : null}
             <div className="pn-add-row">
               <select value={addPick} onChange={(event) => setAddPick(event.target.value)} disabled={isFull}>
                 <option value="">{isFull ? 'Officer limit reached' : 'Add participating officer...'}</option>
                 {available.map((officer) => (
                   <option key={officer.id} value={officer.id}>
-                    {officer.name} · {money(officer.rate)}/h{officer.ic ? '' : ' · IC missing'}
+                    {officer.code ?? officer.id} · {officer.name}{officer.ic ? '' : ' · IC missing'}
                   </option>
                 ))}
               </select>
@@ -272,6 +320,9 @@ export function JobDetailScreen({
                     <small>{photo.status === 'received' ? `by ${photo.by} · ${photo.at}` : photo.status === 'missing' ? 'No photo received' : 'Not due yet'}</small>
                   </span>
                   <div className="pn-row">
+                    {photo.mediaRef ? (
+                      <a className="pn-green-action" href={photo.mediaRef} rel="noreferrer" target="_blank">View photo</a>
+                    ) : null}
                     <Badge tone={photo.status === 'received' ? 'success' : photo.status === 'missing' ? 'danger' : 'muted'}>{photo.status}</Badge>
                     {photo.status !== 'received' ? (
                       <Button onClick={() => markPhoto(job.id, index, 'received')}>Received</Button>
@@ -288,12 +339,14 @@ export function JobDetailScreen({
         <div className="pn-stack">
           <Card>
             <div className="pn-whatsapp-head">
-              <span>
-                <WhatsAppIcon />
-              </span>
-              <div>
-                <h2>WhatsApp workflow</h2>
-                <small>{job.posted ? 'Group post sent' : 'Not posted yet'}</small>
+              <div className="pn-whatsapp-title">
+                <span>
+                  <WhatsAppIcon />
+                </span>
+                <div>
+                  <h2>WhatsApp workflow</h2>
+                  <small>{job.posted ? 'Group post sent' : 'Not posted yet'}</small>
+                </div>
               </div>
             </div>
             <div className="pn-wa-actions">
@@ -334,6 +387,10 @@ export function JobDetailScreen({
               <strong className="pn-blue">
                 {onDutyCount}/{job.officers.length}
               </strong>
+              <span>Checked out</span>
+              <strong className="pn-blue">
+                {checkedOutCount}/{job.officers.length}
+              </strong>
             </div>
           </Card>
 
@@ -361,16 +418,43 @@ export function JobDetailScreen({
             </div>
           </Card>
 
-          <Card className="pn-side-panel">
+          <Card className="pn-side-panel pn-billing-card">
             <div className="pn-billing-head">
               <h2>Billing</h2>
               <Badge tone={job.billing === 'Billed' ? 'success' : 'warning'}>{job.billing}</Badge>
             </div>
             {job.cancelReason ? <div className="pn-complete-note">{job.cancelReason}</div> : null}
-            <Button disabled={job.status === 'Completed' || job.status === 'Cancelled' || !allOfficersOnDuty} variant="primary" onClick={() => completeJob(job.id)}>
-              <CheckIcon size={16} strokeWidth={2.4} />
-              Complete job
-            </Button>
+            {!allOfficersCheckedOut ? (
+              <Button disabled variant="primary">
+                <CheckIcon size={16} strokeWidth={2.4} />
+                Waiting for all check-outs
+              </Button>
+            ) : (
+              <div className="pn-sign-card">
+                <div className="pn-sign-card-head">
+                  <div>
+                    <LinkIcon size={18} strokeWidth={2.2} />
+                    <strong>Site manager signature</strong>
+                  </div>
+                  <Badge tone="info">PENDING</Badge>
+                </div>
+                <p>Job is finished — share this link with the site manager to capture their sign-off. The status stays Awaiting Signature until they sign.</p>
+                <label className="pn-sign-link">
+                  <LinkIcon size={15} strokeWidth={2} />
+                  <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink || 'Click Copy link to generate'} />
+                </label>
+                <div className="pn-sign-actions">
+                  <button disabled={signTokenMutation.isPending} onClick={() => withSignLink((url) => copyText(url, 'Sign report link copied'))} type="button">
+                    <CopyIcon size={14} strokeWidth={2} />
+                    Copy link
+                  </button>
+                  <button disabled={signTokenMutation.isPending} onClick={() => withSignLink((url) => copyText(signMessage(url), 'Sign report message copied'))} type="button">
+                    <MessageIcon size={14} strokeWidth={2} />
+                    Copy message
+                  </button>
+                </div>
+              </div>
+            )}
             <Button disabled={job.status === 'Cancelled'} variant="danger" onClick={() => cancelJob(job.id)}>
               Cancel job…
             </Button>
@@ -408,20 +492,7 @@ function OfficerAssignmentModal({
 }) {
   const { officer, profile } = row;
   const workedLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '-';
-  const officerMsg = [
-    'PilotNow Assignment Details',
-    `Officer: ${officer.name}`,
-    `Assignment: ${job.id}`,
-    `Customer: ${job.customer}`,
-    `Location: ${job.location}`,
-    `Date: ${dateLabel(job.date)}`,
-    `Time: ${job.start}-${job.end}`,
-    `Status: ${job.status}`,
-    `Confirmation: ${officer.confirmed ? 'Confirmed' : 'Not confirmed'}`,
-    `On duty: ${officer.onDuty ? 'Yes' : 'No'}`,
-    `Rate: ${money(officer.rate)}/h`,
-    `Instruction: Please confirm availability and post evidence photos during the job.`,
-  ].join('\n');
+  const officerMsg = `Hi ${officer.name}, PilotNow Ops here.\n\nAssignment ${job.id}: ${job.customer} at ${job.location}\nDate: ${dateLabel(job.date)}\nTime: ${timeRangeLabel(job.start, job.end)}\n\nPlease confirm your availability and remember to post evidence photos during the job.`;
 
   return (
     <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={`${officer.name} assignment`}>
@@ -448,11 +519,11 @@ function OfficerAssignmentModal({
           <div className="pn-assignment-metrics">
             <div>
               <span>Check-in</span>
-              <strong>{officer.actualStart || '-'}</strong>
+              <strong>{officer.actualStart || '--:--'}</strong>
             </div>
             <div>
               <span>Check-out</span>
-              <strong>{officer.actualEnd || '-'}</strong>
+              <strong>{officer.actualEnd || '--:--'}</strong>
             </div>
             <div>
               <span>Hours</span>
@@ -463,7 +534,7 @@ function OfficerAssignmentModal({
           <div className="pn-assignment-pay-row">
             <span className={officer.confirmed ? 'is-on' : ''}>{officer.confirmed ? 'Confirmed' : 'Not confirmed'}</span>
             <span>{officer.onDuty ? 'On duty' : 'Off duty'}</span>
-            <strong>Scheduled {job.start}-{job.end}</strong>
+            <strong>Scheduled {timeRangeLabel(job.start, job.end)}</strong>
             <b>{money(row.pay)}</b>
             <small>· {money(officer.rate)}/h</small>
           </div>

@@ -14,10 +14,13 @@
   "dependencies": {
     "@pilotnow/api-client": "workspace:*",
     "@pilotnow/shared": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.24.0",
     "next": "^16.2.10",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "@pilotnow/typescript-config": "workspace:*",

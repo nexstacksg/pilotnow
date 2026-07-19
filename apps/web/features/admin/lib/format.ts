@@ -22,6 +22,17 @@ export function hours(start: string, end: string) {
   return Math.round((delta / 60) * 100) / 100;
 }
 
+export function timeLabel(value: string) {
+  const [hour = '0', minute = '00'] = value.split(':');
+  const date = new Date();
+  date.setHours(Number(hour), Number(minute), 0, 0);
+  return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+export function timeRangeLabel(start: string, end: string) {
+  return `${timeLabel(start)}-${timeLabel(end)}`;
+}
+
 export function initials(name: string) {
   return name
     .split(' ')
@@ -44,14 +55,14 @@ export function jobPay(job: Job) {
   }, 0);
 }
 
-export function scheduledStatus(job: Job, now = new Date()): JobStatus {
-  if (job.status === 'Cancelled' || job.status === 'Completed' || job.status === 'Draft') return job.status;
-  const start = new Date(`${job.date}T${job.start}:00`);
-  const end = new Date(`${job.date}T${job.end}:00`);
-  if (end <= start) end.setDate(end.getDate() + 1);
-  if (now >= end) return 'Completed';
-  if (now >= start) return 'Ongoing';
-  return job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed) ? 'Assigned' : 'Open';
+export function scheduledStatus(job: Job, _now = new Date()): JobStatus {
+  if (job.status === 'Cancelled' || job.status === 'Completed') return job.status;
+  if (job.status === 'Draft Created' && !job.posted) return job.status;
+  const fullyConfirmed = job.officers.length >= job.required && job.officers.every((officer) => officer.confirmed);
+  if (!fullyConfirmed) return 'Posted/Waiting';
+  if (job.officers.every((officer) => officer.actualStart && officer.actualEnd)) return 'Awaiting sign-off';
+  if (job.officers.some((officer) => officer.actualStart || officer.onDuty)) return 'Job ongoing';
+  return 'Officers confirmed';
 }
 
 export function normalizeJobStage(job: Job, now = new Date()): Job {
@@ -68,10 +79,11 @@ export function normalizeJobStage(job: Job, now = new Date()): Job {
 }
 
 export const statusTone: Record<JobStatus, 'muted' | 'success' | 'warning' | 'info' | 'danger'> = {
-  Draft: 'muted',
-  Open: 'warning',
-  Assigned: 'info',
-  Ongoing: 'info',
+  'Draft Created': 'muted',
+  'Posted/Waiting': 'warning',
+  'Officers confirmed': 'info',
+  'Job ongoing': 'info',
+  'Awaiting sign-off': 'warning',
   Completed: 'success',
   Cancelled: 'danger',
 };
