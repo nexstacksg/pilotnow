@@ -15,7 +15,9 @@ export default defineConfig({
         'app/login/page.tsx',
         'app/forgot-password/page.tsx',
         'features/admin/screens/DashboardScreen.tsx',
+        'features/admin/screens/PaymentsScreen.tsx',
         'features/admin/screens/ProfileScreen.tsx',
+        'features/admin/lib/payments-api.ts',
       ],
       thresholds: {
         statements: 60,
