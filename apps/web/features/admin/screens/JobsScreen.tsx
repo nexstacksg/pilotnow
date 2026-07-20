@@ -28,7 +28,7 @@ export function JobsScreen({
   const query = search.trim().toLowerCase();
 
   const filtered = jobs
-    .filter((job) => matchesJobFilter(job, filter))
+    .filter((job) => matchesJobFilter(job, filter, queues))
     .filter((job) => !query || jobSearchText(job).includes(query));
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -42,7 +42,7 @@ export function JobsScreen({
   }, [filter, pageSize, query]);
 
   function countFor(item: JobListFilter) {
-    return jobs.filter((job) => matchesJobFilter(job, item)).length;
+    return jobs.filter((job) => matchesJobFilter(job, item, queues)).length;
   }
 
   return (
@@ -97,9 +97,10 @@ export function JobsScreen({
   );
 }
 
-function matchesJobFilter(job: Job, filter: JobListFilter) {
+function matchesJobFilter(job: Job, filter: JobListFilter, queues?: DashboardQueues) {
   if (filter === 'All') return true;
-  if (filter === 'Today' || filter === 'Needs staffing' || filter === 'Missing photos') return true;
+  if (filter === 'Today') return queues?.todayJobs.includes(job.id) ?? false;
+  if (filter === 'Needs staffing' || filter === 'Missing photos') return true;
   return job.status === filter;
 }
 
