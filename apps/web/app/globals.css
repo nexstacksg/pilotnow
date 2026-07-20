@@ -4401,20 +4401,6 @@ button {
   }
 }
 
-.pn-profile-camera {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  display: grid;
-  width: 27px;
-  height: 27px;
-  place-items: center;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #090b0f;
-  color: #fff;
-}
-
 .pn-profile-photo-button {
   display: grid;
   width: 100%;
