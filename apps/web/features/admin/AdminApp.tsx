@@ -1008,7 +1008,7 @@ export function AdminApp({
             <h1>{pageTitle}</h1>
           </div>
           <div></div>
-          {screen !== 'dashboard' ? (
+          {screen !== 'dashboard' && screen !== 'profile' ? (
             <div className="pn-search">
               <SearchIcon size={16} stroke="#A3A3A3" strokeWidth={2} />
               <input aria-label="Search" onChange={(event) => updateSearch(event.target.value)} placeholder={searchPlaceholder} value={search} />
@@ -1041,7 +1041,7 @@ export function AdminApp({
               setScreen={navigateToScreen}
             />
           ) : null}
-          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} search={search} setFilter={setJobFilter} /> : null}
+          {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} queues={(dashboardSnapshot ?? fallbackDashboard).queues} search={search} setFilter={setJobFilter} /> : null}
           {screen === 'jobDetail' ? (
             <JobDetailScreen
               job={selectedJob}
