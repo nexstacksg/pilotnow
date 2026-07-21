@@ -25,7 +25,7 @@ import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
 import { AdminAccountMenu } from './components/AdminAccountMenu';
 import { screenTitles } from './config';
-import { jobsSeed, paymentsSeed } from './data';
+import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
@@ -235,7 +235,7 @@ export function AdminApp({
 }) {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
-  const [officers, setOfficers] = useState<Officer[]>([]);
+  const [officers, setOfficers] = useState<Officer[]>(officersSeed);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
@@ -866,7 +866,7 @@ export function AdminApp({
       })
       .catch(() => {
         if (cancelled) return;
-        setOfficers([]);
+        // Keep seeded demo officers when the API is not running.
         setOfficersReady(true);
       });
 
