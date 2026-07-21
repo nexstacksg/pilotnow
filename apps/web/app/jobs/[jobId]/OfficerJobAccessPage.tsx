@@ -77,13 +77,15 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
   const checkInTime = timestampTime(data?.assignment.checkInAt ?? localCheckInAt);
   const currentTime = clockTime(now);
   const uploadCountdown = nextUploadSlot ? countdownLabel(nextUploadSlot.at, uploadClock) : '';
+  const locationReady = isValidPosition(position);
+  const confirmBlocker = attendanceBlocker(photoCount, position);
 
   async function refreshPosition() {
     setPositionError('');
     try {
       setPosition(await currentPosition());
-    } catch {
-      setPositionError('Allow location access to continue');
+    } catch (error) {
+      setPositionError(error instanceof Error ? error.message : locationRequiredText);
     }
   }
 
@@ -111,7 +113,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
 
   const attendanceMutation = useMutation({
     mutationFn: async ({ action }: { action: '/check-in' | '/check-out' }) => {
-      const [latestPosition, mediaRef] = await Promise.all([position ? Promise.resolve(position) : currentPosition(), uploadPhoto()]);
+      const [latestPosition, mediaRef] = await Promise.all([locationReady ? Promise.resolve(position) : currentPosition(), uploadPhoto()]);
       setPosition(latestPosition);
       return readItem(await fetch(apiPath(jobId, hp, token, action), {
         method: 'POST',
@@ -225,6 +227,8 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
           <button onClick={() => {
             setFile(null);
             setPhoto('');
+            setPosition(null);
+            void refreshPosition();
             setShowCheckoutForm(true);
           }} style={styles.secondaryAction} type="button">Check out</button>
         </>
@@ -238,7 +242,10 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
             <div style={styles.panelHead}><strong>Login proof photo</strong><span>{photoCount} ADDED - MIN 1</span></div>
             <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
           </Panel>
-          <button disabled={busy || photoCount === 0 || !position} onClick={() => attendanceMutation.mutate({ action: '/check-in' })} style={styles.primaryAction} type="button">{busy ? 'Checking in...' : `Confirm check-in (${currentTime})`}</button>
+          <button disabled={busy || Boolean(confirmBlocker)} onClick={() => {
+            if (!busy && !confirmBlocker) attendanceMutation.mutate({ action: '/check-in' });
+          }} style={{ ...styles.primaryAction, ...(confirmBlocker ? styles.primaryActionDisabled : {}) }} type="button">{busy ? 'Checking in...' : `Confirm check-in (${currentTime})`}</button>
+          {confirmBlocker ? <p style={styles.blockerNote}>{confirmBlocker}</p> : null}
           <p style={styles.footerNote}>Location and photos are sent to your admin on confirm.</p>
         </>
       )}
@@ -247,6 +254,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
 }
 
 function CheckoutForm({ busy, data, file, photo, photoCount, position, positionError, setFile, setPhoto, onBack, onRefreshLocation, onSubmit, currentTime }: { busy: boolean; data: OfficerJob; file: File | null; photo: string; photoCount: number; position: Position | null; positionError: string; setFile: (file: File | null) => void; setPhoto: (value: string) => void; onBack: () => void; onRefreshLocation: () => void; onSubmit: () => void; currentTime: string }) {
+  const confirmBlocker = attendanceBlocker(photoCount, position);
   return (
     <>
       <TitleBlock kicker={`CHECK-OUT - ${data.job.id}`} title="End of shift" badge="Link verified" subtitle="Confirm your location and add a final proof photo." />
@@ -255,7 +263,10 @@ function CheckoutForm({ busy, data, file, photo, photoCount, position, positionE
         <div style={styles.panelHead}><strong>Check-out photos</strong><span>{photoCount} ADDED - MIN 1</span></div>
         <PhotoControls file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
       </Panel>
-      <button disabled={busy || photoCount === 0 || !position} onClick={onSubmit} style={styles.primaryAction} type="button">{busy ? 'Checking out...' : `Confirm check-out - ${currentTime}`}</button>
+      <button disabled={busy || Boolean(confirmBlocker)} onClick={() => {
+        if (!busy && !confirmBlocker) onSubmit();
+      }} style={{ ...styles.primaryAction, ...(confirmBlocker ? styles.primaryActionDisabled : {}) }} type="button">{busy ? 'Checking out...' : `Confirm check-out - ${currentTime}`}</button>
+      {confirmBlocker ? <p style={styles.blockerNote}>{confirmBlocker}</p> : null}
       <button disabled={busy} onClick={onBack} style={styles.backToShift} type="button">Back to shift</button>
     </>
   );
@@ -327,7 +338,7 @@ function AssignmentPanel({ data, shiftHours }: { data: OfficerJob; shiftHours: n
   return (
     <section style={styles.assignmentTable}>
       <div style={styles.assignmentHead}><strong>Assignment</strong><span>{shiftHours}h&nbsp; SHIFT</span></div>
-      <InfoRow label="SITE" value={[data.job.site, data.job.address].filter(Boolean).join(', ')} />
+      <InfoRow label="SITE" value={siteLocation(data.job.site, data.job.address)} />
       <InfoRow label="EVIDENCE" value="Photo upload every hour, on the hour" />
       <InfoRow label="CHECK-IN" value={`Location + photo required at ${scheduledTime(data.job.startAt)}`} />
       <InfoRow label="CHECK-OUT" value={`Location + photo required at ${scheduledTime(data.job.endAt)}`} />
@@ -339,16 +350,17 @@ function LocationPanel({ data, onRefresh, position, positionError }: { data: Off
   const lat = position?.latitude ?? numberOrNull(data.assignment.checkInLatitude) ?? 1.2939;
   const lng = position?.longitude ?? numberOrNull(data.assignment.checkInLongitude) ?? 103.8560;
   const center: [number, number] = [lat, lng];
+  const locationReady = isValidPosition(position);
   return (
     <Panel>
       <div style={styles.panelHead}>
         <strong>Your location</strong>
-        {position ? <Badge tone="success">• GPS locked · ±8 m</Badge> : <button style={styles.tinyButton} onClick={onRefresh} type="button">Enable GPS</button>}
+        {locationReady ? <Badge tone="success">• GPS locked · ±8 m</Badge> : <button style={styles.tinyButton} onClick={onRefresh} type="button">Enable GPS</button>}
       </div>
       <div className="officer-map" style={styles.map}>
         <OfficerLocationMap center={center} />
       </div>
-      <div style={styles.mapFoot}><span>{positionError || data.job.site}</span><span>{gps(lat, lng)}</span></div>
+      <div style={styles.mapFoot}><span>{locationReady ? data.job.site : positionError || locationRequiredText}</span><span>{gps(lat, lng)}</span></div>
     </Panel>
   );
 }
@@ -447,8 +459,27 @@ function checkInProofCount(data: OfficerJob) {
 
 function currentPosition() {
   return new Promise<Position>((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition((pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }), reject, { enableHighAccuracy: true, timeout: 8000 });
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const position = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      if (isValidPosition(position)) resolve(position);
+      else reject(new Error('Could not capture valid GPS coordinates. Tap Enable GPS and try again.'));
+    }, reject, { enableHighAccuracy: true, timeout: 8000 });
   });
+}
+
+export function isValidPosition(position: Position | null): position is Position {
+  return Boolean(position && Number.isFinite(position.latitude) && Number.isFinite(position.longitude) && (position.latitude !== 0 || position.longitude !== 0));
+}
+
+export function attendanceBlocker(photoCount: number, position: Position | null) {
+  if (photoCount === 0) return 'Add at least 1 proof photo to continue.';
+  if (!isValidPosition(position)) return 'Proof photo added. GPS location is still required before you can confirm.';
+  return '';
+}
+
+export function siteLocation(site: string, address: string | null) {
+  const parts = [site, address].map((value) => value?.trim()).filter(Boolean);
+  return Array.from(new Set(parts)).join(', ');
 }
 
 function useObjectUrl(file: File | null) {
@@ -530,6 +561,7 @@ function gps(lat: number, lng: number) {
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
 
+const locationRequiredText = 'GPS location is required. Tap Enable GPS and allow location access to continue.';
 const appFont = "'Geist', -apple-system, system-ui, sans-serif";
 const officerResponsiveCss = `
   @media (min-width: 900px) {
@@ -578,6 +610,7 @@ const styles: Record<string, CSSProperties> = {
   map: { position: 'relative', height: 150, margin: '0 12px', overflow: 'hidden', background: '#F7F7F7' },
   leafletMap: { width: '100%', height: '100%' },
   mapFoot: { display: 'flex', justifyContent: 'space-between', gap: 8, padding: '9px 12px', color: '#737373', fontSize: 12 },
+  blockerNote: { margin: '8px 0 0', color: '#B42318', textAlign: 'center', fontSize: 12, fontWeight: 700 },
   photoBlock: { padding: 12 },
   thumbs: { display: 'flex', gap: 10, minHeight: 0, marginBottom: 10 },
   thumb: { position: 'relative', display: 'grid', width: 110, height: 92, placeItems: 'center', border: '1px solid #E2E2E2', borderRadius: 6, background: '#F4F4F4', color: '#8A8A8A', fontFamily: appFont, fontSize: 11, overflow: 'hidden', padding: 8 },
@@ -588,6 +621,7 @@ const styles: Record<string, CSSProperties> = {
   fileButton: { display: 'grid', height: 38, placeItems: 'center', border: '1px solid #D4D4D4', borderRadius: 4, background: '#FFFFFF', fontSize: 12, fontWeight: 700 },
   fileButtonDisabled: { opacity: 0.45, cursor: 'not-allowed' },
   primaryAction: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#050505', color: '#FFFFFF', fontSize: 13, fontWeight: 800 },
+  primaryActionDisabled: { background: '#D4D4D4', color: '#737373', cursor: 'not-allowed' },
   secondaryAction: { width: '100%', height: 44, border: '1px solid #DADADA', borderRadius: 4, background: '#FFFFFF', color: '#0A0A0A', fontSize: 13, fontWeight: 800 },
   backToShift: { display: 'block', width: '100%', height: 52, marginTop: 18, border: 0, background: 'transparent', color: '#525252', fontSize: 16, fontWeight: 700 },
   footerNote: { margin: '8px 0 0', color: '#A3A3A3', textAlign: 'center', fontSize: 10 },
