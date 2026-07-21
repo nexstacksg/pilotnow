@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CheckIcon, MessageIcon, OfficersIcon, PencilIcon, TrashIcon, XIcon } from './icons';
 import { Badge, Button, Field, Modal, Pagination } from './ui';
-import { dateLabel, hours, initials, money, officerStatusLabel, officerStatusTone, statusTone } from '../lib/format';
+import { dateLabel, initials, money, officerStatusLabel, officerStatusTone, statusTone } from '../lib/format';
+import { buildOfficerHistoryRows, paginateRows, summarizeOfficerHistory } from '../lib/officer-history';
 import { fetchOfficerAssignmentHistory } from '../lib/officers-api';
 import type { OfficerAssignmentHistory } from '../lib/officers-api';
-import type { Job, Officer, OfficerForm, Payment, PaymentStatus } from '../types';
+import type { Job, Officer, OfficerForm, Payment } from '../types';
 
 const emptyOfficerForm: OfficerForm = {
   name: '',
@@ -176,55 +177,16 @@ export function OfficerDetailModal({
 
   if (!officer) return null;
 
-  const paymentById = new Map(payments.map((payment) => [payment.id, payment]));
-  const paymentByJobOfficer = new Map(payments.map((payment) => [`${payment.jobId}::${payment.officer.toLowerCase()}`, payment]));
-  const paymentForHistory = (id: string, jobId: string): Payment | undefined => (
-    paymentById.get(id) ?? paymentByJobOfficer.get(`${jobId}::${officer.name.toLowerCase()}`)
-  );
-  const paymentStatusForHistory = (id: string, jobId: string, fallback: PaymentStatus): PaymentStatus => {
-    const payment = paymentForHistory(id, jobId);
-    return payment?.status === 'Paid' || fallback === 'Paid' ? 'Paid' : 'Pending';
-  };
-
-  const history = jobs
-    .map((job) => {
-      const assigned = job.officers.find((item) => item.oid === officer.id);
-      if (!assigned) return null;
-      const scheduled = hours(job.start, job.end);
-      const worked = assigned.actualStart && assigned.actualEnd ? hours(assigned.actualStart, assigned.actualEnd) : job.status === 'Completed' || assigned.actualStart ? scheduled : 0;
-      return { job, worked, pay: worked * assigned.rate };
-    })
-    .filter((item): item is { job: Job; worked: number; pay: number } => Boolean(item))
-    .sort((a, b) => b.job.date.localeCompare(a.job.date) || b.job.id.localeCompare(a.job.id));
-  const dbHistory = assignmentHistory.map((item) => ({
-    jobId: item.jobId,
-    customer: item.customerName,
-    date: item.date,
-    worked: item.hours,
-    pay: item.payable,
-    status: item.status,
-    paymentId: item.id,
-    paymentStatus: paymentStatusForHistory(item.id, item.jobId, item.paymentStatus),
-  }));
-  const visibleHistory = dbHistory.length ? dbHistory : history.map(({ job, worked, pay }) => ({
-    jobId: job.id,
-    customer: job.customer,
-    date: job.date,
-    worked,
-    pay,
-    status: job.status,
-    paymentStatus: paymentStatusForHistory('', job.id, 'Pending'),
-    paymentId: '',
-  }));
-  const completed = visibleHistory.filter((item) => item.status === 'Completed');
-  const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
-  const totalPay = completed.reduce((sum, item) => sum + item.pay, 0);
-  const historyTotal = visibleHistory.length;
-  const historyPageCount = Math.max(1, Math.ceil(historyTotal / historyPageSize));
-  const currentHistoryPage = Math.min(historyPage, historyPageCount);
-  const historyFrom = historyTotal ? (currentHistoryPage - 1) * historyPageSize + 1 : 0;
-  const historyTo = Math.min(currentHistoryPage * historyPageSize, historyTotal);
-  const paginatedHistory = visibleHistory.slice(historyFrom ? historyFrom - 1 : 0, historyTo);
+  const visibleHistory = buildOfficerHistoryRows({ assignmentHistory, jobs, officer, payments });
+  const { completed, totalHours, totalPay } = summarizeOfficerHistory(visibleHistory);
+  const {
+    currentPage: currentHistoryPage,
+    from: historyFrom,
+    pageCount: historyPageCount,
+    rows: paginatedHistory,
+    to: historyTo,
+    total: historyTotal,
+  } = paginateRows(visibleHistory, historyPage, historyPageSize);
   const officerTone = officerStatusTone[officer.status];
   const officerId = officer.id;
   const officerCode = officer.code ?? officer.id;

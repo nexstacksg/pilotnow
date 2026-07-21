@@ -19,11 +19,13 @@ import {
   ShieldCheckIcon,
   SummaryIcon,
 } from './components/icons';
+import { JobFormFields, OfficerFormFields } from './components/forms';
+import type { OfficerFormErrors } from './components/forms';
 import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
 import { AdminAccountMenu } from './components/AdminAccountMenu';
 import { screenTitles } from './config';
-import { jobsSeed, officersSeed, paymentsSeed } from './data';
+import { jobsSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
@@ -42,7 +44,7 @@ import { ReportsScreen } from './screens/ReportsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
-import { TODAY, dateLabel, hours, money, normalizeJobStage, officerStatusLabel, statusTone } from './lib/format';
+import { TODAY, dateLabel, hours, money, normalizeJobStage, statusTone } from './lib/format';
 import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 type NavigationScreen = Exclude<Screen, 'profile'>;
@@ -89,29 +91,16 @@ type Toast = {
   tone: 'success' | 'error';
 };
 
-type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
-
-const MAX_JOB_OFFICERS = 12;
-
-function todayInputDate() {
-  const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${today.getFullYear()}-${month}-${day}`;
-}
-
-function emptyJobForm(): JobForm {
-  return {
-    customer: '',
-    location: '',
-    date: todayInputDate(),
-    start: '09:00',
-    end: '18:00',
-    required: '1',
-    description: '',
-    instructions: '',
-  };
-}
+const emptyJobForm: JobForm = {
+  customer: '',
+  location: '',
+  date: '2026-07-12',
+  start: '09:00',
+  end: '18:00',
+  required: '2',
+  description: '',
+  instructions: '',
+};
 
 const emptyOfficerForm: OfficerForm = {
   name: '',
@@ -220,6 +209,13 @@ function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
   });
 }
 
+function updateOfficerJobCount(officer: Officer, delta: 1 | -1) {
+  return {
+    ...officer,
+    jobsCount: Math.max(0, officer.jobsCount + delta),
+  };
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -239,7 +235,7 @@ export function AdminApp({
 }) {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
-  const [officers, setOfficers] = useState<Officer[]>(officersSeed);
+  const [officers, setOfficers] = useState<Officer[]>([]);
   const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
@@ -540,14 +536,19 @@ export function AdminApp({
       flash(`Officer limit reached for ${selectedJob.id}`, 'error');
       return;
     }
-    try {
-      const updated = await assignOfficerToJob(selectedJob.id, oid, selectedJob);
-      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updated.id ? { ...job, ...updated } : job)));
-      flash(`${officer.name} added`);
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
-      flash(`Could not add officer. ${reason}`, 'error');
-    }
+    const jobOfficer: JobOfficer = {
+      oid: officer.id,
+      name: officer.name,
+      ic: officer.ic,
+      rate: officer.rate,
+      confirmed: false,
+      onDuty: false,
+      actualStart: '',
+      actualEnd: '',
+    };
+    updateJob(selectedJob.id, (job) => ({ ...job, officers: [...job.officers, jobOfficer] }));
+    setOfficers((items) => items.map((item) => (item.id === officer.id ? updateOfficerJobCount(item, 1) : item)));
+    flash(`${officer.name} added`);
   }
 
   function toggleOfficer(jobIdValue: string, oid: string, field: 'confirmed' | 'onDuty') {
@@ -619,6 +620,7 @@ export function AdminApp({
       ...job,
       officers: job.officers.filter((officer) => officer.oid !== oid),
     }));
+    setOfficers((items) => items.map((item) => (item.id === oid ? updateOfficerJobCount(item, -1) : item)));
     flash('Officer removed from job');
   }
 
@@ -894,7 +896,7 @@ export function AdminApp({
       })
       .catch(() => {
         if (cancelled) return;
-        // Keep seeded demo officers when the API is not running.
+        setOfficers([]);
         setOfficersReady(true);
       });
 
@@ -1290,116 +1292,6 @@ export function AdminApp({
 
 function LoadingPanel() {
   return <div className="pn-empty">Loading...</div>;
-}
-
-function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (form: JobForm) => JobForm) => void }) {
-  const required = Math.max(1, Math.trunc(Number(form.required) || 1));
-
-  return (
-    <div className="pn-form-grid">
-      <Field label="Customer" required>
-        <input placeholder="e.g. Sentinel Events Pte Ltd" value={form.customer} onChange={(event) => setForm((item) => ({ ...item, customer: event.target.value }))} />
-      </Field>
-      <Field label="Job location" required>
-        <input placeholder="e.g. Marina Bay Sands - Expo Hall B" value={form.location} onChange={(event) => setForm((item) => ({ ...item, location: event.target.value }))} />
-      </Field>
-      <div className="pn-form-row pn-form-row-time">
-        <Field label="Job date">
-          <input type="date" value={form.date} onChange={(event) => setForm((item) => ({ ...item, date: event.target.value }))} />
-        </Field>
-        <Field label="Start">
-          <input type="time" value={form.start} onChange={(event) => setForm((item) => ({ ...item, start: event.target.value }))} />
-        </Field>
-        <Field label="End">
-          <input type="time" value={form.end} onChange={(event) => setForm((item) => ({ ...item, end: event.target.value }))} />
-        </Field>
-      </div>
-      <Field label="Officers">
-        <div className="pn-job-officers-row">
-          <input min="1" max={MAX_JOB_OFFICERS} step="1" type="number" value={form.required} onChange={(event) => setForm((item) => ({ ...item, required: event.target.value }))} />
-          <button className="pn-btn pn-btn-secondary" disabled={required >= MAX_JOB_OFFICERS} onClick={() => setForm((item) => ({ ...item, required: String(Math.min(MAX_JOB_OFFICERS, required + 1)) }))} type="button">
-            <PlusIcon size={14} strokeWidth={2.4} />
-            Add Officer
-          </button>
-        </div>
-      </Field>
-      <Field label="Description">
-        <textarea className="pn-job-textarea" placeholder="What is the job?" rows={4} value={form.description} onChange={(event) => setForm((item) => ({ ...item, description: event.target.value }))} />
-      </Field>
-      <Field label="Instructions">
-        <textarea className="pn-job-textarea" placeholder="Dress code, reporting point, etc." rows={4} value={form.instructions} onChange={(event) => setForm((item) => ({ ...item, instructions: event.target.value }))} />
-      </Field>
-    </div>
-  );
-}
-
-function OfficerFormFields({
-  form,
-  setForm,
-  errors = {},
-  onFieldChange,
-}: {
-  form: OfficerForm;
-  setForm: (updater: (form: OfficerForm) => OfficerForm) => void;
-  errors?: OfficerFormErrors;
-  onFieldChange?: (field: keyof OfficerFormErrors) => void;
-}) {
-  const nameErrorId = errors.name ? 'officer-name-error' : undefined;
-  const phoneErrorId = errors.phone ? 'officer-phone-error' : undefined;
-
-  return (
-    <div className="pn-form-grid">
-      <Field label="Full name" required error={errors.name} errorId={nameErrorId}>
-        <input
-          aria-describedby={nameErrorId}
-          aria-invalid={Boolean(errors.name)}
-          placeholder="e.g. Ravi Chandran"
-          value={form.name}
-          onChange={(event) => {
-            onFieldChange?.('name');
-            setForm((item) => ({ ...item, name: event.target.value }));
-          }}
-        />
-      </Field>
-      <Field label="WhatsApp number" required error={errors.phone} errorId={phoneErrorId}>
-        <input
-          aria-describedby={phoneErrorId}
-          aria-invalid={Boolean(errors.phone)}
-          className="pn-mono-input"
-          placeholder="+65 8123 4567"
-          value={form.phone}
-          onChange={(event) => {
-            onFieldChange?.('phone');
-            setForm((item) => ({ ...item, phone: event.target.value }));
-          }}
-        />
-      </Field>
-      <div className="pn-form-row">
-        <Field label="Default hourly rate (S$)">
-          <input className="pn-mono-input" max="40" min="10" type="number" value={form.rate} onChange={(event) => setForm((item) => ({ ...item, rate: event.target.value }))} />
-        </Field>
-        <Field label="Account status">
-          <select value={form.status} onChange={(event) => setForm((item) => ({ ...item, status: event.target.value as OfficerForm['status'] }))}>
-            {['New', 'Active', 'Inactive', 'Blocked'].map((status) => (
-              <option key={status} value={status}>
-                {officerStatusLabel[status as OfficerForm['status']]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-      <label className="pn-check">
-        <input checked={form.ic} onChange={(event) => setForm((item) => ({ ...item, ic: event.target.checked }))} type="checkbox" />
-        <span>
-          <strong>IC document verified</strong>
-          <small>Tick only after the officer's IC copy has been checked.</small>
-        </span>
-      </label>
-      <Field label="Notes">
-        <textarea placeholder="Availability, certifications, etc." rows={2} value={form.notes} onChange={(event) => setForm((item) => ({ ...item, notes: event.target.value }))} />
-      </Field>
-    </div>
-  );
 }
 
 function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
