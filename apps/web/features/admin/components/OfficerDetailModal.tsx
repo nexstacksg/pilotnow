@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { CheckIcon, MessageIcon, OfficersIcon, PencilIcon, TrashIcon, XIcon } from './icons';
-import { Badge, Button, Field, Modal } from './ui';
+import { Badge, Button, Field, Modal, Pagination } from './ui';
 import { dateLabel, hours, initials, money, officerStatusLabel, officerStatusTone, statusTone } from '../lib/format';
 import { fetchOfficerAssignmentHistory } from '../lib/officers-api';
 import type { OfficerAssignmentHistory } from '../lib/officers-api';
@@ -15,6 +15,9 @@ const emptyOfficerForm: OfficerForm = {
   status: 'New',
   notes: '',
 };
+
+const JOB_HISTORY_DEFAULT_PAGE_SIZE = 5;
+const JOB_HISTORY_PAGE_SIZE_OPTIONS = [5, 10, 25] as const;
 
 function noteText(value: unknown) {
   if (typeof value === 'string') return value;
@@ -135,6 +138,8 @@ export function OfficerDetailModal({
   const [deleting, setDeleting] = useState(false);
   const [assignmentHistory, setAssignmentHistory] = useState<OfficerAssignmentHistory[]>([]);
   const [historyReady, setHistoryReady] = useState(false);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPageSize, setHistoryPageSize] = useState(JOB_HISTORY_DEFAULT_PAGE_SIZE);
   const [form, setForm] = useState<OfficerForm>(() => (officer ? officerToForm(officer) : emptyOfficerForm));
 
   useEffect(() => {
@@ -148,6 +153,7 @@ export function OfficerDetailModal({
     if (!officer) return;
     let cancelled = false;
     setHistoryReady(false);
+    setHistoryPage(1);
 
     void fetchOfficerAssignmentHistory(officer.id)
       .then((items) => {
@@ -213,6 +219,12 @@ export function OfficerDetailModal({
   const completed = visibleHistory.filter((item) => item.status === 'Completed');
   const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
   const totalPay = completed.reduce((sum, item) => sum + item.pay, 0);
+  const historyTotal = visibleHistory.length;
+  const historyPageCount = Math.max(1, Math.ceil(historyTotal / historyPageSize));
+  const currentHistoryPage = Math.min(historyPage, historyPageCount);
+  const historyFrom = historyTotal ? (currentHistoryPage - 1) * historyPageSize + 1 : 0;
+  const historyTo = Math.min(currentHistoryPage * historyPageSize, historyTotal);
+  const paginatedHistory = visibleHistory.slice(historyFrom ? historyFrom - 1 : 0, historyTo);
   const officerTone = officerStatusTone[officer.status];
   const officerId = officer.id;
   const officerCode = officer.code ?? officer.id;
@@ -363,7 +375,7 @@ export function OfficerDetailModal({
             <span>Status</span>
             <span>Payment</span>
           </div>
-          {visibleHistory.map((item) => (
+          {paginatedHistory.map((item) => (
             <button className="pn-table-row pn-click-row" key={item.jobId} onClick={() => openJob(item.jobId)} type="button">
               <span className="pn-mono">{item.jobId}</span>
               <span>{item.customer}</span>
@@ -378,6 +390,21 @@ export function OfficerDetailModal({
               </span>
             </button>
           ))}
+          <Pagination
+            from={historyFrom}
+            label="job history"
+            onPageChange={setHistoryPage}
+            onPageSizeChange={(pageSize) => {
+              setHistoryPageSize(pageSize);
+              setHistoryPage(1);
+            }}
+            page={currentHistoryPage}
+            pageCount={historyPageCount}
+            pageSize={historyPageSize}
+            rowsPerPageOptions={JOB_HISTORY_PAGE_SIZE_OPTIONS}
+            to={historyTo}
+            total={historyTotal}
+          />
         </div>
       ) : (
         <div className="pn-empty">No jobs recorded for this officer yet.</div>

@@ -632,7 +632,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 14px;
+  padding: 14px 14px 12px;
   color: #737373;
   font-size: 12.5px;
 }
