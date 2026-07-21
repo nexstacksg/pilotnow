@@ -43,7 +43,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, normalizeJobStage, officerStatusLabel, statusTone } from './lib/format';
-import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 type NavigationScreen = Exclude<Screen, 'profile'>;
 
@@ -207,6 +207,13 @@ function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
     const jobsCount = counts.get(officer.id) ?? counts.get(officer.code ?? '') ?? 0;
     return jobsCount > officer.jobsCount ? { ...officer, jobsCount } : officer;
   });
+}
+
+function updateOfficerJobCount(officer: Officer, delta: 1 | -1) {
+  return {
+    ...officer,
+    jobsCount: Math.max(0, officer.jobsCount + delta),
+  };
 }
 
 export function AdminApp({
@@ -530,18 +537,15 @@ export function AdminApp({
       flash(`Officer limit reached for ${selectedJob.id}`, 'error');
       return;
     }
-    const jobOfficer: JobOfficer = {
-      oid: officer.id,
-      name: officer.name,
-      ic: officer.ic,
-      rate: officer.rate,
-      confirmed: false,
-      onDuty: false,
-      actualStart: '',
-      actualEnd: '',
-    };
-    updateJob(selectedJob.id, (job) => ({ ...job, officers: [...job.officers, jobOfficer] }));
-    flash(`${officer.name} added`);
+    try {
+      const updatedJob = await assignOfficerToJob(selectedJob.id, officer.id, selectedJob);
+      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updatedJob.id ? { ...job, ...updatedJob } : job)));
+      setOfficers((items) => items.map((item) => (item.id === officer.id ? updateOfficerJobCount(item, 1) : item)));
+      flash(`${officer.name} added`);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
+      flash(`Could not add officer. ${reason}`, 'error');
+    }
   }
 
   function toggleOfficer(jobIdValue: string, oid: string, field: 'confirmed' | 'onDuty') {
@@ -613,6 +617,7 @@ export function AdminApp({
       ...job,
       officers: job.officers.filter((officer) => officer.oid !== oid),
     }));
+    setOfficers((items) => items.map((item) => (item.id === oid ? updateOfficerJobCount(item, -1) : item)));
     flash('Officer removed from job');
   }
 
