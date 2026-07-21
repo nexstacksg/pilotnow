@@ -190,7 +190,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
                 <p style={styles.centerMuted}>Nothing to do yet — we'll notify you at {nextUploadSlot.time}.</p>
                 <NextUploadControls disabled={!isSlotReady(nextUploadSlot, uploadClock)} file={file} setFile={setFile} />
                 {isSlotReady(nextUploadSlot, uploadClock) ? (
-                  <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: nextUploadSlot.key })} style={styles.lateButton} type="button">Submit {nextUploadSlot.time} evidence</button>
+                  <button disabled={busy || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: nextUploadSlot.key })} style={submitEvidenceStyle(busy || photoCount === 0)} type="button">Submit {nextUploadSlot.time} evidence</button>
                 ) : (
                   <p style={styles.tooEarly}>Too early — the upload window opens at {nextUploadSlot.time}.</p>
                 )}
@@ -217,7 +217,7 @@ export function OfficerJobAccessPage({ hp, jobId, token }: { hp: string; jobId: 
                   {selected ? (
                     <div style={styles.inlineUpload}>
                       <PhotoControls disabled={!ready} file={file} photo={photo} setFile={setFile} setPhoto={setPhoto} />
-                      <button disabled={busy || !ready || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: slot.key })} style={styles.lateButton} type="button">Submit {slot.time} evidence</button>
+                      <button disabled={busy || !ready || photoCount === 0} onClick={() => evidenceMutation.mutate({ proofWindow: slot.key })} style={submitEvidenceStyle(busy || !ready || photoCount === 0)} type="button">Submit {slot.time} evidence</button>
                     </div>
                   ) : null}
                 </div>
@@ -276,6 +276,10 @@ function SubmitError({ error }: { error: unknown }) {
   return error ? <div style={styles.errorBox}>{error instanceof Error ? error.message : 'Could not submit. Please try again.'}</div> : null;
 }
 
+function submitEvidenceStyle(disabled: boolean) {
+  return { ...styles.lateButton, ...(disabled ? styles.lateButtonDisabled : {}) };
+}
+
 function LateEvidenceCard({ busy, file, photoCount, setFile, slot, submit }: { busy: boolean; file: File | null; photoCount: number; setFile: (file: File | null) => void; slot: Slot; submit: () => void }) {
   const lockTime = formatTime(new Date(slot.at.getTime() + 30 * 60_000));
   return (
@@ -287,7 +291,7 @@ function LateEvidenceCard({ busy, file, photoCount, setFile, slot, submit }: { b
       <div style={styles.lateBody}>
         <p>You can still upload for the {slot.time} hour — it will be marked Late. At {lockTime} this window locks as Missed. Your admin has been notified.</p>
         <NextUploadControls file={file} setFile={setFile} />
-        <button disabled={busy || photoCount === 0} onClick={submit} style={styles.lateButton} type="button">Submit {slot.time} evidence as late</button>
+        <button disabled={busy || photoCount === 0} onClick={submit} style={submitEvidenceStyle(busy || photoCount === 0)} type="button">Submit {slot.time} evidence as late</button>
       </div>
     </section>
   );
@@ -640,7 +644,8 @@ const styles: Record<string, CSSProperties> = {
   lateCard: { marginBottom: 20, overflow: 'hidden', border: '1px solid #FF6B6B', borderLeft: '3px solid #FF3B30', borderRadius: 8, background: '#FFFFFF' },
   lateHead: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderBottom: '1px solid #FFD9D9', background: '#FFF0F0', color: '#D92D20', fontSize: 15 },
   lateBody: { padding: '14px 16px' },
-  lateButton: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#FF9D9D', color: '#FFFFFF', fontSize: 14, fontWeight: 800 },
+  lateButton: { width: '100%', height: 44, border: 0, borderRadius: 4, background: '#D92D20', color: '#FFFFFF', fontSize: 14, fontWeight: 800 },
+  lateButtonDisabled: { background: '#F3B4AF', cursor: 'not-allowed' },
   successMark: { display: 'grid', width: 42, height: 42, placeItems: 'center', margin: '34px auto 14px', borderRadius: 999, background: '#050505', color: '#FFFFFF', fontSize: 22 },
   summaryTitle: { margin: 0, textAlign: 'center', fontSize: 18 },
   stats: { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, padding: 8 },

@@ -75,6 +75,7 @@ const navGroups: { label: string; items: { screen: NavigationScreen; label: stri
 const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
 const PAYMENTS_STORAGE_KEY = 'pilotnow.admin.payments';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const REMOVED_JOB_SEED_IDS = new Set(['PN-2041', 'PN-2042', 'PN-2043', 'PN-2044', 'PN-2045', 'PN-2046', 'PN-2047', 'PN-2048', 'PN-2050', 'PN-2051', 'PN-2052']);
 
 type AdminSearchResult = {
   key: string;
@@ -91,10 +92,19 @@ type Toast = {
 
 type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
 
+const MAX_JOB_OFFICERS = 12;
+
+function todayInputDate() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
 const emptyJobForm: JobForm = {
   customer: '',
   location: '',
-  date: '2026-07-12',
+  date: todayInputDate(),
   start: '09:00',
   end: '18:00',
   required: '2',
@@ -275,8 +285,7 @@ export function AdminApp({
   const [screenPersistenceReady, setScreenPersistenceReady] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const fallbackJob = jobsSeed[0] as Job;
-  const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
+  const selectedJob = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? null;
   const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? selectedJob : null;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
@@ -390,7 +399,7 @@ export function AdminApp({
     if (nextScreen === 'billing') setBillingFilter('All');
     setScreen(nextScreen);
     if (nextScreen === 'summary') setSummaryJobId(null);
-    pushRoute(routeForScreen(nextScreen, selectedJob.id));
+    pushRoute(routeForScreen(nextScreen, selectedJob?.id));
   }
 
   function openJobs(filter: JobListFilter) {
@@ -527,6 +536,7 @@ export function AdminApp({
   }
 
   async function addOfficerToJob(oid: string) {
+    if (!selectedJob) return;
     const officer = officers.find((item) => item.id === oid);
     if (!officer || officer.status === 'Blocked') return;
     if (selectedJob.officers.some((item) => item.oid === oid || item.oid === officer.code)) {
@@ -607,6 +617,7 @@ export function AdminApp({
   }
 
   function removeOfficerFromJob(oid: string) {
+    if (!selectedJob) return;
     const assigned = selectedJob.officers.find((officer) => officer.oid === oid);
     if (!assigned) return;
     if (assigned.confirmed || assigned.onDuty || assigned.actualStart || assigned.actualEnd) {
@@ -801,7 +812,7 @@ export function AdminApp({
   }
 
   const [crumb, title] = screenTitles[screen];
-  const pageTitle = screen === 'jobDetail' ? selectedJob.id : title;
+  const pageTitle = screen === 'jobDetail' ? selectedJob?.id ?? 'Job not found' : title;
 
   const refreshDashboard = useCallback(async () => {
     try {
@@ -820,7 +831,7 @@ export function AdminApp({
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(JOBS_STORAGE_KEY);
-      if (stored) setJobs((JSON.parse(stored) as Job[]).map((job) => normalizeJobStage(job)));
+      if (stored) setJobs((JSON.parse(stored) as Job[]).filter((job) => !REMOVED_JOB_SEED_IDS.has(job.id)).map((job) => normalizeJobStage(job)));
     } catch {
       // Keep seeded data when local storage is unavailable or stale.
     }
@@ -845,7 +856,7 @@ export function AdminApp({
   }, [jobsHydrated]);
 
   useEffect(() => {
-    if (screen !== 'jobDetail' || selectedJob.siteManagerSignedAt || !selectedJob.officers.length || !selectedJob.officers.every((officer) => officer.actualEnd)) return;
+    if (screen !== 'jobDetail' || !selectedJob || selectedJob.siteManagerSignedAt || !selectedJob.officers.length || !selectedJob.officers.every((officer) => officer.actualEnd)) return;
     let cancelled = false;
     const refreshJob = () => {
       void fetchJob(selectedJob.id, selectedJob)
@@ -860,7 +871,7 @@ export function AdminApp({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [screen, selectedJob.id, selectedJob.siteManagerSignedAt]);
+  }, [screen, selectedJob?.id, selectedJob?.siteManagerSignedAt]);
 
   useEffect(() => {
     try {
@@ -1071,7 +1082,7 @@ export function AdminApp({
             />
           ) : null}
           {screen === 'jobs' ? <JobsScreen filter={jobFilter} jobs={jobs} openJob={openJob} queues={(dashboardSnapshot ?? fallbackDashboard).queues} search={search} setFilter={setJobFilter} /> : null}
-          {screen === 'jobDetail' ? (
+          {screen === 'jobDetail' && selectedJob ? (
             <JobDetailScreen
               job={selectedJob}
               officers={officers}
@@ -1087,6 +1098,9 @@ export function AdminApp({
               setScreen={navigateToScreen}
               toggleOfficer={toggleOfficer}
             />
+          ) : null}
+          {screen === 'jobDetail' && !selectedJob ? (
+            <div className="pn-empty">No job found. Create a job to start using the job module.</div>
           ) : null}
           {screen === 'officers' ? (
             officersReady ? (
