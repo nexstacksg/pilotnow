@@ -445,6 +445,10 @@ export function JobDetailScreen({
                   <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink || 'Click Copy link to generate'} />
                 </label>
                 <div className="pn-sign-actions">
+                  <button disabled={signTokenMutation.isPending} onClick={() => signTokenMutation.mutate()} type="button">
+                    <LinkIcon size={14} strokeWidth={2} />
+                    Generate link
+                  </button>
                   <button disabled={signTokenMutation.isPending} onClick={() => withSignLink((url) => copyText(url, 'Sign report link copied'))} type="button">
                     <CopyIcon size={14} strokeWidth={2} />
                     Copy link

@@ -1003,6 +1003,17 @@ button {
   line-height: 1.4;
 }
 
+.pn-billing-complete-message {
+  margin: -8px 0 14px;
+  border: 1px solid #B7E4C8;
+  border-radius: 4px;
+  background: #E7F7EE;
+  color: #087443;
+  padding: 9px 11px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .pn-billing-screen .pn-tabs {
   margin-bottom: 12px;
 }
@@ -2321,7 +2332,7 @@ button {
 
 .pn-sign-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 11px;
 }
@@ -3167,6 +3178,10 @@ button {
   gap: 12px;
 }
 
+.pn-job-form-grid {
+  gap: 9px;
+}
+
 .pn-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -3178,19 +3193,13 @@ button {
 }
 
 .pn-job-officers-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.pn-job-officers-row .pn-btn {
-  height: 100%;
-  white-space: nowrap;
+  display: block;
 }
 
 .pn-field .pn-job-textarea {
-  min-height: 116px;
+  field-sizing: content;
+  min-height: 128px;
+  max-height: 320px;
   overflow: auto;
 }
 

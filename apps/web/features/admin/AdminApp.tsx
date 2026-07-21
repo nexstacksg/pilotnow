@@ -1293,7 +1293,7 @@ function LoadingPanel() {
 
 function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (form: JobForm) => JobForm) => void }) {
   return (
-    <div className="pn-form-grid">
+    <div className="pn-form-grid pn-job-form-grid">
       <Field label="Customer" required>
         <input placeholder="e.g. Sentinel Events Pte Ltd" value={form.customer} onChange={(event) => setForm((item) => ({ ...item, customer: event.target.value }))} />
       </Field>
@@ -1312,19 +1312,15 @@ function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (f
         </Field>
       </div>
       <Field label="Officers">
-        <select value={form.required} onChange={(event) => setForm((item) => ({ ...item, required: event.target.value }))}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
-            <option key={count} value={count}>
-              {count} officer{count > 1 ? 's' : ''}
-            </option>
-          ))}
-        </select>
+        <div className="pn-job-officers-row">
+          <input min="1" max={MAX_JOB_OFFICERS} step="1" type="number" value={form.required} onChange={(event) => setForm((item) => ({ ...item, required: event.target.value }))} />
+        </div>
       </Field>
       <Field label="Description">
-        <textarea placeholder="What is the job?" rows={2} value={form.description} onChange={(event) => setForm((item) => ({ ...item, description: event.target.value }))} />
+        <textarea className="pn-job-textarea" placeholder="What is the job?" rows={5} value={form.description} onChange={(event) => setForm((item) => ({ ...item, description: event.target.value }))} />
       </Field>
       <Field label="Instructions">
-        <textarea placeholder="Dress code, reporting point, etc." rows={2} value={form.instructions} onChange={(event) => setForm((item) => ({ ...item, instructions: event.target.value }))} />
+        <textarea className="pn-job-textarea" placeholder="Dress code, reporting point, etc." rows={5} value={form.instructions} onChange={(event) => setForm((item) => ({ ...item, instructions: event.target.value }))} />
       </Field>
     </div>
   );

@@ -29,6 +29,7 @@ export function BillingScreen({
   const visibleJobs = filtered.slice(start, start + pageSize);
   const from = filtered.length ? start + 1 : 0;
   const to = Math.min(start + pageSize, filtered.length);
+  const statusMessage = completedBillingMessage(jobs);
 
   useEffect(() => {
     setPage(1);
@@ -37,6 +38,7 @@ export function BillingScreen({
   return (
     <div className="pn-billing-screen">
       <p className="pn-billing-intro">Completed jobs and their customer billing status.</p>
+      {statusMessage ? <p className="pn-billing-complete-message">{statusMessage}</p> : null}
       <div className="pn-tabs">
         {filters.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
@@ -87,6 +89,13 @@ export function BillingScreen({
       />
     </div>
   );
+}
+
+export function completedBillingMessage(jobs: Job[]) {
+  if (!jobs.length) return '';
+  const notBilled = jobs.filter((job) => job.billing === 'Not Billed').length;
+  if (notBilled) return `${notBilled} completed job${notBilled === 1 ? '' : 's'} ready for billing.`;
+  return `${jobs.length} completed job${jobs.length === 1 ? '' : 's'} billed.`;
 }
 
 function billingSearchText(job: Job) {
