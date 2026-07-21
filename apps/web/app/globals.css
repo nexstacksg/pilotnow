@@ -3177,6 +3177,23 @@ button {
   grid-template-columns: 1.3fr 1fr 1fr;
 }
 
+.pn-job-officers-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.pn-job-officers-row .pn-btn {
+  height: 100%;
+  white-space: nowrap;
+}
+
+.pn-field .pn-job-textarea {
+  min-height: 116px;
+  overflow: auto;
+}
+
 .pn-field {
   display: flex;
   flex-direction: column;
