@@ -410,8 +410,11 @@ export const jobs = new Hono()
     if (row.job.recordState !== 'CONFIRMED') {
       return jsonError(c, 400, 'Only confirmed jobs can be completed');
     }
-    if (row.job.status === 'CANCELLED' || row.job.status === 'COMPLETED') {
+    if (row.job.status === 'CANCELLED') {
       return jsonError(c, 400, 'This job cannot be completed from the sign report');
+    }
+    if (row.job.siteManagerSignedAt) {
+      return c.json({ item: await serializeSignReport(row) });
     }
 
     const signedAt = new Date();

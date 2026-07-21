@@ -34,7 +34,8 @@ type Report = {
 
 export function SignReportPage({ jobId, token }: { jobId: string; token: string }) {
   const [report, setReport] = useState<Report | null>(null);
-  const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [submitError, setSubmitError] = useState('');
   const [tab, setTab] = useState<'images' | 'sign'>('images');
   const [signed, setSigned] = useState(false);
   const [signatureImage, setSignatureImage] = useState('');
@@ -66,7 +67,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
           setTab('sign');
         }
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Could not load report'));
+      .catch((err) => setLoadError(err instanceof Error ? err.message : 'Could not load report'));
   }, [jobId, token]);
 
   const photosByOfficer = useMemo(() => {
@@ -90,7 +91,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
   async function sendToAdmin(signedBy: string, role: string) {
     if (!signed || sending || sent) return;
     setSending(true);
-    setError('');
+    setSubmitError('');
     try {
       const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/sign-report`, {
         method: 'POST',
@@ -108,7 +109,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
       }
       setSent(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send report');
+      setSubmitError(err instanceof Error ? err.message : 'Could not send report');
     } finally {
       setSending(false);
     }
@@ -127,7 +128,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
     await sendToAdmin(signedBy, role);
   }
 
-  if (error) return <main style={styles.shell}><section style={styles.card}><h1>Report unavailable</h1><p>{error}</p></section></main>;
+  if (loadError) return <main style={styles.shell}><section style={styles.card}><h1>Report unavailable</h1><p>{loadError}</p></section></main>;
   if (!report) return <main style={styles.shell}><section style={styles.card}>Loading report...</section></main>;
 
   return (
@@ -231,6 +232,7 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
               {sent ? 'Completed' : sending ? 'Sending...' : 'Send to Admin'}
             </button>
           </div>
+          {submitError ? <p style={styles.submitError}>{submitError}</p> : null}
           <PrintableReport report={report} photosByOfficer={photosByOfficer} sent={sent} signatureImage={signatureImage} signed={signed} signedAt={signedAt} signerName={signerName} signerRole={signerRole} />
         </section>
       )}
@@ -655,6 +657,7 @@ const styles: Record<string, CSSProperties> = {
   penButton: { position: 'absolute', top: 10, right: 10, zIndex: 1, height: 30, border: '1px solid #DADADA', borderRadius: 4, background: '#FFFFFF', color: '#262626', padding: '0 12px', fontSize: 12, fontWeight: 800 },
   penButtonActive: { position: 'absolute', top: 10, right: 10, zIndex: 1, height: 30, border: '1px solid #050505', borderRadius: 4, background: '#050505', color: '#FFFFFF', padding: '0 12px', fontSize: 12, fontWeight: 800 },
   actions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 },
+  submitError: { margin: '10px 0 0', color: '#D92D20', fontSize: 13, fontWeight: 700 },
   signedBox: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12, padding: 12, border: '1px solid #E3E3E3', borderRadius: 6, background: '#FAFAFA', fontSize: 13 },
   modalBackdrop: { position: 'fixed', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', background: 'rgb(0 0 0 / 35%)', padding: 16 },
   modal: { width: 'min(420px, 100%)', borderRadius: 8, background: '#FFFFFF', padding: 18, boxShadow: '0 20px 60px rgb(0 0 0 / 20%)' },
