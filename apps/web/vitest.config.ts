@@ -18,8 +18,10 @@ export default defineConfig({
         'features/admin/screens/DashboardScreen.tsx',
         'features/admin/screens/PaymentsScreen.tsx',
         'features/admin/screens/ProfileScreen.tsx',
+        'features/admin/screens/ReportsScreen.tsx',
         'features/admin/lib/billing-api.ts',
         'features/admin/lib/payments-api.ts',
+        'features/admin/lib/reports-api.ts',
       ],
       thresholds: {
         statements: 60,
