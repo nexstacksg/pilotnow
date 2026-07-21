@@ -1,5 +1,5 @@
 import { Field } from './ui';
-import { officerStatusLabel } from '../lib/format';
+import { PlusIcon } from './icons';
 import type { JobForm, OfficerForm } from '../types';
 
 type FormSetter<T> = (updater: (form: T) => T) => void;
@@ -92,12 +92,10 @@ export function OfficerFormFields({
         <Field label="Default hourly rate (S$)">
           <input className="pn-mono-input" max="40" min="10" type="number" value={form.rate} onChange={(event) => setForm((item) => ({ ...item, rate: event.target.value }))} />
         </Field>
-        <Field label="Account status">
+        <Field label="Officer status">
           <select value={form.status} onChange={(event) => setForm((item) => ({ ...item, status: event.target.value as OfficerForm['status'] }))}>
-            {(['New', 'Active', 'Inactive', 'Blocked'] as const).map((status) => (
-              <option key={status} value={status}>
-                {officerStatusLabel[status]}
-              </option>
+            {['New', 'Active', 'Inactive', 'Blocked'].map((status) => (
+              <option key={status}>{status}</option>
             ))}
           </select>
         </Field>
@@ -105,8 +103,8 @@ export function OfficerFormFields({
       <label className="pn-check">
         <input checked={form.ic} onChange={(event) => setForm((item) => ({ ...item, ic: event.target.checked }))} type="checkbox" />
         <span>
-          <strong>IC document verified</strong>
-          <small>Tick only after the officer's IC copy has been checked.</small>
+          <strong>IC received</strong>
+          <small>Tick if the officer's IC copy has been received.</small>
         </span>
       </label>
       <Field label="Notes">
