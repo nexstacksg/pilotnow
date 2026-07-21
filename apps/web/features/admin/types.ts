@@ -10,10 +10,11 @@ export type Screen =
   | 'profile';
 
 export type JobStatus =
-  | 'Draft'
-  | 'Open'
-  | 'Assigned'
-  | 'Ongoing'
+  | 'Draft Created'
+  | 'Posted/Waiting'
+  | 'Officers confirmed'
+  | 'Job ongoing'
+  | 'Awaiting sign-off'
   | 'Completed'
   | 'Cancelled';
 
@@ -28,6 +29,7 @@ export type PhotoStatus = 'received' | 'missing' | 'upcoming';
 export type JobOfficer = {
   oid: string;
   name: string;
+  phone?: string;
   ic: boolean;
   rate: number;
   confirmed: boolean;
@@ -41,6 +43,7 @@ export type PhotoCheckpoint = {
   status: PhotoStatus;
   by: string;
   at: string;
+  mediaRef?: string;
   note?: string;
 };
 
@@ -62,6 +65,8 @@ export type Job = {
   billing: BillingStatus;
   invoice: string;
   billedDate: string;
+  siteManagerSignedAt?: string;
+  siteManagerSignedBy?: string;
 };
 
 export type Officer = {

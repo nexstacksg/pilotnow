@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createDb, schema } from '@pilotnow/db';
 import { JOB_STATUS, BILLING_STATUS, RECORD_STATE } from '@pilotnow/shared';
 import { and, desc, eq } from 'drizzle-orm';
@@ -48,6 +49,23 @@ const listQuery = z.object({
   billingStatus: billingStatus.optional(),
   recordState: recordState.optional(),
 });
+const signReportQuery = z.object({ token: z.string().min(1) });
+const signReportPayload = z.object({
+  job: z.string().min(1),
+  scope: z.literal('SIGN_REPORT'),
+  iat: z.number().int().positive(),
+  exp: z.number().int().positive(),
+});
+const signReportSubmit = z.object({
+  token: z.string().min(1).optional(),
+  signatureImage: z.string().trim().min(1).max(1_500_000),
+  signedBy: z.string().trim().min(1).max(120),
+  signerRole: z.string().trim().min(1).max(120),
+});
+const assignmentCreate = z.object({
+  officerId: z.string().trim().min(1),
+});
+const SIGN_REPORT_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 let db: ReturnType<typeof createDb> | undefined;
 
@@ -58,6 +76,90 @@ function getDb() {
 
 function jsonError(c: Context, status: 400 | 403 | 404, message: string) {
   return c.json({ error: message }, status);
+}
+
+function encodeUriPart(value: string) {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+function hmac(key: Buffer | string, value: string) {
+  return createHmac('sha256', key).update(value).digest();
+}
+
+function hmacHex(key: Buffer | string, value: string) {
+  return createHmac('sha256', key).update(value).digest('hex');
+}
+
+function base64UrlJson(value: unknown) {
+  return Buffer.from(JSON.stringify(value), 'utf8').toString('base64url');
+}
+
+function tokenSecret() {
+  const secret = process.env.PILOTNOW_SIGN_REPORT_SECRET || process.env.PILOTNOW_OFFICER_LINK_SECRET || process.env.PILOTNOW_AGENT_TOKEN;
+  if (!secret && process.env.NODE_ENV === 'production') throw new Error('PILOTNOW_SIGN_REPORT_SECRET is not set');
+  return secret || 'dev-sign-report-secret';
+}
+
+function signReportToken(jobCode: string) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlJson({ alg: 'HS256', typ: 'JWT' });
+  const body = base64UrlJson({ job: jobCode, scope: 'SIGN_REPORT', iat: now, exp: now + SIGN_REPORT_TOKEN_TTL_SECONDS });
+  const signingInput = `${header}.${body}`;
+  return `${signingInput}.${createHmac('sha256', tokenSecret()).update(signingInput).digest('base64url')}`;
+}
+
+function verifySignReportToken(token: string, jobCode: string) {
+  const [header, body, signature] = token.split('.');
+  if (!header || !body || !signature) return false;
+  const expected = createHmac('sha256', tokenSecret()).update(`${header}.${body}`).digest('base64url');
+  const actualBuffer = Buffer.from(signature);
+  const expectedBuffer = Buffer.from(expected);
+  if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) return false;
+  try {
+    const parsed = signReportPayload.safeParse(JSON.parse(Buffer.from(body, 'base64url').toString('utf8')));
+    return parsed.success && parsed.data.job === jobCode && parsed.data.exp * 1000 >= Date.now();
+  } catch {
+    return false;
+  }
+}
+
+async function sha256Hex(value: string) {
+  const bytes = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest('SHA-256', bytes);
+  return Buffer.from(hash).toString('hex');
+}
+
+async function spacesReadUrl(mediaRef: string) {
+  const accessKey = process.env.DO_SPACES_ACCESS_KEY;
+  const secretKey = process.env.DO_SPACES_SECRET_KEY;
+  const bucket = process.env.DO_SPACES_BUCKET;
+  const endpoint = process.env.DO_SPACES_ENDPOINT;
+  const region = process.env.DO_SPACES_REGION;
+  if (!accessKey || !secretKey || !bucket || !endpoint || !region) throw new Error('DigitalOcean Spaces is not configured');
+
+  const key = decodeURIComponent(new URL(mediaRef).pathname.replace(/^\/+/, ''));
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const amzDate = `${date}T${now.toISOString().slice(11, 19).replace(/:/g, '')}Z`;
+  const credentialScope = `${date}/${region}/s3/aws4_request`;
+  const host = `${bucket}.${new URL(endpoint).host}`;
+  const pathname = `/${key.split('/').map(encodeUriPart).join('/')}`;
+  const query = new URLSearchParams({
+    'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+    'X-Amz-Credential': `${accessKey}/${credentialScope}`,
+    'X-Amz-Date': amzDate,
+    'X-Amz-Expires': '300',
+    'X-Amz-SignedHeaders': 'host',
+  });
+  const canonicalQuery = Array.from(query.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${encodeUriPart(k)}=${encodeUriPart(v)}`)
+    .join('&');
+  const canonicalRequest = ['GET', pathname, canonicalQuery, `host:${host}\n`, 'host', 'UNSIGNED-PAYLOAD'].join('\n');
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, await sha256Hex(canonicalRequest)].join('\n');
+  const signingKey = hmac(hmac(hmac(hmac(`AWS4${secretKey}`, date), region), 's3'), 'aws4_request');
+  const signature = hmacHex(signingKey, stringToSign);
+  return `https://${host}${pathname}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
 function serializeJob(row: {
@@ -79,9 +181,95 @@ function serializeJob(row: {
     billingStatus: row.job.billingStatus,
     invoiceNumber: row.job.invoiceNumber,
     billedAt: row.job.billedAt?.toISOString() ?? null,
+    siteManagerSignedAt: row.job.siteManagerSignedAt?.toISOString() ?? null,
+    siteManagerSignedBy: row.job.siteManagerSignedBy,
     recordState: row.job.recordState,
     postedToGroupAt: row.job.postedToGroupAt?.toISOString() ?? null,
     createdAt: row.job.createdAt.toISOString(),
+  };
+}
+
+async function serializeJobWithAssignments(row: {
+  job: typeof schema.jobs.$inferSelect;
+  customer: typeof schema.customers.$inferSelect;
+  site: typeof schema.sites.$inferSelect;
+}) {
+  const assignments = await getDb()
+    .select()
+    .from(schema.jobAssignments)
+    .innerJoin(schema.officers, eq(schema.jobAssignments.officerId, schema.officers.id))
+    .where(eq(schema.jobAssignments.jobId, row.job.id));
+  const proofRows = await getDb()
+    .select()
+    .from(schema.proofPhotos)
+    .innerJoin(schema.officers, eq(schema.proofPhotos.officerId, schema.officers.id))
+    .where(eq(schema.proofPhotos.jobId, row.job.id));
+
+  return {
+    ...serializeJob(row),
+    assignments: assignments.map((item) => ({
+      officerId: item.officers.id,
+      officerName: item.officers.name,
+      officerPhone: item.officers.phone,
+      icVerified: item.officers.icVerified,
+      rate: item.job_assignments.rateAgreed ?? item.job_assignments.rateOffered ?? item.officers.defaultHourlyRate,
+      confirmed: item.job_assignments.ackStatus === 'ACKNOWLEDGED',
+      onDuty: Boolean(item.job_assignments.reportedOnDutyAt || item.job_assignments.checkInAt),
+      checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
+      checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
+    })),
+    proofPhotos: proofRows.map((item) => ({
+      id: item.proof_photos.id,
+      officerId: item.officers.id,
+      officerName: item.officers.name,
+      mediaRef: item.proof_photos.mediaRef,
+      proofWindow: item.proof_photos.proofWindow,
+      receivedAt: item.proof_photos.receivedAt.toISOString(),
+    })),
+  };
+}
+
+async function serializeSignReport(row: {
+  job: typeof schema.jobs.$inferSelect;
+  customer: typeof schema.customers.$inferSelect;
+  site: typeof schema.sites.$inferSelect;
+}) {
+  const assignments = await getDb()
+    .select()
+    .from(schema.jobAssignments)
+    .innerJoin(schema.officers, eq(schema.jobAssignments.officerId, schema.officers.id))
+    .where(eq(schema.jobAssignments.jobId, row.job.id));
+  const proofRows = await getDb()
+    .select()
+    .from(schema.proofPhotos)
+    .innerJoin(schema.officers, eq(schema.proofPhotos.officerId, schema.officers.id))
+    .where(eq(schema.proofPhotos.jobId, row.job.id));
+  return {
+    id: row.job.jobCode,
+    status: row.job.status,
+    customer: { name: row.customer.name },
+    site: { name: row.site.name, address: row.site.address },
+    startAt: row.job.startAt.toISOString(),
+    endAt: row.job.endAt.toISOString(),
+    signOff: {
+      signatureImage: row.job.siteManagerSignature,
+      signedBy: row.job.siteManagerSignedBy,
+      signerRole: row.job.siteManagerSignerRole,
+      signedAt: row.job.siteManagerSignedAt?.toISOString() ?? null,
+    },
+    assignments: assignments.map((item) => ({
+      officerId: item.officers.id,
+      officerName: item.officers.name,
+      checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
+      checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
+    })),
+    proofPhotos: await Promise.all(proofRows.map(async (item) => ({
+      officerId: item.officers.id,
+      officerName: item.officers.name,
+      proofWindow: item.proof_photos.proofWindow,
+      receivedAt: item.proof_photos.receivedAt.toISOString(),
+      photoUrl: await spacesReadUrl(item.proof_photos.mediaRef),
+    }))),
   };
 }
 
@@ -176,14 +364,92 @@ export const jobs = new Hono()
       .where(filters.length ? and(...filters) : undefined)
       .orderBy(desc(schema.jobs.startAt));
 
-    return c.json({ items: rows.map((row) => serializeJob({ job: row.jobs, customer: row.customers, site: row.sites })) });
+    return c.json({ items: await Promise.all(rows.map((row) => serializeJobWithAssignments({ job: row.jobs, customer: row.customers, site: row.sites }))) });
+  })
+  .get('/:id/proof-photos/:proofId', async (c) => {
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    const [proof] = await getDb()
+      .select()
+      .from(schema.proofPhotos)
+      .where(and(eq(schema.proofPhotos.id, c.req.param('proofId')), eq(schema.proofPhotos.jobId, row.job.id)))
+      .limit(1);
+    if (!proof) return jsonError(c, 404, 'Proof photo not found');
+
+    return c.redirect(await spacesReadUrl(proof.mediaRef));
+  })
+  .post('/:id/sign-token', async (c) => {
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    return c.json({ token: signReportToken(row.job.jobCode) });
+  })
+  .get('/:id/sign-report', async (c) => {
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    const parsed = signReportQuery.safeParse(c.req.query());
+    if (!parsed.success || !verifySignReportToken(parsed.data.token, row.job.jobCode)) {
+      return jsonError(c, 403, 'Invalid or expired report link');
+    }
+
+    return c.json({ item: await serializeSignReport(row) });
+  })
+  .post('/:id/sign-report', async (c) => {
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    const body = await c.req.json().catch(() => ({}));
+    const parsed = signReportSubmit.safeParse(body);
+    if (!parsed.success) return jsonError(c, 400, 'Invalid signature payload');
+    const token = parsed.data.token ?? c.req.query('token');
+    if (!token || !verifySignReportToken(token, row.job.jobCode)) {
+      return jsonError(c, 403, 'Invalid or expired report link');
+    }
+    if (row.job.recordState !== 'CONFIRMED') {
+      return jsonError(c, 400, 'Only confirmed jobs can be completed');
+    }
+    if (row.job.status === 'CANCELLED' || row.job.status === 'COMPLETED') {
+      return jsonError(c, 400, 'This job cannot be completed from the sign report');
+    }
+
+    const signedAt = new Date();
+    await getDb().update(schema.jobs).set({
+      status: 'COMPLETED',
+      siteManagerSignature: parsed.data.signatureImage,
+      siteManagerSignedBy: parsed.data.signedBy,
+      siteManagerSignerRole: parsed.data.signerRole,
+      siteManagerSignedAt: signedAt,
+    }).where(eq(schema.jobs.id, row.job.id));
+    await audit('job.sign_report', row.job.id, { status: 'COMPLETED', signedAt: signedAt.toISOString(), signedBy: parsed.data.signedBy }, { type: 'HUMAN', id: 'site-manager:sign-report' });
+    const next = await findJob(row.job.jobCode);
+    return c.json({ item: next ? await serializeSignReport(next) : null });
   })
   .get('/:id', async (c) => {
     const row = await findJob(c.req.param('id'));
     if (!row) {
       return jsonError(c, 404, 'Job not found');
     }
-    return c.json({ item: serializeJob(row) });
+    return c.json({ item: await serializeJobWithAssignments(row) });
+  })
+  .post('/:id/post', async (c) => {
+    const actor = c.get('actor');
+    if (actor.type === 'AGENT') {
+      return jsonError(c, 403, 'Agents cannot post jobs to WhatsApp');
+    }
+
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    await getDb()
+      .update(schema.jobs)
+      .set({ postedToGroupAt: row.job.postedToGroupAt ?? new Date(), recordState: 'CONFIRMED' })
+      .where(eq(schema.jobs.id, row.job.id));
+
+    await audit('job.post_whatsapp', row.job.id, undefined, actor);
+    const next = await findJob(row.job.jobCode);
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
   })
   .post('/', async (c) => {
     const parsed = jobCreate.safeParse(await c.req.json().catch(() => undefined));
@@ -230,7 +496,7 @@ export const jobs = new Hono()
 
     await audit('job.create', job.id, { recordState: actor.type === 'AGENT' ? 'DRAFT' : 'CONFIRMED' }, actor);
     const row = await findJob(job.id);
-    return c.json({ item: row ? serializeJob(row) : null }, 201);
+    return c.json({ item: row ? await serializeJobWithAssignments(row) : null }, 201);
   })
   .patch('/:id', async (c) => {
     const id = c.req.param('id');
@@ -293,7 +559,7 @@ export const jobs = new Hono()
 
     await audit('job.update', row.job.id, input, actor);
     const next = await findJob(id);
-    return c.json({ item: next ? serializeJob(next) : null });
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
   })
   .post('/:id/confirm', async (c) => {
     const actor = c.get('actor');
@@ -318,7 +584,7 @@ export const jobs = new Hono()
 
     await audit('job.confirm', row.job.id, undefined, actor);
     const next = await findJob(row.job.jobCode);
-    return c.json({ item: next ? serializeJob(next) : null });
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
   })
   .post('/:id/complete', async (c) => {
     const actor = c.get('actor');
@@ -334,11 +600,50 @@ export const jobs = new Hono()
     if (row.job.recordState !== 'CONFIRMED') {
       return jsonError(c, 400, 'Only confirmed jobs can be completed');
     }
+    if (row.job.status === 'CANCELLED' || row.job.status === 'COMPLETED') {
+      return jsonError(c, 400, 'This job cannot be completed');
+    }
 
     await getDb().update(schema.jobs).set({ status: 'COMPLETED' }).where(eq(schema.jobs.id, row.job.id));
     await audit('job.complete', row.job.id, undefined, actor);
     const next = await findJob(id);
-    return c.json({ item: next ? serializeJob(next) : null });
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
+  })
+  .post('/:id/assignments', async (c) => {
+    const actor = c.get('actor');
+    if (actor.type === 'AGENT') return jsonError(c, 403, 'Agents cannot assign officers');
+
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    const parsed = assignmentCreate.safeParse(await c.req.json().catch(() => undefined));
+    if (!parsed.success) return jsonError(c, 400, 'Invalid assignment payload');
+
+    const officerId = parsed.data.officerId;
+    const [officer] = await getDb()
+      .select()
+      .from(schema.officers)
+      .where(uuid.safeParse(officerId).success ? eq(schema.officers.id, officerId) : eq(schema.officers.officerCode, officerId))
+      .limit(1);
+    if (!officer) return jsonError(c, 404, 'Officer not found');
+
+    const [existing] = await getDb()
+      .select({ id: schema.jobAssignments.id })
+      .from(schema.jobAssignments)
+      .where(and(eq(schema.jobAssignments.jobId, row.job.id), eq(schema.jobAssignments.officerId, officer.id)))
+      .limit(1);
+    if (!existing) {
+      await getDb().insert(schema.jobAssignments).values({
+        jobId: row.job.id,
+        officerId: officer.id,
+        rateOffered: officer.defaultHourlyRate,
+        rateAgreed: officer.defaultHourlyRate,
+      });
+      await audit('job.assignment.create', row.job.id, { officerId: officer.id }, actor);
+    }
+
+    const next = await findJob(row.job.jobCode);
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
   })
   .delete('/:id', async (c) => {
     const id = c.req.param('id');
@@ -358,5 +663,5 @@ export const jobs = new Hono()
 
     await audit('job.cancel', row.job.id, undefined, c.get('actor'));
     const next = await findJob(row.job.jobCode);
-    return c.json({ item: next ? serializeJob(next) : null });
+    return c.json({ item: next ? await serializeJobWithAssignments(next) : null });
   });

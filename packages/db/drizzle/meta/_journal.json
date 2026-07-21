@@ -50,6 +50,20 @@
       "when": 1784174400000,
       "tag": "0005_add_admin_company",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1784284800000,
+      "tag": "0006_add_site_manager_signature",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784284800001,
+      "tag": "0007_add_assignment_attendance",
+      "breakpoints": true
     }
   ]
 }

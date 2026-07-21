@@ -20,7 +20,7 @@ export function CreateJobModal({
   return (
     <Modal
       title="Create new job"
-      subtitle="Saved as a Draft - you can post it to WhatsApp next."
+      subtitle="Saved as Draft Created - you can post it to WhatsApp next."
       onClose={onClose}
       footer={
         <>
@@ -298,7 +298,7 @@ export function JobReportModal({ job, onClose, copyText }: { job: Job; onClose: 
                 <small>{(officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled).toFixed(2)}h x {money(officer.rate)}/h</small>
               </div>
               <div className="pn-report-officer-meta">
-                <span>Actual hours: <strong>{officer.actualStart || job.start} - {officer.actualEnd || job.end}</strong></span>
+                <span>Actual hours: <strong>{officer.actualStart || '--:--'} - {officer.actualEnd || '--:--'}</strong></span>
                 <span>Evidence photos: <strong>{job.photos.filter((photo) => photo.by === officer.name).length}</strong></span>
               </div>
             </div>

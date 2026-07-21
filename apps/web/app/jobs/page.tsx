@@ -1,7 +1,7 @@
 import { JobsPageContent } from './job-pages';
 import type { JobListFilter } from '../../features/admin/types';
 
-const jobFilters: JobListFilter[] = ['All', 'Today', 'Needs staffing', 'Ongoing', 'Missing photos', 'Draft', 'Open', 'Assigned', 'Completed', 'Cancelled'];
+const jobFilters: JobListFilter[] = ['All', 'Today', 'Needs staffing', 'Job ongoing', 'Missing photos', 'Draft Created', 'Posted/Waiting', 'Officers confirmed', 'Awaiting sign-off', 'Completed', 'Cancelled'];
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<{ view?: string | string[] }> }) {
   const { view } = await searchParams;

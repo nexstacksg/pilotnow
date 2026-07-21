@@ -52,9 +52,9 @@ type ApiDashboardSnapshot = Omit<DashboardSnapshot, 'source' | 'todayJobs' | 'un
 };
 
 const statusFromApi: Record<ApiDashboardJob['status'], JobStatus> = {
-  OPEN: 'Open',
-  ASSIGNED: 'Assigned',
-  IN_PROGRESS: 'Ongoing',
+  OPEN: 'Posted/Waiting',
+  ASSIGNED: 'Officers confirmed',
+  IN_PROGRESS: 'Job ongoing',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 };
@@ -117,7 +117,7 @@ export function dashboardFallback(jobs: Job[], now = new Date()): DashboardSnaps
   );
   const unbilledJobs = items.filter((job) => job.status === 'Completed' && job.billingStatus === 'NOT_BILLED');
   const waitingJobs = todayJobs.filter((job) => job.status !== 'Completed' && job.assigned < job.required);
-  const ongoingJobs = items.filter((job) => job.status === 'Ongoing');
+  const ongoingJobs = items.filter((job) => job.status === 'Job ongoing');
 
   return {
     source: 'fallback',
