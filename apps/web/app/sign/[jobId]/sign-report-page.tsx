@@ -41,6 +41,10 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
   const [signedAt, setSignedAt] = useState('');
   const [signerName, setSignerName] = useState('');
   const [signerRole, setSignerRole] = useState('');
+  const [signerNameDraft, setSignerNameDraft] = useState('');
+  const [signerRoleDraft, setSignerRoleDraft] = useState('Site Manager');
+  const [signerFormError, setSignerFormError] = useState('');
+  const [signerPopupOpen, setSignerPopupOpen] = useState(false);
   const [clearSignatureCount, setClearSignatureCount] = useState(0);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -75,14 +79,19 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
     if (!openOfficerId && report?.assignments[0]) setOpenOfficerId(report.assignments[0].officerId);
   }, [openOfficerId, report]);
 
-  async function sendToAdmin() {
+  function openSignerPopup() {
+    if (!signed || sending || sent) return;
+    setSignerNameDraft(signerName);
+    setSignerRoleDraft(signerRole || 'Site Manager');
+    setSignerFormError('');
+    setSignerPopupOpen(true);
+  }
+
+  async function sendToAdmin(signedBy: string, role: string) {
     if (!signed || sending || sent) return;
     setSending(true);
     setError('');
     try {
-      const signedBy = signerName || window.prompt('Signer name')?.trim();
-      if (!signedBy) return;
-      const role = signerRole || window.prompt('Signer role', 'Site Manager')?.trim() || 'Site Manager';
       const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/sign-report`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -103,6 +112,19 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
     } finally {
       setSending(false);
     }
+  }
+
+  async function confirmSignerPopup() {
+    const signedBy = signerNameDraft.trim();
+    const role = signerRoleDraft.trim() || 'Site Manager';
+    if (!signedBy) {
+      setSignerFormError('Enter the signer name.');
+      return;
+    }
+    setSignerName(signedBy);
+    setSignerRole(role);
+    setSignerPopupOpen(false);
+    await sendToAdmin(signedBy, role);
   }
 
   if (error) return <main style={styles.shell}><section style={styles.card}><h1>Report unavailable</h1><p>{error}</p></section></main>;
@@ -190,9 +212,13 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
               setSignedAt('');
               setSignerName('');
               setSignerRole('');
+              setSignerNameDraft('');
+              setSignerRoleDraft('Site Manager');
+              setSignerFormError('');
+              setSignerPopupOpen(false);
               setClearSignatureCount((count) => count + 1);
             }} style={styles.secondary} type="button">Clear</button>
-            <button disabled={!signed} style={styles.primary} type="button">Confirm Signature</button>
+            <button disabled={!signed || sending || sent} onClick={openSignerPopup} style={styles.primary} type="button">Confirm Signature</button>
           </div>
           <div style={styles.signedBox}>
             <span>Signed by</span><strong>{signerName || '-'}</strong>
@@ -201,13 +227,36 @@ export function SignReportPage({ jobId, token }: { jobId: string; token: string 
           </div>
           <div style={styles.actions}>
             <button disabled={!signed} onClick={() => window.print()} style={styles.secondary} type="button">Download PDF</button>
-            <button disabled={!signed || sending || sent} onClick={sendToAdmin} style={styles.primary} type="button">
+            <button disabled={!signed || sending || sent} onClick={openSignerPopup} style={styles.primary} type="button">
               {sent ? 'Completed' : sending ? 'Sending...' : 'Send to Admin'}
             </button>
           </div>
           <PrintableReport report={report} photosByOfficer={photosByOfficer} sent={sent} signatureImage={signatureImage} signed={signed} signedAt={signedAt} signerName={signerName} signerRole={signerRole} />
         </section>
       )}
+      {signerPopupOpen ? (
+        <div style={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="signer-popup-title">
+          <section style={styles.modal}>
+            <h2 id="signer-popup-title" style={styles.modalTitle}>Confirm signer details</h2>
+            <label style={styles.modalField}>
+              <span>Signed by</span>
+              <input autoFocus value={signerNameDraft} onChange={(event) => {
+                setSignerNameDraft(event.target.value);
+                setSignerFormError('');
+              }} style={styles.modalInput} />
+            </label>
+            <label style={styles.modalField}>
+              <span>Role</span>
+              <input value={signerRoleDraft} onChange={(event) => setSignerRoleDraft(event.target.value)} style={styles.modalInput} />
+            </label>
+            {signerFormError ? <p style={styles.modalError}>{signerFormError}</p> : null}
+            <div style={styles.modalActions}>
+              <button onClick={() => setSignerPopupOpen(false)} style={styles.secondary} type="button">Cancel</button>
+              <button disabled={sending} onClick={confirmSignerPopup} style={styles.primary} type="button">{sending ? 'Sending...' : 'Confirm & Send'}</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -607,4 +656,11 @@ const styles: Record<string, CSSProperties> = {
   penButtonActive: { position: 'absolute', top: 10, right: 10, zIndex: 1, height: 30, border: '1px solid #050505', borderRadius: 4, background: '#050505', color: '#FFFFFF', padding: '0 12px', fontSize: 12, fontWeight: 800 },
   actions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 },
   signedBox: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12, padding: 12, border: '1px solid #E3E3E3', borderRadius: 6, background: '#FAFAFA', fontSize: 13 },
+  modalBackdrop: { position: 'fixed', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', background: 'rgb(0 0 0 / 35%)', padding: 16 },
+  modal: { width: 'min(420px, 100%)', borderRadius: 8, background: '#FFFFFF', padding: 18, boxShadow: '0 20px 60px rgb(0 0 0 / 20%)' },
+  modalTitle: { margin: '0 0 14px', fontSize: 18 },
+  modalField: { display: 'grid', gap: 6, marginBottom: 12, color: '#262626', fontSize: 13, fontWeight: 700 },
+  modalInput: { width: '100%', height: 42, border: '1px solid #DADADA', borderRadius: 4, padding: '0 10px', fontSize: 14 },
+  modalError: { margin: '0 0 12px', color: '#D92D20', fontSize: 13, fontWeight: 700 },
+  modalActions: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 },
 };
