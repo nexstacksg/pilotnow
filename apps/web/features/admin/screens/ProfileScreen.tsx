@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { BadgeCheck, Camera, LockKeyhole, UserRound } from 'lucide-react';
+import { BadgeCheck, LockKeyhole, UserRound } from 'lucide-react';
 import { changePassword, fetchProfile, profileErrorMessage, saveProfile } from '../lib/profile-api';
 import type { AdminProfile } from '../lib/profile-api';
 
@@ -145,7 +145,6 @@ export function ProfileScreen() {
                 <span aria-label={loading ? 'Loading profile photo' : undefined} className={`pn-profile-avatar${loading ? ' is-loading' : ''}`}>
                   {loading ? null : profile.avatarUrl ? <img alt={`${profile.name} profile`} src={profile.avatarUrl} /> : initials}
                 </span>
-                {!loading ? <span className="pn-profile-camera"><Camera aria-hidden="true" size={14} /></span> : null}
               </div>
               <label className="pn-profile-photo-button">Change Photo<input accept="image/png,image/jpeg,image/webp" disabled={loading || saving} onChange={selectPhoto} type="file" /></label>
               <strong>{profile.name || 'Loading profile...'}</strong><span>{account?.role || 'Operations Admin'}</span><div className="pn-profile-member">Member since {memberSince}</div>

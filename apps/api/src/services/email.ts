@@ -1,5 +1,3 @@
-import nodemailer from 'nodemailer';
-
 export class PasswordResetDeliveryError extends Error {
   constructor(message: string) {
     super(message);
@@ -37,6 +35,7 @@ export async function sendPasswordResetCode(to: string, code: string) {
   }
 
   try {
+    const nodemailer = await Function('specifier', 'return import(specifier)')('nodemailer');
     const transporter = nodemailer.createTransport({
       host: config.host,
       port: config.port,

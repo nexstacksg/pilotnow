@@ -7,7 +7,7 @@ import type { DashboardSnapshot } from '../lib/dashboard-api';
 const snapshot: DashboardSnapshot = {
   source: 'live', operatingDate: '2026-07-17', generatedAt: '2026-07-17T00:00:00Z',
   metrics: { todayJobs: 1, waitingJobs: 1, ongoingJobs: 0, missingPhotos: 1, officersNeeded: 2, notBilled: 1, unpaidPayables: 3 },
-  todayJobs: [{ id: 'PN-42', customer: 'Acme', location: 'Jurong', startAt: '2026-07-17T01:00:00Z', endAt: '2026-07-17T09:00:00Z', required: 2, assigned: 1, status: 'Assigned', proofStatus: 'NOT_DUE', billingStatus: 'NOT_BILLED', hasUnpaidPayables: true }],
+  todayJobs: [{ id: 'PN-42', customer: 'Acme', location: 'Jurong', startAt: '2026-07-17T01:00:00Z', endAt: '2026-07-17T09:00:00Z', required: 2, assigned: 1, status: 'Officers confirmed', proofStatus: 'NOT_DUE', billingStatus: 'NOT_BILLED', hasUnpaidPayables: true }],
   missingProofs: [{ jobId: 'PN-42', customer: 'Acme', officer: 'Alicia', expectedAt: '2026-07-17T03:00:00Z' }],
   unbilledJobs: [{ id: 'PN-41', customer: 'Beta', location: 'Tuas', startAt: '2026-07-16T01:00:00Z', endAt: '2026-07-16T09:00:00Z', required: 1, assigned: 1, status: 'Completed', proofStatus: 'RECEIVED', billingStatus: 'NOT_BILLED', hasUnpaidPayables: false }],
   queues: { todayJobs: ['PN-42'], waitingJobs: ['PN-42'], ongoingJobs: [], missingPhotos: ['PN-42'], unbilledJobs: ['PN-41'] },
