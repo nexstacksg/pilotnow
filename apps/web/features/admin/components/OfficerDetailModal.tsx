@@ -206,7 +206,7 @@ export function OfficerDetailModal({
     paymentId: item.id,
     paymentStatus: paymentStatusForHistory(item.id, item.jobId, item.paymentStatus),
   }));
-  const visibleHistory = dbHistory.length ? dbHistory : history.map(({ job, worked, pay }) => ({
+  const localHistory = history.map(({ job, worked, pay }) => ({
     jobId: job.id,
     customer: job.customer,
     date: job.date,
@@ -216,6 +216,11 @@ export function OfficerDetailModal({
     paymentStatus: paymentStatusForHistory('', job.id, 'Pending'),
     paymentId: '',
   }));
+  const dbHistoryJobIds = new Set(dbHistory.map((item) => item.jobId));
+  const visibleHistory = [
+    ...dbHistory,
+    ...localHistory.filter((item) => !dbHistoryJobIds.has(item.jobId)),
+  ].sort((a, b) => b.date.localeCompare(a.date) || b.jobId.localeCompare(a.jobId));
   const completed = visibleHistory.filter((item) => item.status === 'Completed');
   const totalHours = completed.reduce((sum, item) => sum + item.worked, 0);
   const totalPay = completed.reduce((sum, item) => sum + item.pay, 0);

@@ -209,6 +209,13 @@ function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
   });
 }
 
+function updateOfficerJobCount(officer: Officer, delta: 1 | -1) {
+  return {
+    ...officer,
+    jobsCount: Math.max(0, officer.jobsCount + delta),
+  };
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -541,6 +548,7 @@ export function AdminApp({
       actualEnd: '',
     };
     updateJob(selectedJob.id, (job) => ({ ...job, officers: [...job.officers, jobOfficer] }));
+    setOfficers((items) => items.map((item) => (item.id === officer.id ? updateOfficerJobCount(item, 1) : item)));
     flash(`${officer.name} added`);
   }
 
@@ -613,6 +621,7 @@ export function AdminApp({
       ...job,
       officers: job.officers.filter((officer) => officer.oid !== oid),
     }));
+    setOfficers((items) => items.map((item) => (item.id === oid ? updateOfficerJobCount(item, -1) : item)));
     flash('Officer removed from job');
   }
 

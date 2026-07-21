@@ -88,4 +88,41 @@ describe('OfficerDetailModal', () => {
     expect(screen.getByText('PN-0001')).toBeInTheDocument();
     expect(screen.queryByText('PN-0006')).not.toBeInTheDocument();
   });
+
+  it('shows locally assigned jobs when API history already has records', async () => {
+    vi.mocked(fetchOfficerAssignmentHistory).mockResolvedValue([
+      {
+        id: 'assignment-1',
+        jobId: 'PN-0001',
+        customerName: 'API Customer',
+        siteName: 'Tuas',
+        date: '2026-07-01',
+        rate: 16,
+        hours: 8,
+        payable: 128,
+        status: 'Completed',
+        paymentStatus: 'Pending',
+      },
+    ]);
+
+    render(
+      <OfficerDetailModal
+        copyText={vi.fn()}
+        jobs={[job(1), job(7)]}
+        officer={officer}
+        onClose={vi.fn()}
+        onDelete={vi.fn()}
+        onSave={vi.fn()}
+        openJob={vi.fn()}
+        payments={payments}
+      />,
+    );
+
+    await waitFor(() => expect(screen.queryByText('Loading assignment history...')).not.toBeInTheDocument());
+
+    expect(screen.getByText('PN-0007')).toBeInTheDocument();
+    expect(screen.getByText('Customer 7')).toBeInTheDocument();
+    expect(screen.getByText('PN-0001')).toBeInTheDocument();
+    expect(screen.getByText('API Customer')).toBeInTheDocument();
+  });
 });
