@@ -1,4 +1,5 @@
 import { Field } from './ui';
+import { PlusIcon } from './icons';
 import type { JobForm, OfficerForm } from '../types';
 
 type FormSetter<T> = (updater: (form: T) => T) => void;

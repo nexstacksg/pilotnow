@@ -245,7 +245,8 @@ export function AdminApp({
   const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
-  const [jobForm, setJobForm] = useState<JobForm>(() => emptyJobForm());
+
+  const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
   const [savingJob, setSavingJob] = useState(false);
@@ -470,7 +471,7 @@ export function AdminApp({
 
   function openCreateJob() {
     setEditingJobId(null);
-    setJobForm(emptyJobForm());
+    setJobForm(emptyJobForm);
     setCreateOpen(true);
   }
 
@@ -507,7 +508,7 @@ export function AdminApp({
       setJobs((items) => (editingJobId ? items.map((item) => normalizeJobStage(item.id === job.id ? job : item)) : [normalizeJobStage(job), ...items.filter((item) => item.id !== job.id).map((item) => normalizeJobStage(item))]));
       setCreateOpen(false);
       setEditingJobId(null);
-      setJobForm(emptyJobForm());
+      setJobForm(emptyJobForm);
       openJob(job.id);
       flash(editingJobId ? `Job ${job.id} updated` : `Job ${job.id} created`);
     } catch (error) {
