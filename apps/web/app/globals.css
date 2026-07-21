@@ -780,6 +780,10 @@ button {
   position: relative;
 }
 
+.pn-table-officer-list .pn-table-row:has(.pn-row-actions:hover) {
+  background: #fff;
+}
+
 .pn-row-actions {
   position: relative;
   align-items: center;
@@ -798,15 +802,20 @@ button {
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
 
-.pn-action-menu-trigger:hover,
 .pn-action-menu-trigger[aria-expanded='true'] {
-  border-color: #2563EB;
-  background: #EFF6FF;
-  color: #1D4ED8;
+  border-color: #A3A3A3;
+  background: #fff;
+  color: #0A0A0A;
+}
+
+.pn-action-menu-trigger:hover {
+  border-color: #A3A3A3;
+  background: #fff;
+  color: #0A0A0A;
 }
 
 .pn-action-menu-trigger:focus-visible {
-  outline: 2px solid #2563EB;
+  outline: 2px solid #A3A3A3;
   outline-offset: 2px;
 }
 
@@ -843,7 +852,7 @@ button {
 
 .pn-action-menu button:hover:not(:disabled),
 .pn-action-menu button:focus-visible {
-  background: #F5F5F5;
+  background: transparent;
   outline: none;
 }
 
