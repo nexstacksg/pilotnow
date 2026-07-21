@@ -43,7 +43,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { SummaryScreen } from './screens/SummaryScreen';
 import { routeForScreen } from './routes';
 import { TODAY, dateLabel, hours, money, normalizeJobStage, officerStatusLabel, statusTone } from './lib/format';
-import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobOfficer, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
+import type { BillingFilter, BillForm, Job, JobForm, JobListFilter, JobStatus, Officer, OfficerForm, Payment, Screen } from './types';
 
 type NavigationScreen = Exclude<Screen, 'profile'>;
 
@@ -91,27 +91,16 @@ type Toast = {
 
 type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
 
-const MAX_JOB_OFFICERS = 12;
-
-function todayInputDate() {
-  const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${today.getFullYear()}-${month}-${day}`;
-}
-
-function emptyJobForm(): JobForm {
-  return {
-    customer: '',
-    location: '',
-    date: todayInputDate(),
-    start: '09:00',
-    end: '18:00',
-    required: '1',
-    description: '',
-    instructions: '',
-  };
-}
+const emptyJobForm: JobForm = {
+  customer: '',
+  location: '',
+  date: '2026-07-12',
+  start: '09:00',
+  end: '18:00',
+  required: '2',
+  description: '',
+  instructions: '',
+};
 
 const emptyOfficerForm: OfficerForm = {
   name: '',
@@ -220,6 +209,13 @@ function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
   });
 }
 
+function updateOfficerJobCount(officer: Officer, delta: 1 | -1) {
+  return {
+    ...officer,
+    jobsCount: Math.max(0, officer.jobsCount + delta),
+  };
+}
+
 export function AdminApp({
   initialScreen = 'dashboard',
   initialJobId = 'PN-2041',
@@ -256,7 +252,8 @@ export function AdminApp({
   const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
-  const [jobForm, setJobForm] = useState<JobForm>(() => emptyJobForm());
+
+  const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
   const [savingJob, setSavingJob] = useState(false);
@@ -481,7 +478,7 @@ export function AdminApp({
 
   function openCreateJob() {
     setEditingJobId(null);
-    setJobForm(emptyJobForm());
+    setJobForm(emptyJobForm);
     setCreateOpen(true);
   }
 
@@ -518,7 +515,7 @@ export function AdminApp({
       setJobs((items) => (editingJobId ? items.map((item) => normalizeJobStage(item.id === job.id ? job : item)) : [normalizeJobStage(job), ...items.filter((item) => item.id !== job.id).map((item) => normalizeJobStage(item))]));
       setCreateOpen(false);
       setEditingJobId(null);
-      setJobForm(emptyJobForm());
+      setJobForm(emptyJobForm);
       openJob(job.id);
       flash(editingJobId ? `Job ${job.id} updated` : `Job ${job.id} created`);
     } catch (error) {
@@ -541,8 +538,9 @@ export function AdminApp({
       return;
     }
     try {
-      const updated = await assignOfficerToJob(selectedJob.id, oid, selectedJob);
-      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updated.id ? { ...job, ...updated } : job)));
+      const updatedJob = await assignOfficerToJob(selectedJob.id, officer.id, selectedJob);
+      setJobs((items) => items.map((job) => normalizeJobStage(job.id === updatedJob.id ? { ...job, ...updatedJob } : job)));
+      setOfficers((items) => items.map((item) => (item.id === officer.id ? updateOfficerJobCount(item, 1) : item)));
       flash(`${officer.name} added`);
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Check that the API and database are running.';
@@ -619,6 +617,7 @@ export function AdminApp({
       ...job,
       officers: job.officers.filter((officer) => officer.oid !== oid),
     }));
+    setOfficers((items) => items.map((item) => (item.id === oid ? updateOfficerJobCount(item, -1) : item)));
     flash('Officer removed from job');
   }
 
