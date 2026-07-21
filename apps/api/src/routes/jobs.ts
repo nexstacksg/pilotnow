@@ -181,6 +181,8 @@ function serializeJob(row: {
     billingStatus: row.job.billingStatus,
     invoiceNumber: row.job.invoiceNumber,
     billedAt: row.job.billedAt?.toISOString() ?? null,
+    siteManagerSignedAt: row.job.siteManagerSignedAt?.toISOString() ?? null,
+    siteManagerSignedBy: row.job.siteManagerSignedBy,
     recordState: row.job.recordState,
     postedToGroupAt: row.job.postedToGroupAt?.toISOString() ?? null,
     createdAt: row.job.createdAt.toISOString(),

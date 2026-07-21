@@ -95,6 +95,7 @@ export function JobDetailScreen({
   const onDutyCount = job.officers.filter((officer) => officer.onDuty).length;
   const checkedOutCount = job.officers.filter((officer) => officer.actualEnd).length;
   const allOfficersCheckedOut = Boolean(job.officers.length) && job.officers.every((officer) => officer.actualEnd);
+  const reportUnlocked = Boolean(job.siteManagerSignedAt);
   const visibleLifecycleSteps = job.status === 'Cancelled' ? cancelledLifecycleSteps : lifecycleSteps;
   const activeStep = Math.max(0, visibleLifecycleSteps.findIndex((step) => step.key === job.status));
   const stillNeeded = Math.max(0, job.required - job.officers.length);
@@ -147,7 +148,7 @@ export function JobDetailScreen({
                 <p>{job.location}</p>
               </div>
               <div className="pn-row">
-                <Button variant="primary" onClick={openReport}>
+                <Button disabled={!reportUnlocked} variant="primary" onClick={openReport}>
                   <BillingIcon size={14} strokeWidth={2} />
                   Job Report
                 </Button>
@@ -425,9 +426,9 @@ export function JobDetailScreen({
             </div>
             {job.cancelReason ? <div className="pn-complete-note">{job.cancelReason}</div> : null}
             {!allOfficersCheckedOut ? (
-              <Button disabled variant="primary">
+              <Button disabled={!job.officers.length || job.status === 'Cancelled'} variant="primary" onClick={() => completeJob(job.id)}>
                 <CheckIcon size={16} strokeWidth={2.4} />
-                Waiting for all check-outs
+                {job.officers.length ? 'Complete Job' : 'Add at least one participating officer first'}
               </Button>
             ) : (
               <div className="pn-sign-card">
@@ -436,9 +437,9 @@ export function JobDetailScreen({
                     <LinkIcon size={18} strokeWidth={2.2} />
                     <strong>Site manager signature</strong>
                   </div>
-                  <Badge tone="info">PENDING</Badge>
+                  <Badge tone={reportUnlocked ? 'success' : 'info'}>{reportUnlocked ? 'SIGNED' : 'PENDING'}</Badge>
                 </div>
-                <p>Job is finished — share this link with the site manager to capture their sign-off. The status stays Awaiting Signature until they sign.</p>
+                <p>{reportUnlocked ? `Signed by ${job.siteManagerSignedBy || 'site manager'}. Job report is now available.` : 'Job is finished — share this link with the site manager to capture their sign-off. The report stays locked until they sign.'}</p>
                 <label className="pn-sign-link">
                   <LinkIcon size={15} strokeWidth={2} />
                   <input readOnly value={signTokenMutation.isPending ? 'Generating link...' : signLink || 'Click Copy link to generate'} />

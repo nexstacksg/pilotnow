@@ -10,6 +10,13 @@ import {
 } from './components/icons';
 import type { JobForm, OfficerForm, Screen } from './types';
 
+function todayInputDate() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
 export const navIcons: Record<Exclude<Screen, 'profile'>, ReactNode> = {
   dashboard: <DashboardIcon />,
   jobs: <JobsIcon />,
@@ -38,10 +45,10 @@ export const navGroups: { label: string; items: { screen: Screen; label: string 
 export const emptyJobForm: JobForm = {
   customer: '',
   location: '',
-  date: '2026-07-12',
+  date: todayInputDate(),
   start: '09:00',
   end: '18:00',
-  required: '2',
+  required: '1',
   description: '',
   instructions: '',
 };

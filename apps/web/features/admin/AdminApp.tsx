@@ -27,7 +27,7 @@ import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
-import { assignOfficerToJob, cancelJobInApi, completeJobInApi, createJobFromForm, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
+import { assignOfficerToJob, cancelJobInApi, completeJobInApi, createJobFromForm, fetchJob, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
 import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
@@ -91,16 +91,27 @@ type Toast = {
 
 type OfficerFormErrors = Partial<Record<'name' | 'phone', string>>;
 
-const emptyJobForm: JobForm = {
-  customer: '',
-  location: '',
-  date: '2026-07-12',
-  start: '09:00',
-  end: '18:00',
-  required: '2',
-  description: '',
-  instructions: '',
-};
+const MAX_JOB_OFFICERS = 12;
+
+function todayInputDate() {
+  const today = new Date();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+}
+
+function emptyJobForm(): JobForm {
+  return {
+    customer: '',
+    location: '',
+    date: todayInputDate(),
+    start: '09:00',
+    end: '18:00',
+    required: '1',
+    description: '',
+    instructions: '',
+  };
+}
 
 const emptyOfficerForm: OfficerForm = {
   name: '',
@@ -245,7 +256,7 @@ export function AdminApp({
   const [billId, setBillId] = useState<string | null>(null);
   const [payOfficer, setPayOfficer] = useState<string | null>(null);
   const [reportJobId, setReportJobId] = useState<string | null>(null);
-  const [jobForm, setJobForm] = useState<JobForm>(emptyJobForm);
+  const [jobForm, setJobForm] = useState<JobForm>(() => emptyJobForm());
   const [officerForm, setOfficerForm] = useState<OfficerForm>(emptyOfficerForm);
   const [billForm, setBillForm] = useState<BillForm>({ invoice: '', billedDate: TODAY });
   const [savingJob, setSavingJob] = useState(false);
@@ -269,6 +280,7 @@ export function AdminApp({
 
   const fallbackJob = jobsSeed[0] as Job;
   const selectedJob: Job = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? fallbackJob;
+  const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? selectedJob : null;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
@@ -469,7 +481,7 @@ export function AdminApp({
 
   function openCreateJob() {
     setEditingJobId(null);
-    setJobForm(emptyJobForm);
+    setJobForm(emptyJobForm());
     setCreateOpen(true);
   }
 
@@ -506,7 +518,7 @@ export function AdminApp({
       setJobs((items) => (editingJobId ? items.map((item) => normalizeJobStage(item.id === job.id ? job : item)) : [normalizeJobStage(job), ...items.filter((item) => item.id !== job.id).map((item) => normalizeJobStage(item))]));
       setCreateOpen(false);
       setEditingJobId(null);
-      setJobForm(emptyJobForm);
+      setJobForm(emptyJobForm());
       openJob(job.id);
       flash(editingJobId ? `Job ${job.id} updated` : `Job ${job.id} created`);
     } catch (error) {
@@ -832,6 +844,24 @@ export function AdminApp({
     const timer = window.setInterval(updateStages, 60_000);
     return () => window.clearInterval(timer);
   }, [jobsHydrated]);
+
+  useEffect(() => {
+    if (screen !== 'jobDetail' || selectedJob.siteManagerSignedAt || !selectedJob.officers.length || !selectedJob.officers.every((officer) => officer.actualEnd)) return;
+    let cancelled = false;
+    const refreshJob = () => {
+      void fetchJob(selectedJob.id, selectedJob)
+        .then((job) => {
+          if (!cancelled) setJobs((items) => items.map((item) => normalizeJobStage(item.id === job.id ? { ...item, ...job } : item)));
+        })
+        .catch(() => {});
+    };
+    refreshJob();
+    const timer = window.setInterval(refreshJob, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [screen, selectedJob.id, selectedJob.siteManagerSignedAt]);
 
   useEffect(() => {
     try {
@@ -1187,7 +1217,7 @@ export function AdminApp({
         </Modal>
       ) : null}
 
-      {reportJobId ? <JobReportModal job={jobs.find((job) => job.id === reportJobId) ?? selectedJob} onClose={() => setReportJobId(null)} /> : null}
+      {reportJob?.siteManagerSignedAt ? <JobReportModal job={reportJob} onClose={() => setReportJobId(null)} /> : null}
       {officerProfileId ? (
         <OfficerDetailModal
           initialMode={officerProfileMode}
@@ -1263,6 +1293,8 @@ function LoadingPanel() {
 }
 
 function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (form: JobForm) => JobForm) => void }) {
+  const required = Math.max(1, Math.trunc(Number(form.required) || 1));
+
   return (
     <div className="pn-form-grid">
       <Field label="Customer" required>
@@ -1283,19 +1315,19 @@ function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (f
         </Field>
       </div>
       <Field label="Officers">
-        <select value={form.required} onChange={(event) => setForm((item) => ({ ...item, required: event.target.value }))}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((count) => (
-            <option key={count} value={count}>
-              {count} officer{count > 1 ? 's' : ''}
-            </option>
-          ))}
-        </select>
+        <div className="pn-job-officers-row">
+          <input min="1" max={MAX_JOB_OFFICERS} step="1" type="number" value={form.required} onChange={(event) => setForm((item) => ({ ...item, required: event.target.value }))} />
+          <button className="pn-btn pn-btn-secondary" disabled={required >= MAX_JOB_OFFICERS} onClick={() => setForm((item) => ({ ...item, required: String(Math.min(MAX_JOB_OFFICERS, required + 1)) }))} type="button">
+            <PlusIcon size={14} strokeWidth={2.4} />
+            Add Officer
+          </button>
+        </div>
       </Field>
       <Field label="Description">
-        <textarea placeholder="What is the job?" rows={2} value={form.description} onChange={(event) => setForm((item) => ({ ...item, description: event.target.value }))} />
+        <textarea className="pn-job-textarea" placeholder="What is the job?" rows={4} value={form.description} onChange={(event) => setForm((item) => ({ ...item, description: event.target.value }))} />
       </Field>
       <Field label="Instructions">
-        <textarea placeholder="Dress code, reporting point, etc." rows={2} value={form.instructions} onChange={(event) => setForm((item) => ({ ...item, instructions: event.target.value }))} />
+        <textarea className="pn-job-textarea" placeholder="Dress code, reporting point, etc." rows={4} value={form.instructions} onChange={(event) => setForm((item) => ({ ...item, instructions: event.target.value }))} />
       </Field>
     </div>
   );

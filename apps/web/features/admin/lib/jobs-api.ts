@@ -1,6 +1,8 @@
 import { http } from '../../../lib/api';
 import type { Job, JobForm, JobStatus } from '../types';
 
+const MAX_JOB_OFFICERS = 12;
+
 type ApiJobStatus = 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 type ApiBillingStatus = 'NOT_BILLED' | 'BILLED';
 type ApiRecordState = 'DRAFT' | 'CONFIRMED';
@@ -19,6 +21,8 @@ type ApiJob = {
   billingStatus: ApiBillingStatus;
   invoiceNumber: string | null;
   billedAt: string | null;
+  siteManagerSignedAt: string | null;
+  siteManagerSignedBy: string | null;
   recordState: ApiRecordState;
   postedToGroupAt: string | null;
   createdAt: string;
@@ -150,6 +154,8 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     billing: apiJob.billingStatus === 'BILLED' ? 'Billed' : 'Not Billed',
     invoice: apiJob.invoiceNumber ?? previous?.invoice ?? '',
     billedDate: apiJob.billedAt ? apiJob.billedAt.slice(0, 10) : previous?.billedDate ?? '',
+    siteManagerSignedAt: apiJob.siteManagerSignedAt ?? previous?.siteManagerSignedAt,
+    siteManagerSignedBy: apiJob.siteManagerSignedBy ?? previous?.siteManagerSignedBy,
   };
 }
 
@@ -167,6 +173,11 @@ export async function fetchCompletedJobs(current: Job[]) {
   return payload.items.slice().sort(newestApiJobsFirst).map((item) => mergeJob(item, current.find((job) => job.id === item.id)));
 }
 
+export async function fetchJob(id: string, previous?: Job) {
+  const payload = await withServerMessage(http.get<{ item: ApiJob }>(`/jobs/${encodeURIComponent(id)}`));
+  return mergeJob(payload.item, previous);
+}
+
 export async function createJobFromForm(form: JobForm) {
   const endNextDay = form.end <= form.start;
   const payload = await withServerMessage(http.post<{ item: ApiJob }>('/jobs', {
@@ -175,7 +186,7 @@ export async function createJobFromForm(form: JobForm) {
     siteAddress: form.location.trim(),
     startAt: jobDateTime(form.date, form.start),
     endAt: jobDateTime(form.date, form.end, endNextDay),
-    headcountRequired: Number(form.required) || 1,
+    headcountRequired: Math.min(MAX_JOB_OFFICERS, Math.max(1, Math.trunc(Number(form.required) || 1))),
     instructions: form.instructions.trim() || undefined,
     requestSource: 'admin',
     requestRaw: form.description.trim() || undefined,
@@ -192,7 +203,7 @@ export async function updateJobFromForm(id: string, form: JobForm, previous?: Jo
     siteAddress: form.location.trim(),
     startAt: jobDateTime(form.date, form.start),
     endAt: jobDateTime(form.date, form.end, endNextDay),
-    headcountRequired: Number(form.required) || 1,
+    headcountRequired: Math.min(MAX_JOB_OFFICERS, Math.max(1, Math.trunc(Number(form.required) || 1))),
     instructions: form.instructions.trim() || null,
     requestSource: 'admin',
     requestRaw: form.description.trim() || null,

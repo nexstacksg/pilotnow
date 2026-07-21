@@ -65,6 +65,8 @@ export type Job = {
   billing: BillingStatus;
   invoice: string;
   billedDate: string;
+  siteManagerSignedAt?: string;
+  siteManagerSignedBy?: string;
 };
 
 export type Officer = {
