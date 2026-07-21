@@ -96,6 +96,7 @@ export function JobDetailScreen({
   const checkedOutCount = job.officers.filter((officer) => officer.actualEnd).length;
   const allOfficersCheckedOut = Boolean(job.officers.length) && job.officers.every((officer) => officer.actualEnd);
   const reportUnlocked = Boolean(job.siteManagerSignedAt);
+  const signedCompletionMessage = jobDetailSignedCompletionMessage(job);
   const visibleLifecycleSteps = job.status === 'Cancelled' ? cancelledLifecycleSteps : lifecycleSteps;
   const activeStep = Math.max(0, visibleLifecycleSteps.findIndex((step) => step.key === job.status));
   const stillNeeded = Math.max(0, job.required - job.officers.length);
@@ -425,7 +426,9 @@ export function JobDetailScreen({
               <Badge tone={job.billing === 'Billed' ? 'success' : 'warning'}>{job.billing}</Badge>
             </div>
             {job.cancelReason ? <div className="pn-complete-note">{job.cancelReason}</div> : null}
-            {!allOfficersCheckedOut ? (
+            {signedCompletionMessage ? (
+              <div className="pn-complete-note">{signedCompletionMessage}</div>
+            ) : !allOfficersCheckedOut ? (
               <Button disabled={!job.officers.length || job.status === 'Cancelled'} variant="primary" onClick={() => completeJob(job.id)}>
                 <CheckIcon size={16} strokeWidth={2.4} />
                 {job.officers.length ? 'Complete Job' : 'Add at least one participating officer first'}
@@ -460,15 +463,22 @@ export function JobDetailScreen({
                 </div>
               </div>
             )}
-            <Button disabled={job.status === 'Cancelled'} variant="danger" onClick={() => cancelJob(job.id)}>
-              Cancel job…
-            </Button>
+            {!signedCompletionMessage ? (
+              <Button disabled={job.status === 'Cancelled'} variant="danger" onClick={() => cancelJob(job.id)}>
+                Cancel job…
+              </Button>
+            ) : null}
           </Card>
         </div>
       </div>
       {selectedRow ? <OfficerAssignmentModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
     </div>
   );
+}
+
+export function jobDetailSignedCompletionMessage(job: Job) {
+  if (!job.siteManagerSignedAt) return '';
+  return `Job completed. Site manager sign-off captured${job.siteManagerSignedBy ? ` by ${job.siteManagerSignedBy}` : ''}.`;
 }
 
 function postToWhatsApp(message: string) {
