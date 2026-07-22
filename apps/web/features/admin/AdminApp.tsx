@@ -76,6 +76,7 @@ const JOBS_STORAGE_KEY = 'pilotnow.admin.jobs';
 const PAYMENTS_STORAGE_KEY = 'pilotnow.admin.payments';
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const REMOVED_JOB_SEED_IDS = new Set(['PN-2041', 'PN-2042', 'PN-2043', 'PN-2044', 'PN-2045', 'PN-2046', 'PN-2047', 'PN-2048', 'PN-2050', 'PN-2051', 'PN-2052']);
+const REMOVED_OFFICER_CODES = new Set(['OF-8', 'OF-12']);
 
 type AdminSearchResult = {
   key: string;
@@ -137,16 +138,42 @@ function isApiPaymentId(id: string) {
   return UUID_PATTERN.test(id);
 }
 
+function normalizedOfficerCode(value: string | undefined) {
+  const match = value?.toUpperCase().match(/^OF-0*(\d+)$/);
+  return match ? `OF-${Number(match[1])}` : value?.toUpperCase() ?? '';
+}
+
+function isRemovedOfficer(officer: Officer) {
+  return REMOVED_OFFICER_CODES.has(normalizedOfficerCode(officer.code)) || REMOVED_OFFICER_CODES.has(normalizedOfficerCode(officer.id));
+}
+
+function activeOfficerRows(officers: Officer[]) {
+  return officers.filter((officer) => !isRemovedOfficer(officer));
+}
+
+function isStaleSeedPayment(payment: Payment) {
+  const localOfficerRef = payment.id.startsWith('local:') ? payment.id.split(':').at(-1) : undefined;
+  return (
+    /^PY-\d+$/i.test(payment.id) ||
+    REMOVED_JOB_SEED_IDS.has(payment.jobId) ||
+    REMOVED_OFFICER_CODES.has(normalizedOfficerCode(payment.officerCode ?? payment.officerId ?? localOfficerRef))
+  );
+}
+
+function activePaymentRows(payments: Payment[]) {
+  return payments.filter((payment) => !isStaleSeedPayment(payment));
+}
+
 function paymentKey(payment: Payment) {
   return `${payment.jobId}::${payment.officer}`;
 }
 
 function mergePaymentRows(primary: Payment[], secondary: Payment[]) {
-  const rows = [...primary];
+  const rows = activePaymentRows(primary);
   const existingById = new Set(rows.map((payment) => payment.id));
   const existingByJobOfficer = new Set(rows.map(paymentKey));
 
-  secondary.forEach((payment) => {
+  activePaymentRows(secondary).forEach((payment) => {
     if (existingById.has(payment.id) || existingByJobOfficer.has(paymentKey(payment))) return;
     rows.push(payment);
   });
@@ -155,7 +182,7 @@ function mergePaymentRows(primary: Payment[], secondary: Payment[]) {
 }
 
 function mergeServerPayments(serverPayments: Payment[], localPayments: Payment[]) {
-  const clientOnly = localPayments.filter((payment) => !isApiPaymentId(payment.id));
+  const clientOnly = activePaymentRows(localPayments).filter((payment) => !isApiPaymentId(payment.id));
   return mergePaymentRows(serverPayments, clientOnly);
 }
 
@@ -188,6 +215,8 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
         const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
         rows.push({
           id,
+          officerId: officer.oid,
+          officerCode: officer.code,
           officer: officer.name,
           jobId: job.id,
           jobDate: job.date,
@@ -200,6 +229,14 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
     });
 
   return rows;
+}
+
+function jobUsesRemovedOfficer(job: Job) {
+  return job.officers.some((officer) => REMOVED_OFFICER_CODES.has(normalizedOfficerCode(officer.code ?? officer.oid)));
+}
+
+function filterJobsWithoutRemovedOfficers(jobs: Job[]) {
+  return jobs.filter((job) => !jobUsesRemovedOfficer(job));
 }
 
 function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
@@ -245,8 +282,8 @@ export function AdminApp({
 }) {
   const [screen, setScreen] = useState<Screen>(initialScreen);
   const [jobs, setJobs] = useState<Job[]>(() => jobsSeed.map((job) => normalizeJobStage(job)));
-  const [officers, setOfficers] = useState<Officer[]>(officersSeed);
-  const [payments, setPayments] = useState<Payment[]>(paymentsSeed);
+  const [officers, setOfficers] = useState<Officer[]>(() => activeOfficerRows(officersSeed));
+  const [payments, setPayments] = useState<Payment[]>(() => activePaymentRows(paymentsSeed));
   const [jobId, setJobId] = useState(initialJobId);
   const [summaryJobId, setSummaryJobId] = useState<string | null>(initialSummaryJobId);
   const [jobFilter, setJobFilter] = useState<JobListFilter>('All');
@@ -288,8 +325,9 @@ export function AdminApp({
   const selectedJob = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? null;
   const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? selectedJob : null;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
-  const financePayments = useMemo(() => paymentRowsFromJobs(jobs, payments), [jobs, payments]);
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
+  const financePayments = useMemo(() => activePaymentRows(paymentRowsFromJobs(jobs, payments)), [jobs, payments]);
+  const billingJobs = useMemo(() => filterJobsWithoutRemovedOfficers(completedJobs), [completedJobs]);
   const search = searchByScreen[screen] ?? '';
   const searchPlaceholder =
     screen === 'officers'
@@ -303,7 +341,7 @@ export function AdminApp({
             : 'Search jobs, officers...';
   const deleteOfficerTarget = deleteOfficerId ? officersWithJobCounts.find((officer) => officer.id === deleteOfficerId) : null;
   const deleteOfficerHasHistory = Boolean(deleteOfficerTarget?.jobsCount);
-  const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
+  const billTarget = billId ? billingJobs.find((job) => job.id === billId) : null;
 
   useLayoutEffect(() => {
     setScreen(initialScreenForPath(initialScreen));
@@ -330,9 +368,9 @@ export function AdminApp({
       missingPhotos: jobs.flatMap((job) => job.photos).filter((photo) => photo.status === 'missing').length,
       officersNeeded: jobs.reduce((sum, job) => sum + Math.max(0, job.required - job.officers.length), 0),
       pendingPayments,
-      notBilled: completedJobs.filter((job) => job.billing === 'Not Billed').length,
+      notBilled: billingJobs.filter((job) => job.billing === 'Not Billed').length,
     };
-  }, [completedJobs, jobs, payments]);
+  }, [billingJobs, completedJobs, jobs, payments]);
   const fallbackDashboard = useMemo(() => dashboardFallback(jobs), [jobs]);
   const searchResults = useMemo<AdminSearchResult[]>(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
@@ -899,7 +937,7 @@ export function AdminApp({
     void fetchOfficers()
       .then((items) => {
         if (cancelled) return;
-        setOfficers(items);
+        setOfficers(activeOfficerRows(items));
         setOfficersReady(true);
       })
       .catch(() => {
@@ -1124,12 +1162,12 @@ export function AdminApp({
           {screen === 'summary' ? (
             jobsReady ? <SummaryScreen closeSummaryJob={closeSummaryJob} detailJobId={summaryJobId} jobs={completedJobs} openSummaryJob={openSummaryJob} /> : <LoadingPanel />
           ) : null}
-          {screen === 'payments' ? (paymentsReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} search={search} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
+          {screen === 'payments' ? (paymentsReady && officersReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} search={search} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
-            jobsReady && billingReady ? (
+            jobsReady && officersReady && billingReady ? (
               <BillingScreen
                 filter={billingFilter}
-                jobs={completedJobs}
+                jobs={billingJobs}
                 openBill={(id) => {
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });
@@ -1141,7 +1179,7 @@ export function AdminApp({
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officers} payments={financePayments} report={operationsReport} search={search} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (jobsReady && officersReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officersWithJobCounts} payments={financePayments} report={operationsReport} search={search} /> : <LoadingPanel />) : null}
           {screen === 'profile' ? <ProfileScreen /> : null}
         </div>
       </main>

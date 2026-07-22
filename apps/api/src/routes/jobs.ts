@@ -209,6 +209,7 @@ async function serializeJobWithAssignments(row: {
     ...serializeJob(row),
     assignments: assignments.map((item) => ({
       officerId: item.officers.id,
+      officerCode: item.officers.officerCode,
       officerName: item.officers.name,
       officerPhone: item.officers.phone,
       icVerified: item.officers.icVerified,

@@ -63,6 +63,7 @@ function serializePayable(row: PayableRow) {
     id: row.assignment.id,
     officer: {
       id: row.officer.id,
+      code: row.officer.officerCode,
       name: row.officer.name,
       phone: row.officer.phone,
     },
