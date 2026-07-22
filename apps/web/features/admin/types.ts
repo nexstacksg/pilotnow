@@ -28,6 +28,7 @@ export type PhotoStatus = 'received' | 'missing' | 'upcoming';
 
 export type JobOfficer = {
   oid: string;
+  code?: string;
   name: string;
   phone?: string;
   ic: boolean;
@@ -83,6 +84,8 @@ export type Officer = {
 
 export type Payment = {
   id: string;
+  officerId?: string;
+  officerCode?: string;
   officer: string;
   jobId: string;
   jobDate: string;

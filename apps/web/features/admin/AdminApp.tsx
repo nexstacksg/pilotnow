@@ -152,7 +152,12 @@ function activeOfficerRows(officers: Officer[]) {
 }
 
 function isStaleSeedPayment(payment: Payment) {
-  return /^PY-\d+$/i.test(payment.id) || REMOVED_JOB_SEED_IDS.has(payment.jobId);
+  const localOfficerRef = payment.id.startsWith('local:') ? payment.id.split(':').at(-1) : undefined;
+  return (
+    /^PY-\d+$/i.test(payment.id) ||
+    REMOVED_JOB_SEED_IDS.has(payment.jobId) ||
+    REMOVED_OFFICER_CODES.has(normalizedOfficerCode(payment.officerCode ?? payment.officerId ?? localOfficerRef))
+  );
 }
 
 function activePaymentRows(payments: Payment[]) {
@@ -210,6 +215,8 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
         const worked = officer.actualStart && officer.actualEnd ? hours(officer.actualStart, officer.actualEnd) : scheduled;
         rows.push({
           id,
+          officerId: officer.oid,
+          officerCode: officer.code,
           officer: officer.name,
           jobId: job.id,
           jobDate: job.date,
@@ -224,13 +231,12 @@ function paymentRowsFromJobs(jobs: Job[], existingPayments: Payment[]) {
   return rows;
 }
 
-function paymentBelongsToOfficerManagement(payment: Payment, officers: Officer[]) {
-  const officerName = payment.officer.trim().toLocaleLowerCase();
-  return officers.some((officer) => officer.name.trim().toLocaleLowerCase() === officerName);
+function jobUsesRemovedOfficer(job: Job) {
+  return job.officers.some((officer) => REMOVED_OFFICER_CODES.has(normalizedOfficerCode(officer.code ?? officer.oid)));
 }
 
-function filterPaymentsForOfficerManagement(payments: Payment[], officers: Officer[]) {
-  return payments.filter((payment) => paymentBelongsToOfficerManagement(payment, officers));
+function filterJobsWithoutRemovedOfficers(jobs: Job[]) {
+  return jobs.filter((job) => !jobUsesRemovedOfficer(job));
 }
 
 function reconcileOfficerJobCounts(officers: Officer[], jobs: Job[]) {
@@ -320,10 +326,8 @@ export function AdminApp({
   const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? selectedJob : null;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
-  const financePayments = useMemo(
-    () => filterPaymentsForOfficerManagement(paymentRowsFromJobs(jobs, payments), officersWithJobCounts),
-    [jobs, officersWithJobCounts, payments],
-  );
+  const financePayments = useMemo(() => activePaymentRows(paymentRowsFromJobs(jobs, payments)), [jobs, payments]);
+  const billingJobs = useMemo(() => filterJobsWithoutRemovedOfficers(completedJobs), [completedJobs]);
   const search = searchByScreen[screen] ?? '';
   const searchPlaceholder =
     screen === 'officers'
@@ -337,7 +341,7 @@ export function AdminApp({
             : 'Search jobs, officers...';
   const deleteOfficerTarget = deleteOfficerId ? officersWithJobCounts.find((officer) => officer.id === deleteOfficerId) : null;
   const deleteOfficerHasHistory = Boolean(deleteOfficerTarget?.jobsCount);
-  const billTarget = billId ? jobs.find((job) => job.id === billId) : null;
+  const billTarget = billId ? billingJobs.find((job) => job.id === billId) : null;
 
   useLayoutEffect(() => {
     setScreen(initialScreenForPath(initialScreen));
@@ -364,9 +368,9 @@ export function AdminApp({
       missingPhotos: jobs.flatMap((job) => job.photos).filter((photo) => photo.status === 'missing').length,
       officersNeeded: jobs.reduce((sum, job) => sum + Math.max(0, job.required - job.officers.length), 0),
       pendingPayments,
-      notBilled: completedJobs.filter((job) => job.billing === 'Not Billed').length,
+      notBilled: billingJobs.filter((job) => job.billing === 'Not Billed').length,
     };
-  }, [completedJobs, jobs, payments]);
+  }, [billingJobs, completedJobs, jobs, payments]);
   const fallbackDashboard = useMemo(() => dashboardFallback(jobs), [jobs]);
   const searchResults = useMemo<AdminSearchResult[]>(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
@@ -1160,10 +1164,10 @@ export function AdminApp({
           ) : null}
           {screen === 'payments' ? (paymentsReady && officersReady ? <PaymentsScreen markPaid={markPaid} payments={financePayments} search={search} setPayOfficer={setPayOfficer} /> : <LoadingPanel />) : null}
           {screen === 'billing' ? (
-            jobsReady && billingReady ? (
+            jobsReady && officersReady && billingReady ? (
               <BillingScreen
                 filter={billingFilter}
-                jobs={completedJobs}
+                jobs={billingJobs}
                 openBill={(id) => {
                   setBillId(id);
                   setBillForm({ invoice: '', billedDate: TODAY });

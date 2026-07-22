@@ -28,6 +28,7 @@ type ApiJob = {
   createdAt: string;
   assignments?: {
     officerId: string;
+    officerCode?: string;
     officerName: string;
     officerPhone?: string;
     icVerified: boolean;
@@ -114,6 +115,7 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
       const existing = previousOfficers.find((officer) => officer.oid === assignment.officerId);
       return {
         oid: assignment.officerId,
+        code: assignment.officerCode,
         name: assignment.officerName,
         phone: assignment.officerPhone,
         ic: assignment.icVerified,

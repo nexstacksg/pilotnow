@@ -10,7 +10,7 @@ vi.mock('../../../lib/api', () => ({ http: { get, post } }));
 
 const unpaidPayable = {
   id: 'assignment-1',
-  officer: { id: 'officer-1', name: 'John Tan', phone: '+65 9000 0001' },
+  officer: { id: 'officer-1', code: 'OF-01', name: 'John Tan', phone: '+65 9000 0001' },
   job: {
     id: 'PN-001',
     customerName: 'Acme Pte Ltd',
@@ -44,6 +44,8 @@ describe('payments-api', () => {
     await expect(fetchOfficerPayments()).resolves.toEqual([
       {
         id: 'assignment-1',
+        officerId: 'officer-1',
+        officerCode: 'OF-01',
         officer: 'John Tan',
         jobId: 'PN-001',
         jobDate: '2026-07-08',
@@ -54,6 +56,8 @@ describe('payments-api', () => {
       },
       {
         id: 'assignment-2',
+        officerId: 'officer-1',
+        officerCode: 'OF-01',
         officer: 'John Tan',
         jobId: 'PN-001',
         jobDate: '2026-07-08',

@@ -7,6 +7,7 @@ type ApiPayable = {
   id: string;
   officer: {
     id: string;
+    code?: string;
     name: string;
     phone: string;
   };
@@ -47,6 +48,8 @@ function dateOnly(value: string | null) {
 function mapPayable(item: ApiPayable): Payment {
   return {
     id: item.id,
+    officerId: item.officer.id,
+    officerCode: item.officer.code,
     officer: item.officer.name,
     jobId: item.job.id,
     jobDate: dateOnly(item.job.startAt),
