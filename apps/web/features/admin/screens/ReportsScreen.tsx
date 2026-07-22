@@ -66,7 +66,7 @@ const reportColumns: Record<ReportKey, ReportColumn[]> = {
 
 export function ReportsScreen({ jobs, officers, payments, report, search }: { jobs: Job[]; officers: Officer[]; payments: Payment[]; report?: OperationsReport | null; search: string }) {
   const [activeReport, setActiveReport] = useState<ReportKey>('completed');
-  const defaultRange = useMemo(() => defaultDateRange(jobs, payments), [jobs, payments]);
+  const defaultRange = useMemo(() => defaultDateRange(jobs, payments, report), [jobs, payments, report]);
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [dateRangeEdited, setDateRangeEdited] = useState(false);
@@ -99,11 +99,11 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
     () => ({
       completed: completedRows,
       payments: buildPaymentRows(payments),
-      missingPhotos: buildMissingPhotoRows(jobs),
+      missingPhotos: buildMissingPhotoRows(jobs, report),
       billing: buildBillingRows(jobs),
       officerHistory: buildOfficerHistoryRows(jobs),
     }),
-    [completedRows, jobs, payments],
+    [completedRows, jobs, payments, report],
   );
   const rows = reportRows[activeReport]
     .filter((row) => isWithinDateRange(row.date, startDate, endDate))
@@ -269,8 +269,8 @@ function buildPaymentRows(payments: Payment[]): ReportRow[] {
   }));
 }
 
-function buildMissingPhotoRows(jobs: Job[]): ReportRow[] {
-  return jobs.flatMap((job) =>
+function buildMissingPhotoRows(jobs: Job[], report?: OperationsReport | null): ReportRow[] {
+  const localRows = jobs.flatMap((job) =>
     job.photos
       .filter((photo) => photo.status === 'missing')
       .map((photo, index) => ({
@@ -285,6 +285,31 @@ function buildMissingPhotoRows(jobs: Job[]): ReportRow[] {
         },
       })),
   );
+
+  if (!report?.missingCheckpoints.length) return localRows;
+
+  const rows: ReportRow[] = report.missingCheckpoints.map((checkpoint) => ({
+    id: checkpoint.id,
+    date: checkpoint.date,
+    cells: {
+      job: checkpoint.job,
+      customer: checkpoint.customer,
+      date: dateLabel(checkpoint.date),
+      checkpoint: checkpoint.checkpoint,
+      note: checkpoint.note,
+    },
+  }));
+  const apiKeys = new Set(rows.map((row) => missingPhotoRowKey(row)));
+
+  localRows.forEach((row) => {
+    if (!apiKeys.has(missingPhotoRowKey(row))) rows.push(row);
+  });
+
+  return rows;
+}
+
+function missingPhotoRowKey(row: ReportRow) {
+  return `${row.cells.job}|${row.date}|${row.cells.checkpoint}`;
 }
 
 function buildBillingRows(jobs: Job[]): ReportRow[] {
@@ -319,8 +344,13 @@ function buildOfficerHistoryRows(jobs: Job[]): ReportRow[] {
   );
 }
 
-function defaultDateRange(jobs: Job[], payments: Payment[]) {
-  const dates = [...jobs.map((job) => job.date), ...payments.map((payment) => payment.jobDate)].filter(Boolean).sort();
+function defaultDateRange(jobs: Job[], payments: Payment[], report?: OperationsReport | null) {
+  const dates = [
+    ...jobs.map((job) => job.date),
+    ...payments.map((payment) => payment.jobDate),
+    ...(report?.completedJobs.map((job) => job.date) ?? []),
+    ...(report?.missingCheckpoints.map((checkpoint) => checkpoint.date) ?? []),
+  ].filter(Boolean).sort();
   return {
     start: dates[0] ?? '',
     end: dates[dates.length - 1] ?? '',

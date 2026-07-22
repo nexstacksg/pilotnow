@@ -48,7 +48,7 @@ function decimal(value: string | number | null | undefined, fallback = 0) {
 
 function scheduledHours(startAt: Date, endAt: Date) {
   const milliseconds = endAt.getTime() - startAt.getTime();
-  return Math.max(0, Math.round((milliseconds / 36_000) * 100) / 100);
+  return Math.max(0, Math.round((milliseconds / 3_600_000) * 100) / 100);
 }
 
 function payableAmount(hoursWorked: number, rateAgreed: number) {

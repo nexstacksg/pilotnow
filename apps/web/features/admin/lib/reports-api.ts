@@ -16,6 +16,14 @@ export type OperationsReport = {
     totalPayable: number;
     billingStatus: 'NOT_BILLED' | 'BILLED';
   }[];
+  missingCheckpoints: {
+    id: string;
+    job: string;
+    customer: string;
+    date: string;
+    checkpoint: string;
+    note: string;
+  }[];
 };
 
 async function withServerMessage<T>(request: Promise<T>) {

@@ -25,6 +25,16 @@ const report = {
       billingStatus: 'NOT_BILLED',
     },
   ],
+  missingCheckpoints: [
+    {
+      id: 'PN-003-assignment-1-2026-07-10T07:00:00.000Z',
+      job: 'PN-003',
+      customer: 'Crest Retail',
+      date: '2026-07-10',
+      checkpoint: '15:00',
+      note: 'John Tan missed hourly photo at 15:00',
+    },
+  ],
 };
 
 describe('reports-api', () => {

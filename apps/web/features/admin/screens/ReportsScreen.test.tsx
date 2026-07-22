@@ -148,6 +148,7 @@ describe('ReportsScreen', () => {
       completedJobs: [
         { id: 'PN-999', customer: 'Delta Services', site: 'Changi', date: '2026-07-09', officers: 3, totalPayable: 300, billingStatus: 'NOT_BILLED' },
       ],
+      missingCheckpoints: [],
     };
 
     renderReports({ report });
@@ -155,6 +156,31 @@ describe('ReportsScreen', () => {
     expect(screen.getByText('PN-999')).toBeInTheDocument();
     expect(screen.getByText('Delta Services')).toBeInTheDocument();
     expect(screen.getByText('S$300.00')).toBeInTheDocument();
+  });
+
+  it('uses live missing checkpoint rows from the operations report', async () => {
+    const report: OperationsReport = {
+      metrics: { completedJobs: 0, totalPayroll: 0, missingCheckpoints: 1, officers: 2 },
+      completedJobs: [],
+      missingCheckpoints: [
+        {
+          id: 'PN-004-assignment-1-2026-07-09T07:00:00.000Z',
+          job: 'PN-004',
+          customer: 'Delta Services',
+          date: '2026-07-09',
+          checkpoint: '15:00',
+          note: 'Mei Lin missed hourly photo at 15:00',
+        },
+      ],
+    };
+
+    renderReports({ report });
+    await userEvent.click(screen.getByRole('button', { name: 'Missing photo report' }));
+
+    expect(screen.getByText('PN-004')).toBeInTheDocument();
+    expect(screen.getByText('Delta Services')).toBeInTheDocument();
+    expect(screen.getByText('Mei Lin missed hourly photo at 15:00')).toBeInTheDocument();
+    expect(screen.getByText('3 missing checkpoint(s)')).toBeInTheDocument();
   });
 
   it('exports the active report as CSV', async () => {
