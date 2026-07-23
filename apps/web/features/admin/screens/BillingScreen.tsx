@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CalendarIcon } from '../components/icons';
 import { Badge, Button, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { dateLabel } from '../lib/format';
 import type { BillingFilter, Job } from '../types';
@@ -16,12 +17,14 @@ export function BillingScreen({
   setFilter: (filter: BillingFilter) => void;
   openBill: (id: string) => void;
 }) {
+  const [jobDate, setJobDate] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const filters: BillingFilter[] = ['All', 'Not Billed', 'Billed'];
   const query = search.trim().toLowerCase();
   const filtered = jobs
     .filter((job) => filter === 'All' || job.billing === filter)
+    .filter((job) => !jobDate || job.date === jobDate)
     .filter((job) => !query || billingSearchText(job).includes(query));
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -33,18 +36,30 @@ export function BillingScreen({
 
   useEffect(() => {
     setPage(1);
-  }, [filter, pageSize, query]);
+  }, [filter, jobDate, pageSize, query]);
 
   return (
     <div className="pn-billing-screen">
       <p className="pn-billing-intro">Completed jobs and their customer billing status.</p>
       {statusMessage ? <p className="pn-billing-complete-message">{statusMessage}</p> : null}
-      <div className="pn-tabs">
-        {filters.map((item) => (
-          <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button">
-            {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.billing === item).length}
-          </button>
-        ))}
+      <div className="pn-billing-toolbar">
+        <div className="pn-tabs" aria-label="Billing status filter">
+          {filters.map((item) => (
+            <button className={filter === item ? 'active' : ''} key={item} onClick={() => setFilter(item)} type="button" aria-pressed={filter === item}>
+              {item} · {item === 'All' ? jobs.length : jobs.filter((job) => job.billing === item).length}
+            </button>
+          ))}
+        </div>
+
+        <span className="pn-payment-toolbar-divider" />
+
+        <label className="pn-date-filter">
+          <CalendarIcon size={15} stroke="#A3A3A3" strokeWidth={2} />
+          <span>Job date</span>
+          <input aria-label="Filter billing by job date" type="date" value={jobDate} onChange={(event) => setJobDate(event.target.value)} />
+        </label>
+
+        {jobDate ? <Button onClick={() => setJobDate('')}>Clear date</Button> : null}
       </div>
       <div className="pn-table pn-table-billing">
         <div className="pn-table-head">
@@ -73,7 +88,7 @@ export function BillingScreen({
             </span>
           </div>
         ))}
-        {!filtered.length ? <div className="pn-empty">No completed jobs match this billing filter.</div> : null}
+        {!filtered.length ? <div className="pn-empty">No completed jobs match these billing filters.</div> : null}
       </div>
       <Pagination
         from={from}

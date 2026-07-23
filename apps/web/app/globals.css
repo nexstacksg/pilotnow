@@ -1023,8 +1023,15 @@ button {
   font-weight: 700;
 }
 
-.pn-billing-screen .pn-tabs {
+.pn-billing-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.pn-billing-toolbar .pn-tabs {
+  flex: 0 0 auto;
 }
 
 .pn-table-billing .pn-table-head {
@@ -3814,6 +3821,7 @@ button {
     justify-content: space-between;
   }
 
+  .pn-billing-toolbar,
   .pn-payment-toolbar {
     align-items: flex-start;
     flex-wrap: wrap;
