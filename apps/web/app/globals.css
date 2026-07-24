@@ -3200,23 +3200,29 @@ button {
 .pn-assignment-pay-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 6px;
+  margin-top: 9px;
   color: #A3A3A3;
-  font-size: 13px;
+  font-size: 11px;
+  line-height: 1.2;
 }
 
 .pn-assignment-pay-row > span {
   border-radius: 999px;
   background: #F4F4F4;
   color: #525252;
-  padding: 5px 10px;
+  padding: 3px 8px;
   font-weight: 700;
 }
 
 .pn-assignment-pay-row > span.is-on {
   background: #E8F5EC;
   color: #0A7A3B;
+}
+
+.pn-assignment-pay-row > span:nth-child(2) {
+  background: #E8F0FF;
+  color: #2457B8;
 }
 
 .pn-assignment-pay-row strong {
@@ -3228,7 +3234,7 @@ button {
 .pn-assignment-pay-row b {
   color: #0A0A0A;
   font-family: 'Geist Mono', monospace;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 .pn-assignment-proof-head {
@@ -4079,6 +4085,11 @@ button {
 
 .pn-delivery-report .pn-report-section {
   margin-top: 25px;
+}
+
+.pn-delivery-report .pn-report-section h3 {
+  color: #171717;
+  font-weight: 900;
 }
 
 .pn-delivery-report .pn-report-section > header {
