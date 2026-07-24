@@ -8,7 +8,6 @@ import {
   ChevronDownIcon,
   CopyIcon,
   DashboardIcon,
-  DownloadIcon,
   JobsIcon,
   OfficersIcon,
   PaymentIcon,
@@ -1483,10 +1482,6 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
             <PrinterIcon size={14} strokeWidth={2} />
             Print / PDF
           </button>
-          <button onClick={() => void downloadPdfReport(reportRef.current, job.id)} type="button">
-            <DownloadIcon size={14} strokeWidth={2} />
-            Download
-          </button>
         </div>
       }
     >
@@ -1516,12 +1511,12 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
             <label>CLIENT</label>
             <strong>{clientName}</strong>
             <span>Billing · {clientName}</span>
-            {job.customerContact ? <span>Contact · {job.customerContact}</span> : null}
+            <span>Contact · {job.customerContact || '—'}</span>
           </div>
           <div>
             <label>SITE</label>
             <strong>{siteName}</strong>
-            {job.siteAddress && job.siteAddress !== siteName ? <span>{job.siteAddress}</span> : null}
+            <span>{job.siteAddress && job.siteAddress !== siteName ? job.siteAddress : '—'}</span>
           </div>
           <div><label>JOB</label><strong>{job.id} · {hours(job.start, job.end).toFixed(0)}h shift</strong><span>{job.date} · {job.start} → {job.end} SGT</span></div>
           <div><label>OUTCOME</label><strong>Closed · Signed</strong><span>Signed off · {clientName} · {signedTime} SGT</span></div>
