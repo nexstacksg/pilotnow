@@ -507,14 +507,16 @@ function OfficerParticipationModal({
 }) {
   const { officer, profile } = row;
   const [dutyLink, setDutyLink] = useState('');
-  const [openEvidence, setOpenEvidence] = useState<string | null>(row.evidencePhotos[0]?.time ?? null);
+  const [openEvidence, setOpenEvidence] = useState<string | null>(null);
   const phone = (profile?.phone || officer.phone || '').replace(/\D/g, '');
   const dutyMutation = useMutation({
     mutationFn: () => createOfficerJobToken(job.id, phone),
     onSuccess: ({ token }) => setDutyLink(`${window.location.origin}/jobs/${encodeURIComponent(job.id)}?hp=${encodeURIComponent(phone)}&token=${encodeURIComponent(token)}`),
   });
   const officerMsg = `Hi ${officer.name}, your PilotNow duty link for ${job.id} at ${job.location} is ${dutyLink}`;
-  const evidenceGroups = row.evidencePhotos.reduce<Map<string, PhotoCheckpoint[]>>((groups, photo) => {
+  const visibleEvidencePhotos = row.evidencePhotos.filter((photo) => !photo.hiddenFromReport);
+  const visibleJobPhotos = job.photos.filter((photo) => !photo.hiddenFromReport);
+  const evidenceGroups = visibleEvidencePhotos.reduce<Map<string, PhotoCheckpoint[]>>((groups, photo) => {
     groups.set(photo.time, [...(groups.get(photo.time) ?? []), photo]);
     return groups;
   }, new Map());
@@ -590,7 +592,7 @@ function OfficerParticipationModal({
             <small>· {money(officer.rate)}/h</small>
           </div>
 
-          <div className="pn-assignment-proof-head"><h3>Evidence photos posted</h3><span>{row.evidencePhotos.length} of {job.photos.length}</span></div>
+          <div className="pn-assignment-proof-head"><h3>Evidence photos posted</h3><span>{visibleEvidencePhotos.length} of {visibleJobPhotos.length}</span></div>
           <div className="pn-evidence-groups">
             {Array.from(evidenceGroups.entries()).map(([time, photos]) => {
               const expanded = openEvidence === time;
