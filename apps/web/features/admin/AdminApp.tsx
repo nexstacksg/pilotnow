@@ -106,6 +106,9 @@ function todayInputDate() {
 const emptyJobForm: JobForm = {
   customer: '',
   location: '',
+  siteLatitude: '',
+  siteLongitude: '',
+  siteRadiusMetres: '120',
   date: todayInputDate(),
   start: '09:00',
   end: '18:00',
@@ -546,6 +549,9 @@ export function AdminApp({
     setJobForm({
       customer: job.customer,
       location: job.location,
+      siteLatitude: job.siteLatitude || '',
+      siteLongitude: job.siteLongitude || '',
+      siteRadiusMetres: String(job.siteRadiusMetres || 120),
       date: job.date,
       start: job.start,
       end: job.end,
@@ -557,8 +563,8 @@ export function AdminApp({
   }
 
   async function saveJob() {
-    if (!jobForm.customer.trim() || !jobForm.location.trim()) {
-      flash('Enter a customer and location first', 'error');
+    if (!jobForm.customer.trim() || !jobForm.location.trim() || !jobForm.siteLatitude || !jobForm.siteLongitude || !jobForm.siteRadiusMetres) {
+      flash('Enter customer, location, and complete job geofence details first', 'error');
       return;
     }
     setSavingJob(true);
@@ -1374,6 +1380,15 @@ function JobFormFields({ form, setForm }: { form: JobForm; setForm: (updater: (f
       <Field label="Job location" required>
         <input placeholder="e.g. Marina Bay Sands - Expo Hall B" value={form.location} onChange={(event) => setForm((item) => ({ ...item, location: event.target.value }))} />
       </Field>
+      <section className="pn-job-geofence">
+        <header><strong>Job geofence</strong><span>Required for GPS check</span></header>
+        <div className="pn-form-row pn-form-row-time">
+          <Field label="Latitude" required><input inputMode="decimal" placeholder="1.28390" value={form.siteLatitude} onChange={(event) => setForm((item) => ({ ...item, siteLatitude: event.target.value }))} /></Field>
+          <Field label="Longitude" required><input inputMode="decimal" placeholder="103.86070" value={form.siteLongitude} onChange={(event) => setForm((item) => ({ ...item, siteLongitude: event.target.value }))} /></Field>
+          <Field label="Radius (m)" required><input min="1" type="number" value={form.siteRadiusMetres} onChange={(event) => setForm((item) => ({ ...item, siteRadiusMetres: event.target.value }))} /></Field>
+        </div>
+        <p>Officer check-in and check-out GPS will be compared against this radius.</p>
+      </section>
       <div className="pn-form-row pn-form-row-time">
         <Field label="Job date">
           <input type="date" value={form.date} onChange={(event) => setForm((item) => ({ ...item, date: event.target.value }))} />

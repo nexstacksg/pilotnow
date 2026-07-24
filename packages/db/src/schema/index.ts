@@ -61,6 +61,9 @@ export const sites = pgTable('sites', {
   customerId: uuid('customer_id').notNull().references(() => customers.id),
   name: text('name').notNull(),
   address: text('address'),
+  latitude: numeric('latitude', { precision: 10, scale: 7 }),
+  longitude: numeric('longitude', { precision: 10, scale: 7 }),
+  allowedRadiusMetres: integer('allowed_radius_metres'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -179,10 +182,12 @@ export const jobAssignments = pgTable(
     checkInLatitude: numeric('check_in_latitude', { precision: 10, scale: 7 }),
     checkInLongitude: numeric('check_in_longitude', { precision: 10, scale: 7 }),
     checkInLocation: text('check_in_location'),
+    checkInAccuracyMetres: numeric('check_in_accuracy_metres', { precision: 8, scale: 2 }),
     checkOutAt: timestamp('check_out_at', { withTimezone: true }),
     checkOutLatitude: numeric('check_out_latitude', { precision: 10, scale: 7 }),
     checkOutLongitude: numeric('check_out_longitude', { precision: 10, scale: 7 }),
     checkOutLocation: text('check_out_location'),
+    checkOutAccuracyMetres: numeric('check_out_accuracy_metres', { precision: 8, scale: 2 }),
     // FR-018: default scheduled hours, admin-adjustable with reason
     hoursWorked: numeric('hours_worked', { precision: 6, scale: 2 }),
     hoursNote: text('hours_note'),

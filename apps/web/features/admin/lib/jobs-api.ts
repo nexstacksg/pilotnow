@@ -10,7 +10,7 @@ type ApiRecordState = 'DRAFT' | 'CONFIRMED';
 type ApiJob = {
   id: string;
   customer: { id: string; name: string; contact: string | null };
-  site: { id: string; name: string; address: string | null };
+  site: { id: string; name: string; address: string | null; latitude?: string | null; longitude?: string | null; allowedRadiusMetres?: number | null };
   startAt: string;
   endAt: string;
   headcountRequired: number;
@@ -39,10 +39,12 @@ type ApiJob = {
     checkInLatitude?: string | null;
     checkInLongitude?: string | null;
     checkInLocation?: string | null;
+    checkInAccuracyMetres?: string | null;
     checkOutAt: string | null;
     checkOutLatitude?: string | null;
     checkOutLongitude?: string | null;
     checkOutLocation?: string | null;
+    checkOutAccuracyMetres?: string | null;
   }[];
   proofPhotos?: {
     id: string;
@@ -135,9 +137,11 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
         checkInLatitude: assignment.checkInLatitude || undefined,
         checkInLongitude: assignment.checkInLongitude || undefined,
         checkInLocation: assignment.checkInLocation || undefined,
+        checkInAccuracyMetres: assignment.checkInAccuracyMetres || undefined,
         checkOutLatitude: assignment.checkOutLatitude || undefined,
         checkOutLongitude: assignment.checkOutLongitude || undefined,
         checkOutLocation: assignment.checkOutLocation || undefined,
+        checkOutAccuracyMetres: assignment.checkOutAccuracyMetres || undefined,
       };
     })
     : previousOfficers;
@@ -160,6 +164,9 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     customerContact: apiJob.customer.contact || undefined,
     siteName: apiJob.site.name,
     siteAddress: apiJob.site.address || undefined,
+    siteLatitude: apiJob.site.latitude || undefined,
+    siteLongitude: apiJob.site.longitude || undefined,
+    siteRadiusMetres: apiJob.site.allowedRadiusMetres || undefined,
     location: apiJob.site.address || apiJob.site.name,
     date: start.date,
     start: start.time,
@@ -212,6 +219,9 @@ export async function createJobFromForm(form: JobForm) {
     customerName: form.customer.trim(),
     siteName: form.location.trim(),
     siteAddress: form.location.trim(),
+    siteLatitude: Number(form.siteLatitude),
+    siteLongitude: Number(form.siteLongitude),
+    siteRadiusMetres: Number(form.siteRadiusMetres),
     startAt: jobDateTime(form.date, form.start),
     endAt: jobDateTime(form.date, form.end, endNextDay),
     headcountRequired: Math.min(MAX_JOB_OFFICERS, Math.max(1, Math.trunc(Number(form.required) || 1))),
@@ -229,6 +239,9 @@ export async function updateJobFromForm(id: string, form: JobForm, previous?: Jo
     customerName: form.customer.trim(),
     siteName: form.location.trim(),
     siteAddress: form.location.trim(),
+    siteLatitude: Number(form.siteLatitude),
+    siteLongitude: Number(form.siteLongitude),
+    siteRadiusMetres: Number(form.siteRadiusMetres),
     startAt: jobDateTime(form.date, form.start),
     endAt: jobDateTime(form.date, form.end, endNextDay),
     headcountRequired: Math.min(MAX_JOB_OFFICERS, Math.max(1, Math.trunc(Number(form.required) || 1))),

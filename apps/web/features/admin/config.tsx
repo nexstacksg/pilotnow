@@ -45,6 +45,9 @@ export const navGroups: { label: string; items: { screen: Screen; label: string 
 export const emptyJobForm: JobForm = {
   customer: '',
   location: '',
+  siteLatitude: '',
+  siteLongitude: '',
+  siteRadiusMetres: '120',
   date: todayInputDate(),
   start: '09:00',
   end: '18:00',

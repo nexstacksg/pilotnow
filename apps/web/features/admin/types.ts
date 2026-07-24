@@ -40,9 +40,11 @@ export type JobOfficer = {
   checkInLatitude?: string;
   checkInLongitude?: string;
   checkInLocation?: string;
+  checkInAccuracyMetres?: string;
   checkOutLatitude?: string;
   checkOutLongitude?: string;
   checkOutLocation?: string;
+  checkOutAccuracyMetres?: string;
 };
 
 export type PhotoCheckpoint = {
@@ -62,6 +64,9 @@ export type Job = {
   customerContact?: string;
   siteName?: string;
   siteAddress?: string;
+  siteLatitude?: string;
+  siteLongitude?: string;
+  siteRadiusMetres?: number;
   location: string;
   date: string;
   start: string;
@@ -109,6 +114,9 @@ export type Payment = {
 export type JobForm = {
   customer: string;
   location: string;
+  siteLatitude: string;
+  siteLongitude: string;
+  siteRadiusMetres: string;
   date: string;
   start: string;
   end: string;

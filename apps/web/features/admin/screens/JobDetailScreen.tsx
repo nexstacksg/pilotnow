@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { BellIcon, BillingIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
+import { BellIcon, BillingIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, LinkIcon, LocationPinIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
 import { createOfficerJobToken, createSignReportToken } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, initials, money, statusTone, timeLabel, timeRangeLabel } from '../lib/format';
@@ -20,6 +20,16 @@ const cancelledLifecycleSteps: { key: JobStatus; label: string }[] = [
   { key: 'Posted/Waiting', label: 'Posted/Waiting' },
   { key: 'Cancelled', label: 'Cancelled' },
 ];
+
+export function distanceMetres(latitudeA: number, longitudeA: number, latitudeB: number, longitudeB: number) {
+  const earthRadiusMetres = 6_371_000;
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB)) * Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadiusMetres * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export function JobDetailScreen({
   job,
@@ -523,6 +533,16 @@ function OfficerParticipationModal({
   const hoursLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '—';
   const hasCheckInLocation = Boolean(officer.checkInLatitude && officer.checkInLongitude);
   const hasCheckOutLocation = Boolean(officer.checkOutLatitude && officer.checkOutLongitude);
+  const hasSiteGeofence = Boolean(job.siteLatitude && job.siteLongitude && job.siteRadiusMetres);
+  const checkInDistance = hasSiteGeofence && hasCheckInLocation
+    ? distanceMetres(Number(job.siteLatitude), Number(job.siteLongitude), Number(officer.checkInLatitude), Number(officer.checkInLongitude))
+    : null;
+  const checkOutDistance = hasSiteGeofence && hasCheckOutLocation
+    ? distanceMetres(Number(job.siteLatitude), Number(job.siteLongitude), Number(officer.checkOutLatitude), Number(officer.checkOutLongitude))
+    : null;
+  const checkInInside = checkInDistance === null ? null : checkInDistance <= Number(job.siteRadiusMetres);
+  const checkOutInside = checkOutDistance === null ? null : checkOutDistance <= Number(job.siteRadiusMetres);
+  const attendanceOutside = checkInInside === false || checkOutInside === false;
 
   useEffect(() => {
     if (phone && !dutyLink && !dutyMutation.isPending) dutyMutation.mutate();
@@ -566,20 +586,34 @@ function OfficerParticipationModal({
           </div>
 
           <section className="pn-attendance-locations">
-            <header><h3>Attendance locations</h3><p>Recorded check-in and check-out GPS points.</p></header>
+            <header>
+              <LocationPinIcon size={19} strokeWidth={2} />
+              <div className="pn-attendance-heading"><h3>Attendance locations</h3><p>Validate check-in and check-out GPS points against the job site radius.</p></div>
+              <span className={`pn-site-status ${attendanceOutside ? 'is-outside' : hasSiteGeofence ? 'is-inside' : 'is-neutral'}`}>
+                {attendanceOutside ? 'Outside site' : hasSiteGeofence ? 'Inside site' : 'Not configured'}
+              </span>
+            </header>
             <div className="pn-attendance-site">
               <span>Job allowed area</span>
               <strong>{job.siteName || job.location}</strong>
-              {job.siteAddress && job.siteAddress.trim().toLowerCase() !== (job.siteName || job.location).trim().toLowerCase()
-                ? <small>{job.siteAddress}</small>
-                : null}
+              {hasSiteGeofence ? <small>{job.siteLatitude}, {job.siteLongitude} · Radius {job.siteRadiusMetres} m</small> : <small>Geofence unavailable</small>}
             </div>
             <div className="pn-attendance-point">
-              <div><strong>Check-in · {officer.actualStart || '—'}</strong><span>{officer.checkInLocation || 'Location label unavailable'}</span><small>{hasCheckInLocation ? `${officer.checkInLatitude}, ${officer.checkInLongitude}` : 'Coordinates unavailable'}</small></div>
+              <span className={`pn-geofence-indicator ${checkInInside === false ? 'is-outside' : ''}`} aria-hidden="true"><i /></span>
+              <div>
+                <strong>Check-in · {officer.actualStart || '—'} {checkInInside !== null ? <span className={`pn-site-status ${checkInInside ? 'is-inside' : 'is-outside'}`}>{checkInInside ? 'Inside site' : 'Outside site'}</span> : null}</strong>
+                <span>{officer.checkInLocation || 'Location label unavailable'}</span>
+                <small>{hasCheckInLocation ? `${officer.checkInLatitude}, ${officer.checkInLongitude}${checkInDistance === null ? '' : ` · ${Math.round(checkInDistance)} m from site`}${officer.checkInAccuracyMetres ? ` · accuracy ${Math.round(Number(officer.checkInAccuracyMetres))} m` : ''}` : 'Coordinates unavailable'}</small>
+              </div>
               {hasCheckInLocation ? <button onClick={() => copyText(`${officer.checkInLatitude}, ${officer.checkInLongitude}`, 'Check-in coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
             </div>
             <div className="pn-attendance-point">
-              <div><strong>Check-out · {officer.actualEnd || '—'}</strong><span>{officer.checkOutLocation || 'Location label unavailable'}</span><small>{hasCheckOutLocation ? `${officer.checkOutLatitude}, ${officer.checkOutLongitude}` : 'Coordinates unavailable'}</small></div>
+              <span className={`pn-geofence-indicator ${checkOutInside === false ? 'is-outside' : ''}`} aria-hidden="true"><i /></span>
+              <div>
+                <strong>Check-out · {officer.actualEnd || '—'} {checkOutInside !== null ? <span className={`pn-site-status ${checkOutInside ? 'is-inside' : 'is-outside'}`}>{checkOutInside ? 'Inside site' : 'Outside site'}</span> : null}</strong>
+                <span>{officer.checkOutLocation || 'Location label unavailable'}</span>
+                <small>{hasCheckOutLocation ? `${officer.checkOutLatitude}, ${officer.checkOutLongitude}${checkOutDistance === null ? '' : ` · ${Math.round(checkOutDistance)} m from site`}${officer.checkOutAccuracyMetres ? ` · accuracy ${Math.round(Number(officer.checkOutAccuracyMetres))} m` : ''}` : 'Coordinates unavailable'}</small>
+              </div>
               {hasCheckOutLocation ? <button onClick={() => copyText(`${officer.checkOutLatitude}, ${officer.checkOutLongitude}`, 'Check-out coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
             </div>
           </section>
