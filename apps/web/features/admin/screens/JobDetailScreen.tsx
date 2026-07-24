@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { BellIcon, BillingIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
+import { BellIcon, BillingIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, LinkIcon, LocationPinIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
 import { createOfficerJobToken, createSignReportToken } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, initials, money, statusTone, timeLabel, timeRangeLabel } from '../lib/format';
@@ -587,7 +587,8 @@ function OfficerParticipationModal({
 
           <section className="pn-attendance-locations">
             <header>
-              <div><h3>Attendance locations</h3><p>Validate check-in and check-out GPS points against the job site radius.</p></div>
+              <LocationPinIcon size={19} strokeWidth={2} />
+              <div className="pn-attendance-heading"><h3>Attendance locations</h3><p>Validate check-in and check-out GPS points against the job site radius.</p></div>
               <span className={`pn-site-status ${attendanceOutside ? 'is-outside' : hasSiteGeofence ? 'is-inside' : 'is-neutral'}`}>
                 {attendanceOutside ? 'Outside site' : hasSiteGeofence ? 'Inside site' : 'Not configured'}
               </span>
@@ -598,6 +599,7 @@ function OfficerParticipationModal({
               {hasSiteGeofence ? <small>{job.siteLatitude}, {job.siteLongitude} · Radius {job.siteRadiusMetres} m</small> : <small>Geofence unavailable</small>}
             </div>
             <div className="pn-attendance-point">
+              <span className={`pn-geofence-indicator ${checkInInside === false ? 'is-outside' : ''}`} aria-hidden="true"><i /></span>
               <div>
                 <strong>Check-in · {officer.actualStart || '—'} {checkInInside !== null ? <span className={`pn-site-status ${checkInInside ? 'is-inside' : 'is-outside'}`}>{checkInInside ? 'Inside site' : 'Outside site'}</span> : null}</strong>
                 <span>{officer.checkInLocation || 'Location label unavailable'}</span>
@@ -606,6 +608,7 @@ function OfficerParticipationModal({
               {hasCheckInLocation ? <button onClick={() => copyText(`${officer.checkInLatitude}, ${officer.checkInLongitude}`, 'Check-in coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
             </div>
             <div className="pn-attendance-point">
+              <span className={`pn-geofence-indicator ${checkOutInside === false ? 'is-outside' : ''}`} aria-hidden="true"><i /></span>
               <div>
                 <strong>Check-out · {officer.actualEnd || '—'} {checkOutInside !== null ? <span className={`pn-site-status ${checkOutInside ? 'is-inside' : 'is-outside'}`}>{checkOutInside ? 'Inside site' : 'Outside site'}</span> : null}</strong>
                 <span>{officer.checkOutLocation || 'Location label unavailable'}</span>

@@ -2960,6 +2960,16 @@ button {
   padding: 13px 14px;
 }
 
+.pn-attendance-locations > header > svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.pn-attendance-heading {
+  min-width: 0;
+  flex: 1;
+}
+
 .pn-attendance-locations > header h3,
 .pn-attendance-locations > header p {
   margin: 0;
@@ -2976,10 +2986,10 @@ button {
   align-items: center;
   width: max-content;
   border-radius: 999px;
-  padding: 3px 8px;
+  padding: 4px 10px;
   background: #F5F5F5;
   color: #525252;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -3036,6 +3046,54 @@ button {
 
 .pn-attendance-point strong {
   font-size: 11px;
+}
+
+.pn-geofence-indicator {
+  position: relative;
+  display: grid;
+  width: 78px;
+  height: 60px;
+  flex: 0 0 78px;
+  place-items: center;
+  border: 1px solid #E5E5E5;
+  border-radius: 7px;
+}
+
+.pn-geofence-indicator::before {
+  width: 50px;
+  height: 42px;
+  border: 3px solid #07883F;
+  border-radius: 999px;
+  background: #ECF9F0;
+  content: '';
+}
+
+.pn-geofence-indicator::after {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #111;
+  content: '';
+}
+
+.pn-geofence-indicator i {
+  position: absolute;
+  top: 19px;
+  left: 42px;
+  width: 13px;
+  height: 13px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #079447;
+}
+
+.pn-geofence-indicator.is-outside i {
+  top: 8px;
+  right: 8px;
+  left: auto;
+  border-color: #fff;
+  background: #D52217;
 }
 
 .pn-attendance-point strong .pn-site-status {
