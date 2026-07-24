@@ -565,7 +565,13 @@ function OfficerParticipationModal({
 
           <section className="pn-attendance-locations">
             <header><h3>Attendance locations</h3><p>Recorded check-in and check-out GPS points.</p></header>
-            <div className="pn-attendance-site"><span>Job site</span><strong>{job.siteName || job.location}</strong>{job.siteAddress ? <small>{job.siteAddress}</small> : null}</div>
+            <div className="pn-attendance-site">
+              <span>Job allowed area</span>
+              <strong>{job.siteName || job.location}</strong>
+              {job.siteAddress && job.siteAddress.trim().toLowerCase() !== (job.siteName || job.location).trim().toLowerCase()
+                ? <small>{job.siteAddress}</small>
+                : null}
+            </div>
             <div className="pn-attendance-point">
               <div><strong>Check-in · {officer.actualStart || '—'}</strong><span>{officer.checkInLocation || 'Location label unavailable'}</span><small>{hasCheckInLocation ? `${officer.checkInLatitude}, ${officer.checkInLongitude}` : 'Coordinates unavailable'}</small></div>
               {hasCheckInLocation ? <button onClick={() => copyText(`${officer.checkInLatitude}, ${officer.checkInLongitude}`, 'Check-in coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
