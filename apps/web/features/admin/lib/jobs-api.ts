@@ -43,6 +43,7 @@ type ApiJob = {
     officerId: string;
     officerName: string;
     mediaRef: string;
+    photoUrl?: string;
     proofWindow: string | null;
     receivedAt: string;
   }[];
@@ -133,7 +134,7 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
       status: 'received' as const,
       by: photo.officerName,
       at: timeLabel(photo.receivedAt),
-      mediaRef: `/api/jobs/${encodeURIComponent(apiJob.id)}/proof-photos/${encodeURIComponent(photo.id)}`,
+      mediaRef: photo.photoUrl || `/api/jobs/${encodeURIComponent(apiJob.id)}/proof-photos/${encodeURIComponent(photo.id)}`,
       note: photo.proofWindow ?? undefined,
     }))
     : previous?.photos ?? [];

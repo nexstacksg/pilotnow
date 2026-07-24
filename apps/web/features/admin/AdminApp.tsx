@@ -1462,13 +1462,11 @@ function OfficerFormFields({
 function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const received = job.photos.filter((photo) => photo.status === 'received');
-  const latePhotos = received.filter((photo) => photo.at && photo.time && photo.at > photo.time).length;
-  const signedAt = job.siteManagerSignedAt || `${job.date}T21:42:00+08:00`;
-  const signedTime = signedAt.match(/T(\d{2}:\d{2})/)?.[1] || '21:42';
+  const signedTime = job.siteManagerSignedAt?.match(/T(\d{2}:\d{2})/)?.[1] || '—';
   const issuedDate = dateLabel(job.date).toUpperCase();
   const reportReference = `DO-${job.id.replace(/[^A-Z0-9]/gi, '')}-001`;
-  const siteName = job.location || 'VivoCity – Level 1 Main Entrance';
-  const clientName = job.customer || 'VivoCity Mall Mgmt';
+  const siteName = job.location;
+  const clientName = job.customer;
 
   return (
     <Modal
@@ -1502,7 +1500,7 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
             <small>PILOTNOW SECURITY OPS · OPERATIONS</small>
           </div>
           <aside>
-            <span>ISSUED · {issuedDate} · 21:43 SGT</span>
+            <span>ISSUED · {issuedDate} · {signedTime} SGT</span>
             <span>REF · {reportReference}</span>
           </aside>
         </header>
@@ -1510,12 +1508,12 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
         <section className="pn-report-hero">
           <span>DELIVERY ORDER · {clientName.toUpperCase()}</span>
           <h2>{siteName}</h2>
-          <p>Service delivered {job.start}–{job.end} SGT on {dateLabel(job.date)} by {job.officers.length} officers, with {received.length} of {job.photos.length} active report proof events ({latePhotos} late) and 1 operational remark logged. No incidents.</p>
+          <p>Service delivered {job.start}–{job.end} SGT on {dateLabel(job.date)} by {job.officers.length} officers, with {received.length} of {job.photos.length} proof events received.</p>
         </section>
 
         <section className="pn-report-facts">
-          <div><label>CLIENT</label><strong>{clientName}</strong><span>Billing · VivoCity Mall Mgmt Pte Ltd</span><span>Contact · PilotNow Ops WhatsApp desk</span></div>
-          <div><label>SITE</label><strong>{siteName}</strong><span>Singapore</span><span>1.2839, 103.8620 · radius 120m</span></div>
+          <div><label>CLIENT</label><strong>{clientName}</strong></div>
+          <div><label>SITE</label><strong>{siteName}</strong></div>
           <div><label>JOB</label><strong>{job.id} · {hours(job.start, job.end).toFixed(0)}h shift</strong><span>{job.date} · {job.start} → {job.end} SGT</span></div>
           <div><label>OUTCOME</label><strong>Closed · Signed</strong><span>Signed off · {clientName} · {signedTime} SGT</span></div>
         </section>
@@ -1523,23 +1521,23 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
         <section className="pn-report-section pn-report-attendance">
           <header><h3>OFFICERS & ATTENDANCE</h3><span>{job.officers.length} OFFICERS</span></header>
           <div className="pn-report-table">
-            <div className="pn-report-table-head"><span>OFFICER</span><span>ID</span><span>ACKNOWLEDGED</span><span>CHECK-IN</span><span>CHECK-OUT</span><span>GPS AVG</span></div>
-            {job.officers.map((officer, index) => (
+            <div className="pn-report-table-head"><span>OFFICER</span><span>ID</span><span>STATUS</span><span>CHECK-IN</span><span>CHECK-OUT</span></div>
+            {job.officers.map((officer) => (
               <div className="pn-report-table-row" key={officer.oid}>
-                <strong>{officer.name}</strong><span>{officer.code || `OF-${String(index + 3).padStart(2, '0')}`}</span><span>09:42</span>
-                <span>{officer.actualStart || job.start} · {index ? '5m' : '0m'}</span><span>{officer.actualEnd || job.end} · {index ? '10m' : '0m'}</span><span>{index ? '12m' : '16m'}</span>
+                <strong>{officer.name}</strong><span>{officer.code || '—'}</span><span>{officer.confirmed ? 'Acknowledged' : 'Pending'}</span>
+                <span>{officer.actualStart || '—'}</span><span>{officer.actualEnd || '—'}</span>
               </div>
             ))}
           </div>
         </section>
 
         <section className="pn-report-section pn-report-proof">
-          <header><h3>PROOF OF PRESENCE</h3><span>{received.length} / {job.photos.length} ACTIVE · {latePhotos} LATE</span></header>
+          <header><h3>PROOF OF PRESENCE</h3><span>{received.length} / {job.photos.length} RECEIVED</span></header>
           <div className="pn-report-proof-grid">
             {job.photos.map((photo) => (
               <figure className={photo.status === 'received' ? '' : 'is-missing'} key={`${photo.time}-${photo.by}`}>
                 {photo.mediaRef ? <img alt={`Proof captured at ${photo.time} by ${photo.by}`} src={photo.mediaRef} /> : null}
-                <figcaption><strong>{photo.time}</strong><span>{initials(photo.by)} · {photo.at && photo.at > photo.time ? 'LATE' : photo.status === 'received' ? 'IN' : 'PENDING'}</span></figcaption>
+                <figcaption><strong>{photo.time}</strong><span>{initials(photo.by)} · {photo.status === 'received' ? 'RECEIVED' : photo.status.toUpperCase()}</span></figcaption>
               </figure>
             ))}
           </div>
@@ -1548,7 +1546,7 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
         <section className="pn-report-section pn-report-signoff">
           <header><h3>SIGN-OFF</h3><span>PDPA · AUDIT-LOGGED</span></header>
           <div className="pn-report-signatures">
-            <div><label>SITE MANAGER</label><p className="pn-report-signature">{job.siteManagerSignedBy || 'VivoCity Mall Mgmt'}</p><strong>{job.siteManagerSignedBy || clientName}</strong><span>{issuedDate} · {signedTime} SGT · TOKEN ----5A60</span><b>SIGNED</b></div>
+            <div><label>SITE MANAGER</label><p className="pn-report-signature">{job.siteManagerSignedBy || '—'}</p><strong>{job.siteManagerSignedBy || '—'}</strong><span>{issuedDate} · {signedTime} SGT</span><b>SIGNED</b></div>
           </div>
         </section>
       </div>

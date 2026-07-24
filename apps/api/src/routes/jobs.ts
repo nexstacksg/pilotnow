@@ -219,14 +219,15 @@ async function serializeJobWithAssignments(row: {
       checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
       checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
     })),
-    proofPhotos: proofRows.map((item) => ({
+    proofPhotos: await Promise.all(proofRows.map(async (item) => ({
       id: item.proof_photos.id,
       officerId: item.officers.id,
       officerName: item.officers.name,
       mediaRef: item.proof_photos.mediaRef,
+      photoUrl: await spacesReadUrl(item.proof_photos.mediaRef).catch(() => item.proof_photos.mediaRef),
       proofWindow: item.proof_photos.proofWindow,
       receivedAt: item.proof_photos.receivedAt.toISOString(),
-    })),
+    }))),
   };
 }
 

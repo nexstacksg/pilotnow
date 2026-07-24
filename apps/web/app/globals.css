@@ -3847,7 +3847,7 @@ button {
 .pn-report-table-head,
 .pn-report-table-row {
   display: grid;
-  grid-template-columns: 2fr .55fr 1fr .95fr 1fr .55fr;
+  grid-template-columns: 2fr .65fr 1fr .85fr .85fr;
   column-gap: 12px;
   align-items: center;
   min-height: 38px;
@@ -3869,7 +3869,7 @@ button {
   font-size: 12px;
 }
 
-.pn-report-table-row span:last-child {
+.pn-report-table-row span:nth-last-child(-n+2) {
   text-align: right;
 }
 
