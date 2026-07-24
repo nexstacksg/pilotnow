@@ -142,6 +142,9 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
   return {
     id: apiJob.id,
     customer: apiJob.customer.name,
+    customerContact: apiJob.customer.contact || undefined,
+    siteName: apiJob.site.name,
+    siteAddress: apiJob.site.address || undefined,
     location: apiJob.site.address || apiJob.site.name,
     date: start.date,
     start: start.time,

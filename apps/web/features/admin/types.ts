@@ -51,6 +51,9 @@ export type PhotoCheckpoint = {
 export type Job = {
   id: string;
   customer: string;
+  customerContact?: string;
+  siteName?: string;
+  siteAddress?: string;
   location: string;
   date: string;
   start: string;

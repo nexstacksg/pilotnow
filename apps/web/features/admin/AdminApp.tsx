@@ -1465,7 +1465,7 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
   const signedTime = job.siteManagerSignedAt?.match(/T(\d{2}:\d{2})/)?.[1] || '—';
   const issuedDate = dateLabel(job.date).toUpperCase();
   const reportReference = `DO-${job.id.replace(/[^A-Z0-9]/gi, '')}-001`;
-  const siteName = job.location;
+  const siteName = job.siteName || job.location;
   const clientName = job.customer;
 
   return (
@@ -1512,8 +1512,17 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
         </section>
 
         <section className="pn-report-facts">
-          <div><label>CLIENT</label><strong>{clientName}</strong></div>
-          <div><label>SITE</label><strong>{siteName}</strong></div>
+          <div>
+            <label>CLIENT</label>
+            <strong>{clientName}</strong>
+            <span>Billing · {clientName}</span>
+            {job.customerContact ? <span>Contact · {job.customerContact}</span> : null}
+          </div>
+          <div>
+            <label>SITE</label>
+            <strong>{siteName}</strong>
+            {job.siteAddress && job.siteAddress !== siteName ? <span>{job.siteAddress}</span> : null}
+          </div>
           <div><label>JOB</label><strong>{job.id} · {hours(job.start, job.end).toFixed(0)}h shift</strong><span>{job.date} · {job.start} → {job.end} SGT</span></div>
           <div><label>OUTCOME</label><strong>Closed · Signed</strong><span>Signed off · {clientName} · {signedTime} SGT</span></div>
         </section>
