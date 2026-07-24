@@ -323,7 +323,7 @@ export function AdminApp({
   const searchRef = useRef<HTMLDivElement>(null);
 
   const selectedJob = jobs.find((job) => job.id === jobId) ?? jobs[0] ?? null;
-  const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? selectedJob : null;
+  const reportJob = reportJobId ? jobs.find((job) => job.id === reportJobId) ?? null : null;
   const completedJobs = jobs.filter((job) => job.status === 'Completed');
   const officersWithJobCounts = useMemo(() => reconcileOfficerJobCounts(officers, jobs), [jobs, officers]);
   const financePayments = useMemo(() => activePaymentRows(paymentRowsFromJobs(jobs, payments)), [jobs, payments]);
@@ -466,6 +466,11 @@ export function AdminApp({
     setJobId(id);
     setScreen('jobDetail');
     pushRoute(routeForScreen('jobDetail', id));
+  }
+
+  function openJobReport(id: string) {
+    openJob(id);
+    setReportJobId(id);
   }
 
   function selectSearchResult(result: AdminSearchResult) {
@@ -1179,7 +1184,13 @@ export function AdminApp({
               <LoadingPanel />
             )
           ) : null}
-          {screen === 'reports' ? (jobsReady && officersReady && paymentsReady && reportsReady ? <ReportsScreen jobs={jobs} officers={officersWithJobCounts} payments={financePayments} report={operationsReport} search={search} /> : <LoadingPanel />) : null}
+          {screen === 'reports' ? (
+            jobsReady && officersReady && paymentsReady && reportsReady ? (
+              <ReportsScreen jobs={jobs} officers={officersWithJobCounts} payments={financePayments} report={operationsReport} search={search} onOpenJob={openJob} onViewJobReport={openJobReport} />
+            ) : (
+              <LoadingPanel />
+            )
+          ) : null}
           {screen === 'profile' ? <ProfileScreen /> : null}
         </div>
       </main>

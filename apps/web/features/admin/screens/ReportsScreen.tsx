@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarIcon, DownloadIcon } from '../components/icons';
+import { CalendarIcon, DownloadIcon, EyeIcon } from '../components/icons';
 import { Button, Card, DEFAULT_PAGE_SIZE, Pagination } from '../components/ui';
 import { dateLabel, jobPay, money } from '../lib/format';
 import type { OperationsReport } from '../lib/reports-api';
@@ -9,11 +9,15 @@ type ReportKey = 'completed' | 'payments' | 'missingPhotos' | 'billing' | 'offic
 type ReportColumn = {
   key: string;
   label: string;
+  exportable?: boolean;
 };
 type ReportRow = {
   id: string;
   date: string;
   cells: Record<string, string | number>;
+  canOpenJob?: boolean;
+  canViewJobReport?: boolean;
+  jobId?: string;
 };
 
 const reportTabs: { key: ReportKey; label: string; title: string }[] = [
@@ -32,6 +36,7 @@ const reportColumns: Record<ReportKey, ReportColumn[]> = {
     { key: 'date', label: 'Date' },
     { key: 'officers', label: 'Officers' },
     { key: 'totalPayable', label: 'Total payable' },
+    { key: 'jobReport', label: 'Job report', exportable: false },
   ],
   payments: [
     { key: 'officer', label: 'Officer' },
@@ -64,9 +69,27 @@ const reportColumns: Record<ReportKey, ReportColumn[]> = {
   ],
 };
 
-export function ReportsScreen({ jobs, officers, payments, report, search }: { jobs: Job[]; officers: Officer[]; payments: Payment[]; report?: OperationsReport | null; search: string }) {
+export function ReportsScreen({
+  jobs,
+  officers,
+  payments,
+  report,
+  search,
+  onOpenJob,
+  onViewJobReport,
+}: {
+  jobs: Job[];
+  officers: Officer[];
+  payments: Payment[];
+  report?: OperationsReport | null;
+  search: string;
+  onOpenJob?: (id: string) => void;
+  onViewJobReport?: (id: string) => void;
+}) {
   const [activeReport, setActiveReport] = useState<ReportKey>('completed');
   const defaultRange = useMemo(() => defaultDateRange(jobs, payments, report), [jobs, payments, report]);
+  const localJobIds = useMemo(() => new Set(jobs.map((job) => job.id)), [jobs]);
+  const jobsById = useMemo(() => new Map(jobs.map((job) => [job.id, job])), [jobs]);
   const [startDate, setStartDate] = useState(defaultRange.start);
   const [endDate, setEndDate] = useState(defaultRange.end);
   const [dateRangeEdited, setDateRangeEdited] = useState(false);
@@ -85,6 +108,9 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
       buildCompletedReportRows(jobs, payments, report).map((job) => ({
         id: job.id,
         date: job.date,
+        canOpenJob: localJobIds.has(job.id),
+        canViewJobReport: Boolean(jobsById.get(job.id)?.siteManagerSignedAt),
+        jobId: job.id,
         cells: {
           job: job.id,
           customer: job.customer,
@@ -93,17 +119,17 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
           totalPayable: money(job.totalPayable),
         },
       })),
-    [jobs, payments, report],
+    [jobs, jobsById, localJobIds, payments, report],
   );
   const reportRows = useMemo(
     () => ({
       completed: completedRows,
-      payments: buildPaymentRows(payments),
-      missingPhotos: buildMissingPhotoRows(jobs, report),
-      billing: buildBillingRows(jobs),
-      officerHistory: buildOfficerHistoryRows(jobs),
+      payments: buildPaymentRows(payments, localJobIds),
+      missingPhotos: buildMissingPhotoRows(jobs, localJobIds, report),
+      billing: buildBillingRows(jobs, localJobIds),
+      officerHistory: buildOfficerHistoryRows(jobs, localJobIds),
     }),
-    [completedRows, jobs, payments, report],
+    [completedRows, jobs, localJobIds, payments, report],
   );
   const rows = reportRows[activeReport]
     .filter((row) => isWithinDateRange(row.date, startDate, endDate))
@@ -174,7 +200,7 @@ export function ReportsScreen({ jobs, officers, payments, report, search }: { jo
           {visibleRows.map((row) => (
             <div className="pn-table-row" key={row.id}>
               {columns.map((column) => (
-                <span key={column.key}>{row.cells[column.key]}</span>
+                <span key={column.key}>{renderReportCell(activeReport, row, column, onOpenJob, onViewJobReport)}</span>
               ))}
             </div>
           ))}
@@ -208,6 +234,49 @@ function reportRowSearchText(row: ReportRow) {
   ]
     .join(' ')
     .toLowerCase();
+}
+
+function renderReportCell(activeReport: ReportKey, row: ReportRow, column: ReportColumn, onOpenJob?: (id: string) => void, onViewJobReport?: (id: string) => void) {
+  if (column.key === 'job') {
+    const jobId = row.jobId ?? String(row.cells.job ?? '');
+    const canOpenJob = Boolean(row.canOpenJob && jobId && onOpenJob);
+
+    if (canOpenJob) {
+      return (
+        <button
+          aria-label={`Open job ${jobId}`}
+          className="pn-report-job-link"
+          onClick={() => {
+            onOpenJob?.(jobId);
+          }}
+          type="button"
+        >
+          {row.cells[column.key]}
+        </button>
+      );
+    }
+  }
+
+  if (activeReport === 'completed' && column.key === 'jobReport') {
+    const canOpenReport = Boolean(row.canViewJobReport && row.jobId && onViewJobReport);
+
+    return (
+      <button
+        aria-label={`View job report for ${row.id}`}
+        className="pn-report-view-btn"
+        disabled={!canOpenReport}
+        onClick={() => {
+          if (row.jobId) onViewJobReport?.(row.jobId);
+        }}
+        type="button"
+      >
+        <EyeIcon size={13} strokeWidth={2} />
+        View
+      </button>
+    );
+  }
+
+  return row.cells[column.key];
 }
 
 function buildCompletedReportRows(jobs: Job[], payments: Payment[], report?: OperationsReport | null) {
@@ -254,10 +323,12 @@ function buildCompletedRows(jobs: Job[], payments: Payment[]): OperationsReport[
     }));
 }
 
-function buildPaymentRows(payments: Payment[]): ReportRow[] {
+function buildPaymentRows(payments: Payment[], localJobIds: Set<string>): ReportRow[] {
   return payments.map((payment) => ({
     id: payment.id,
     date: payment.jobDate,
+    canOpenJob: localJobIds.has(payment.jobId),
+    jobId: payment.jobId,
     cells: {
       officer: payment.officer,
       job: payment.jobId,
@@ -269,13 +340,15 @@ function buildPaymentRows(payments: Payment[]): ReportRow[] {
   }));
 }
 
-function buildMissingPhotoRows(jobs: Job[], report?: OperationsReport | null): ReportRow[] {
+function buildMissingPhotoRows(jobs: Job[], localJobIds: Set<string>, report?: OperationsReport | null): ReportRow[] {
   const localRows = jobs.flatMap((job) =>
     job.photos
       .filter((photo) => photo.status === 'missing')
       .map((photo, index) => ({
         id: `${job.id}-${photo.time}-${index}`,
         date: job.date,
+        canOpenJob: localJobIds.has(job.id),
+        jobId: job.id,
         cells: {
           job: job.id,
           customer: job.customer,
@@ -291,6 +364,8 @@ function buildMissingPhotoRows(jobs: Job[], report?: OperationsReport | null): R
   const rows: ReportRow[] = report.missingCheckpoints.map((checkpoint) => ({
     id: checkpoint.id,
     date: checkpoint.date,
+    canOpenJob: localJobIds.has(checkpoint.job),
+    jobId: checkpoint.job,
     cells: {
       job: checkpoint.job,
       customer: checkpoint.customer,
@@ -312,12 +387,14 @@ function missingPhotoRowKey(row: ReportRow) {
   return `${row.cells.job}|${row.date}|${row.cells.checkpoint}`;
 }
 
-function buildBillingRows(jobs: Job[]): ReportRow[] {
+function buildBillingRows(jobs: Job[], localJobIds: Set<string>): ReportRow[] {
   return jobs
     .filter((job) => job.status === 'Completed')
     .map((job) => ({
       id: job.id,
       date: job.date,
+      canOpenJob: localJobIds.has(job.id),
+      jobId: job.id,
       cells: {
         job: job.id,
         customer: job.customer,
@@ -328,11 +405,13 @@ function buildBillingRows(jobs: Job[]): ReportRow[] {
     }));
 }
 
-function buildOfficerHistoryRows(jobs: Job[]): ReportRow[] {
+function buildOfficerHistoryRows(jobs: Job[], localJobIds: Set<string>): ReportRow[] {
   return jobs.flatMap((job) =>
     job.officers.map((officer) => ({
       id: `${job.id}-${officer.oid}`,
       date: job.date,
+      canOpenJob: localJobIds.has(job.id),
+      jobId: job.id,
       cells: {
         officer: officer.name,
         job: job.id,
@@ -392,8 +471,9 @@ function buildReportSummary(activeReport: ReportKey, rows: ReportRow[], officers
 }
 
 function exportReport(title: string, columns: ReportColumn[], rows: ReportRow[], startDate: string, endDate: string) {
-  const header = columns.map((column) => column.label);
-  const body = rows.map((row) => columns.map((column) => row.cells[column.key]));
+  const exportColumns = columns.filter((column) => column.exportable !== false);
+  const header = exportColumns.map((column) => column.label);
+  const body = rows.map((row) => exportColumns.map((column) => row.cells[column.key]));
   const csv = [
     [title],
     [`Date range: ${startDate || 'All'} to ${endDate || 'All'}`],
