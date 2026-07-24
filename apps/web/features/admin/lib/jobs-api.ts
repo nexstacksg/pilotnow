@@ -46,6 +46,7 @@ type ApiJob = {
     photoUrl?: string;
     proofWindow: string | null;
     receivedAt: string;
+    hiddenFromReport?: boolean;
   }[];
 };
 
@@ -130,12 +131,14 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
     : previousOfficers;
   const photos = apiJob.proofPhotos?.length
     ? apiJob.proofPhotos.map((photo) => ({
+      id: photo.id,
       time: proofTimeLabel(photo.proofWindow, photo.receivedAt),
       status: 'received' as const,
       by: photo.officerName,
       at: timeLabel(photo.receivedAt),
       mediaRef: photo.photoUrl || `/api/jobs/${encodeURIComponent(apiJob.id)}/proof-photos/${encodeURIComponent(photo.id)}`,
       note: photo.proofWindow ?? undefined,
+      hiddenFromReport: Boolean(photo.hiddenFromReport),
     }))
     : previous?.photos ?? [];
 
@@ -182,6 +185,13 @@ export async function fetchCompletedJobs(current: Job[]) {
 export async function fetchJob(id: string, previous?: Job) {
   const payload = await withServerMessage(http.get<{ item: ApiJob }>(`/jobs/${encodeURIComponent(id)}`));
   return mergeJob(payload.item, previous);
+}
+
+export async function updateProofReportVisibility(jobId: string, proofId: string, hidden: boolean) {
+  return withServerMessage(http.patch<{ item: { id: string; hiddenFromReport: boolean } }>(
+    `/jobs/${encodeURIComponent(jobId)}/proof-photos/${encodeURIComponent(proofId)}/report-visibility`,
+    { hidden },
+  ));
 }
 
 export async function createJobFromForm(form: JobForm) {

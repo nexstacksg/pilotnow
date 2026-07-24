@@ -3844,6 +3844,60 @@ button {
   letter-spacing: .04em;
 }
 
+.pn-report-proof.is-editing {
+  margin-inline: -8px;
+  border: 2px solid #F1B84B;
+  border-radius: 7px;
+  background: #FFFCF3;
+  padding: 14px 14px 16px;
+}
+
+.pn-report-proof.is-editing > header b {
+  border: 1px solid #EED8A7;
+  border-radius: 999px;
+  background: #FFF6D9;
+  color: #8A5A00;
+  font-size: 10px;
+  padding: 3px 8px;
+}
+
+.pn-report-edit-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid #EED8A7;
+  border-radius: 5px;
+  background: #FFFCF5;
+  padding: 12px 14px;
+}
+
+.pn-report-edit-note > svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+.pn-report-edit-note div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pn-report-edit-note strong {
+  font-size: 12px;
+}
+
+.pn-report-edit-note span {
+  color: #525252;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.pn-report-edit-note .pn-report-edit-error {
+  color: #DC2626;
+  font-weight: 600;
+}
+
 .pn-report-table-head,
 .pn-report-table-row {
   display: grid;
@@ -3920,6 +3974,66 @@ button {
 .pn-report-proof-grid figure:not(.is-missing) figcaption {
   color: #fff;
   text-shadow: 0 1px 3px rgb(0 0 0 / 75%);
+}
+
+.pn-report-photo-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 1px solid #DADADA;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.pn-report-photo-toggle:disabled {
+  cursor: wait;
+  opacity: .55;
+}
+
+.pn-report-proof-grid figure.is-hidden-photo {
+  border-color: #F1B84B;
+  background: #FFF8E8;
+}
+
+.pn-report-proof-grid figure.is-hidden-photo img {
+  opacity: .18;
+}
+
+.pn-report-proof-grid figure.is-hidden-photo figcaption {
+  color: #737373;
+  text-shadow: none;
+}
+
+.pn-report-hidden-label {
+  position: absolute;
+  right: 7px;
+  bottom: 28px;
+  left: 7px;
+  z-index: 2;
+  border: 1px solid #EED8A7;
+  border-radius: 3px;
+  background: #FFF2C9;
+  color: #8A5A00;
+  font-size: 9px;
+  padding: 5px 3px;
+  text-align: center;
+}
+
+.pn-report-removed-label {
+  position: absolute;
+  bottom: 6px;
+  left: 7px;
+  z-index: 2;
+  color: #DC2626;
+  font-family: 'Geist Mono', monospace;
+  font-size: 8px;
+  letter-spacing: .05em;
 }
 
 .pn-report-signatures {

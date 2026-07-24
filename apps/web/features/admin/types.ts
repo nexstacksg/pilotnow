@@ -40,12 +40,14 @@ export type JobOfficer = {
 };
 
 export type PhotoCheckpoint = {
+  id?: string;
   time: string;
   status: PhotoStatus;
   by: string;
   at: string;
   mediaRef?: string;
   note?: string;
+  hiddenFromReport?: boolean;
 };
 
 export type Job = {

@@ -18,6 +18,7 @@ import {
   SearchIcon,
   ShieldCheckIcon,
   SummaryIcon,
+  TrashIcon,
 } from './components/icons';
 import { OfficerDetailModal } from './components/OfficerDetailModal';
 import { Badge, Button, Field, Modal } from './components/ui';
@@ -27,7 +28,7 @@ import { jobsSeed, officersSeed, paymentsSeed } from './data';
 import { fetchBillingJobs, markJobBilled } from './lib/billing-api';
 import { dashboardFallback, fetchDashboard } from './lib/dashboard-api';
 import type { DashboardSnapshot } from './lib/dashboard-api';
-import { assignOfficerToJob, cancelJobInApi, completeJobInApi, createJobFromForm, fetchJob, fetchJobs, markJobPostedInApi, updateJobFromForm } from './lib/jobs-api';
+import { assignOfficerToJob, cancelJobInApi, completeJobInApi, createJobFromForm, fetchJob, fetchJobs, markJobPostedInApi, updateJobFromForm, updateProofReportVisibility } from './lib/jobs-api';
 import { createOfficerFromForm, deleteOfficer, fetchOfficers, updateOfficerFromForm } from './lib/officers-api';
 import { fetchOfficerPayments, markOfficerPaymentPaid } from './lib/payments-api';
 import { fetchOperationsReport } from './lib/reports-api';
@@ -1279,7 +1280,17 @@ export function AdminApp({
         </Modal>
       ) : null}
 
-      {reportJob?.siteManagerSignedAt ? <DeliveryReportModal job={reportJob} onClose={() => setReportJobId(null)} /> : null}
+      {reportJob?.siteManagerSignedAt ? (
+        <DeliveryReportModal
+          job={reportJob}
+          onClose={() => setReportJobId(null)}
+          onPhotoVisibilityChange={(photoId, hiddenFromReport) => setJobs((items) => items.map((item) => (
+            item.id === reportJob.id
+              ? { ...item, photos: item.photos.map((photo) => photo.id === photoId ? { ...photo, hiddenFromReport } : photo) }
+              : item
+          )))}
+        />
+      ) : null}
       {officerProfileId ? (
         <OfficerDetailModal
           initialMode={officerProfileMode}
@@ -1458,14 +1469,59 @@ function OfficerFormFields({
   );
 }
 
-function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
+function DeliveryReportModal({
+  job,
+  onClose,
+  onPhotoVisibilityChange,
+}: {
+  job: Job;
+  onClose: () => void;
+  onPhotoVisibilityChange: (photoId: string, hiddenFromReport: boolean) => void;
+}) {
   const reportRef = useRef<HTMLDivElement>(null);
+  const photoKey = (photo: Job['photos'][number]) => photo.id || `${photo.time}-${photo.by}-${photo.at}`;
+  const [editingPhotos, setEditingPhotos] = useState(false);
+  const [hiddenPhotoKeys, setHiddenPhotoKeys] = useState<Set<string>>(
+    () => new Set(job.photos.filter((photo) => photo.hiddenFromReport).map(photoKey)),
+  );
+  const [photoUpdateError, setPhotoUpdateError] = useState('');
+  const [updatingPhotoKeys, setUpdatingPhotoKeys] = useState<Set<string>>(() => new Set());
+  const isLatePhoto = (photo: Job['photos'][number]) => /^\d{2}:\d{2}$/.test(photo.time) && /^\d{2}:\d{2}$/.test(photo.at) && photo.at > photo.time;
   const received = job.photos.filter((photo) => photo.status === 'received');
+  const visiblePhotos = job.photos.filter((photo) => !hiddenPhotoKeys.has(photoKey(photo)));
+  const visibleReceived = visiblePhotos.filter((photo) => photo.status === 'received');
+  const visibleLate = visibleReceived.filter(isLatePhoto).length;
   const signedTime = job.siteManagerSignedAt?.match(/T(\d{2}:\d{2})/)?.[1] || '—';
   const issuedDate = dateLabel(job.date).toUpperCase();
   const reportReference = `DO-${job.id.replace(/[^A-Z0-9]/gi, '')}-001`;
   const siteName = job.siteName || job.location;
   const clientName = job.customer;
+
+  async function togglePhotoVisibility(photo: Job['photos'][number]) {
+    if (!photo.id) return;
+    const key = photoKey(photo);
+    const hidden = !hiddenPhotoKeys.has(key);
+    setPhotoUpdateError('');
+    setUpdatingPhotoKeys((current) => new Set(current).add(key));
+    try {
+      await updateProofReportVisibility(job.id, photo.id, hidden);
+      setHiddenPhotoKeys((current) => {
+        const next = new Set(current);
+        if (hidden) next.add(key);
+        else next.delete(key);
+        return next;
+      });
+      onPhotoVisibilityChange(photo.id, hidden);
+    } catch (error) {
+      setPhotoUpdateError(error instanceof Error ? error.message : 'Could not update this proof photo.');
+    } finally {
+      setUpdatingPhotoKeys((current) => {
+        const next = new Set(current);
+        next.delete(key);
+        return next;
+      });
+    }
+  }
 
   return (
     <Modal
@@ -1474,11 +1530,17 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
       wide
       headerActions={
         <div className="pn-report-header-actions">
-          <button onClick={() => reportRef.current?.querySelector<HTMLElement>('.pn-report-proof')?.scrollIntoView({ behavior: 'smooth' })} type="button">
+          <button onClick={() => {
+            setEditingPhotos((current) => !current);
+            requestAnimationFrame(() => reportRef.current?.querySelector<HTMLElement>('.pn-report-proof')?.scrollIntoView({ behavior: 'smooth' }));
+          }} type="button">
             <PencilIcon size={14} strokeWidth={2} />
-            Edit report photos
+            {editingPhotos ? 'Done editing' : 'Edit report photos'}
           </button>
-          <button onClick={() => window.print()} type="button">
+          <button onClick={() => {
+            setEditingPhotos(false);
+            requestAnimationFrame(() => window.print());
+          }} type="button">
             <PrinterIcon size={14} strokeWidth={2} />
             Print / PDF
           </button>
@@ -1535,13 +1597,42 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
           </div>
         </section>
 
-        <section className="pn-report-section pn-report-proof">
-          <header><h3>PROOF OF PRESENCE</h3><span>{received.length} / {job.photos.length} RECEIVED</span></header>
+        <section className={`pn-report-section pn-report-proof ${editingPhotos ? 'is-editing' : ''}`}>
+          <header>
+            <h3>PROOF OF PRESENCE</h3>
+            {editingPhotos ? <b>Editing photos</b> : null}
+            <span>{visibleReceived.length} / {job.photos.length} ACTIVE · {visibleLate} LATE</span>
+          </header>
+          {editingPhotos ? (
+            <div className="pn-report-edit-note">
+              <PencilIcon size={16} stroke="#A16207" strokeWidth={2} />
+              <div>
+                <strong>Only this section is editable</strong>
+                <span>Uploaded proofs can be hidden from preview. Hidden photos remain visible here so you can review or restore them.</span>
+                {photoUpdateError ? <span className="pn-report-edit-error">{photoUpdateError}</span> : null}
+              </div>
+            </div>
+          ) : null}
           <div className="pn-report-proof-grid">
-            {job.photos.map((photo) => (
-              <figure className={photo.status === 'received' ? '' : 'is-missing'} key={`${photo.time}-${photo.by}`}>
+            {(editingPhotos ? job.photos : visiblePhotos).map((photo) => (
+              <figure className={`${photo.status === 'received' ? '' : 'is-missing'} ${hiddenPhotoKeys.has(photoKey(photo)) ? 'is-hidden-photo' : ''}`} key={photoKey(photo)}>
                 {photo.mediaRef ? <img alt={`Proof captured at ${photo.time} by ${photo.by}`} src={photo.mediaRef} /> : null}
+                {editingPhotos && photo.id ? (
+                  <button
+                    aria-label={hiddenPhotoKeys.has(photoKey(photo)) ? `Restore ${photo.time} photo` : `Remove ${photo.time} photo from report`}
+                    className="pn-report-photo-toggle"
+                    disabled={updatingPhotoKeys.has(photoKey(photo))}
+                    onClick={() => void togglePhotoVisibility(photo)}
+                    type="button"
+                  >
+                    {hiddenPhotoKeys.has(photoKey(photo))
+                      ? <CheckIcon size={14} stroke="#16A34A" strokeWidth={2} />
+                      : <TrashIcon size={14} stroke="#FF3B30" strokeWidth={2} />}
+                  </button>
+                ) : null}
                 <figcaption><strong>{photo.time}</strong><span>{initials(photo.by)} · {photo.status === 'received' ? 'RECEIVED' : photo.status.toUpperCase()}</span></figcaption>
+                {hiddenPhotoKeys.has(photoKey(photo)) ? <strong className="pn-report-hidden-label">Hidden from report</strong> : null}
+                {hiddenPhotoKeys.has(photoKey(photo)) ? <span className="pn-report-removed-label">REMOVED</span> : null}
               </figure>
             ))}
           </div>
