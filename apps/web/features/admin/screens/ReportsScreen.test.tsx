@@ -19,6 +19,8 @@ const jobs: Job[] = [
     officers: [makeOfficer({ oid: 'officer-1', name: 'John Tan', rate: 18, actualStart: '09:00', actualEnd: '17:00' })],
     photos: [{ time: '12:00', status: 'missing', by: 'John Tan', at: '', note: 'Lunch checkpoint missing' }],
     billing: 'Not Billed',
+    siteManagerSignedAt: '2026-07-08T10:00:00.000Z',
+    siteManagerSignedBy: 'May Tan',
   }),
   makeJob({
     id: 'PN-002',
@@ -97,10 +99,41 @@ describe('ReportsScreen', () => {
 
     expect(screen.getByRole('button', { name: 'Completed job report' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('heading', { name: 'Completed job report' })).toBeInTheDocument();
+    expect(screen.getByText('Job report')).toBeInTheDocument();
     expect(screen.getByText('PN-001')).toBeInTheDocument();
     expect(screen.getByText('Acme Pte Ltd')).toBeInTheDocument();
     expect(screen.getByText('S$144.00')).toBeInTheDocument();
     expect(screen.getByText('2 completed job(s), Total payroll: S$224.00')).toBeInTheDocument();
+  });
+
+  it('opens the related job completion report from the completed report row', async () => {
+    const onViewJobReport = vi.fn();
+    renderReports({ onViewJobReport });
+
+    await userEvent.click(screen.getByRole('button', { name: 'View job report for PN-001' }));
+
+    expect(onViewJobReport).toHaveBeenCalledWith('PN-001');
+  });
+
+  it('keeps unsigned job reports locked from the completed report row', async () => {
+    const onViewJobReport = vi.fn();
+    renderReports({ onViewJobReport });
+
+    const unsignedReportButton = screen.getByRole('button', { name: 'View job report for PN-002' });
+    expect(unsignedReportButton).toBeDisabled();
+
+    await userEvent.click(unsignedReportButton);
+
+    expect(onViewJobReport).not.toHaveBeenCalled();
+  });
+
+  it('opens the job detail page when a linked job ID is clicked', async () => {
+    const onOpenJob = vi.fn();
+    renderReports({ onOpenJob });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open job PN-001' }));
+
+    expect(onOpenJob).toHaveBeenCalledWith('PN-001');
   });
 
   it('switches between payment, missing photo, billing, and officer history reports', async () => {
@@ -156,6 +189,21 @@ describe('ReportsScreen', () => {
     expect(screen.getByText('PN-999')).toBeInTheDocument();
     expect(screen.getByText('Delta Services')).toBeInTheDocument();
     expect(screen.getByText('S$300.00')).toBeInTheDocument();
+  });
+
+  it('does not unlock live completed rows when the local job report is unsigned', () => {
+    const report: OperationsReport = {
+      metrics: { completedJobs: 1, totalPayroll: 40, missingCheckpoints: 0, officers: 2 },
+      completedJobs: [
+        { id: 'PN-003', customer: 'Crest Retail', site: 'Woodlands', date: '2026-07-10', officers: 1, totalPayable: 40, billingStatus: 'NOT_BILLED' },
+      ],
+      missingCheckpoints: [],
+    };
+    const onViewJobReport = vi.fn();
+
+    renderReports({ report, onViewJobReport });
+
+    expect(screen.getByRole('button', { name: 'View job report for PN-003' })).toBeDisabled();
   });
 
   it('uses live missing checkpoint rows from the operations report', async () => {
