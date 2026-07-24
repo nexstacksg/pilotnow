@@ -1504,7 +1504,6 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
           <aside>
             <span>ISSUED · {issuedDate} · 21:43 SGT</span>
             <span>REF · {reportReference}</span>
-            <span>PAGE · 1 OF 1</span>
           </aside>
         </header>
 
@@ -1550,11 +1549,8 @@ function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }
           <header><h3>SIGN-OFF</h3><span>PDPA · AUDIT-LOGGED</span></header>
           <div className="pn-report-signatures">
             <div><label>SITE MANAGER</label><p className="pn-report-signature">{job.siteManagerSignedBy || 'VivoCity Mall Mgmt'}</p><strong>{job.siteManagerSignedBy || clientName}</strong><span>{issuedDate} · {signedTime} SGT · TOKEN ----5A60</span><b>SIGNED</b></div>
-            <div><label>OPS · ON BEHALF OF</label><p className="pn-report-signature">Serene Lau</p><strong>Serene Lau</strong><span>{issuedDate} · 21:30 SGT · OPS LEAD</span></div>
           </div>
         </section>
-
-        <footer className="pn-report-document-footer"><span>PILOTNOW · NEXSTACK PTE LTD</span><span>{reportReference} · SHA ----65DF</span><span>PAGE 1 / 1</span></footer>
       </div>
     </Modal>
   );

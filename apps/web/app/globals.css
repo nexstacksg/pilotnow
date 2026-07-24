@@ -3757,8 +3757,7 @@ button {
 .pn-report-table-head,
 .pn-report-section h3,
 .pn-report-signatures label,
-.pn-report-signatures > div > span,
-.pn-report-document-footer {
+.pn-report-signatures > div > span {
   color: #A3A3A3;
   font-family: 'Geist Mono', monospace;
   font-size: 10px;
@@ -3921,7 +3920,8 @@ button {
 
 .pn-report-signatures {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(280px, 1fr);
+  max-width: 380px;
   gap: 14px;
   padding-top: 14px;
 }
@@ -3962,15 +3962,6 @@ button {
   font-size: 10px;
   letter-spacing: .1em;
   padding: 5px 9px;
-}
-
-.pn-report-document-footer {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 25px;
-  padding-top: 16px;
-  border-top: 1px solid #E5E5E5;
-  font-size: 9px;
 }
 
 @media (max-width: 760px) {
