@@ -210,6 +210,8 @@ export const proofPhotos = pgTable(
     mediaRef: text('media_ref').notNull(),
     proofWindow: text('proof_window'), // e.g. "2026-07-09T14:00/15:00"
     matchNote: text('match_note'), // admin correction if manually matched
+    hiddenFromReport: boolean('hidden_from_report').notNull().default(false),
+    reportVisibilityChangedAt: timestamp('report_visibility_changed_at', { withTimezone: true }),
   },
   (t) => [index('proofs_assignment_idx').on(t.assignmentId)],
 );

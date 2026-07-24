@@ -40,17 +40,22 @@ export type JobOfficer = {
 };
 
 export type PhotoCheckpoint = {
+  id?: string;
   time: string;
   status: PhotoStatus;
   by: string;
   at: string;
   mediaRef?: string;
   note?: string;
+  hiddenFromReport?: boolean;
 };
 
 export type Job = {
   id: string;
   customer: string;
+  customerContact?: string;
+  siteName?: string;
+  siteAddress?: string;
   location: string;
   date: string;
   start: string;

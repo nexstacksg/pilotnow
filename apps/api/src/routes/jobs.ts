@@ -65,6 +65,9 @@ const signReportSubmit = z.object({
 const assignmentCreate = z.object({
   officerId: z.string().trim().min(1),
 });
+const proofReportVisibilityPatch = z.object({
+  hidden: z.boolean(),
+});
 const SIGN_REPORT_TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 let db: ReturnType<typeof createDb> | undefined;
@@ -219,14 +222,16 @@ async function serializeJobWithAssignments(row: {
       checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
       checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
     })),
-    proofPhotos: proofRows.map((item) => ({
+    proofPhotos: await Promise.all(proofRows.map(async (item) => ({
       id: item.proof_photos.id,
       officerId: item.officers.id,
       officerName: item.officers.name,
       mediaRef: item.proof_photos.mediaRef,
+      photoUrl: await spacesReadUrl(item.proof_photos.mediaRef).catch(() => item.proof_photos.mediaRef),
       proofWindow: item.proof_photos.proofWindow,
       receivedAt: item.proof_photos.receivedAt.toISOString(),
-    })),
+      hiddenFromReport: item.proof_photos.hiddenFromReport,
+    }))),
   };
 }
 
@@ -264,7 +269,7 @@ async function serializeSignReport(row: {
       checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
       checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
     })),
-    proofPhotos: await Promise.all(proofRows.map(async (item) => ({
+    proofPhotos: await Promise.all(proofRows.filter((item) => !item.proof_photos.hiddenFromReport).map(async (item) => ({
       officerId: item.officers.id,
       officerName: item.officers.name,
       proofWindow: item.proof_photos.proofWindow,
@@ -379,6 +384,31 @@ export const jobs = new Hono()
     if (!proof) return jsonError(c, 404, 'Proof photo not found');
 
     return c.redirect(await spacesReadUrl(proof.mediaRef));
+  })
+  .patch('/:id/proof-photos/:proofId/report-visibility', async (c) => {
+    const row = await findJob(c.req.param('id'));
+    if (!row) return jsonError(c, 404, 'Job not found');
+
+    const parsed = proofReportVisibilityPatch.safeParse(await c.req.json().catch(() => undefined));
+    if (!parsed.success) return jsonError(c, 400, 'Invalid proof visibility payload');
+
+    const [proof] = await getDb()
+      .update(schema.proofPhotos)
+      .set({
+        hiddenFromReport: parsed.data.hidden,
+        reportVisibilityChangedAt: new Date(),
+      })
+      .where(and(eq(schema.proofPhotos.id, c.req.param('proofId')), eq(schema.proofPhotos.jobId, row.job.id)))
+      .returning();
+    if (!proof) return jsonError(c, 404, 'Proof photo not found');
+
+    await audit(
+      parsed.data.hidden ? 'proof_photo.hide_from_report' : 'proof_photo.restore_to_report',
+      proof.id,
+      { jobId: row.job.id, hiddenFromReport: parsed.data.hidden },
+      c.get('actor'),
+    );
+    return c.json({ item: { id: proof.id, hiddenFromReport: proof.hiddenFromReport } });
   })
   .post('/:id/sign-token', async (c) => {
     const row = await findJob(c.req.param('id'));
