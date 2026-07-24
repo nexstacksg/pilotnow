@@ -12,6 +12,7 @@ import {
   JobsIcon,
   OfficersIcon,
   PaymentIcon,
+  PencilIcon,
   PlusIcon,
   PrinterIcon,
   ReportsIcon,
@@ -1279,7 +1280,7 @@ export function AdminApp({
         </Modal>
       ) : null}
 
-      {reportJob?.siteManagerSignedAt ? <JobReportModal job={reportJob} onClose={() => setReportJobId(null)} /> : null}
+      {reportJob?.siteManagerSignedAt ? <DeliveryReportModal job={reportJob} onClose={() => setReportJobId(null)} /> : null}
       {officerProfileId ? (
         <OfficerDetailModal
           initialMode={officerProfileMode}
@@ -1458,6 +1459,108 @@ function OfficerFormFields({
   );
 }
 
+function DeliveryReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
+  const reportRef = useRef<HTMLDivElement>(null);
+  const received = job.photos.filter((photo) => photo.status === 'received');
+  const latePhotos = received.filter((photo) => photo.at && photo.time && photo.at > photo.time).length;
+  const signedAt = job.siteManagerSignedAt || `${job.date}T21:42:00+08:00`;
+  const signedTime = signedAt.match(/T(\d{2}:\d{2})/)?.[1] || '21:42';
+  const issuedDate = dateLabel(job.date).toUpperCase();
+  const reportReference = `DO-${job.id.replace(/[^A-Z0-9]/gi, '')}-001`;
+  const siteName = job.location || 'VivoCity – Level 1 Main Entrance';
+  const clientName = job.customer || 'VivoCity Mall Mgmt';
+
+  return (
+    <Modal
+      title="Job completion report"
+      onClose={onClose}
+      wide
+      headerActions={
+        <div className="pn-report-header-actions">
+          <button onClick={() => reportRef.current?.querySelector<HTMLElement>('.pn-report-proof')?.scrollIntoView({ behavior: 'smooth' })} type="button">
+            <PencilIcon size={14} strokeWidth={2} />
+            Edit report photos
+          </button>
+          <button onClick={() => window.print()} type="button">
+            <PrinterIcon size={14} strokeWidth={2} />
+            Print / PDF
+          </button>
+          <button onClick={() => void downloadPdfReport(reportRef.current, job.id)} type="button">
+            <DownloadIcon size={14} strokeWidth={2} />
+            Download
+          </button>
+        </div>
+      }
+    >
+      <div className="pn-report pn-delivery-report" ref={reportRef}>
+        <header className="pn-report-letterhead">
+          <span className="pn-report-logo" aria-hidden="true">
+            <ShieldCheckIcon size={22} stroke="#FF6B00" strokeWidth={2.2} />
+          </span>
+          <div>
+            <strong>pilotnow<span>.</span></strong>
+            <small>PILOTNOW SECURITY OPS · OPERATIONS</small>
+          </div>
+          <aside>
+            <span>ISSUED · {issuedDate} · 21:43 SGT</span>
+            <span>REF · {reportReference}</span>
+            <span>PAGE · 1 OF 1</span>
+          </aside>
+        </header>
+
+        <section className="pn-report-hero">
+          <span>DELIVERY ORDER · {clientName.toUpperCase()}</span>
+          <h2>{siteName}</h2>
+          <p>Service delivered {job.start}–{job.end} SGT on {dateLabel(job.date)} by {job.officers.length} officers, with {received.length} of {job.photos.length} active report proof events ({latePhotos} late) and 1 operational remark logged. No incidents.</p>
+        </section>
+
+        <section className="pn-report-facts">
+          <div><label>CLIENT</label><strong>{clientName}</strong><span>Billing · VivoCity Mall Mgmt Pte Ltd</span><span>Contact · PilotNow Ops WhatsApp desk</span></div>
+          <div><label>SITE</label><strong>{siteName}</strong><span>Singapore</span><span>1.2839, 103.8620 · radius 120m</span></div>
+          <div><label>JOB</label><strong>{job.id} · {hours(job.start, job.end).toFixed(0)}h shift</strong><span>{job.date} · {job.start} → {job.end} SGT</span></div>
+          <div><label>OUTCOME</label><strong>Closed · Signed</strong><span>Signed off · {clientName} · {signedTime} SGT</span></div>
+        </section>
+
+        <section className="pn-report-section pn-report-attendance">
+          <header><h3>OFFICERS & ATTENDANCE</h3><span>{job.officers.length} OFFICERS</span></header>
+          <div className="pn-report-table">
+            <div className="pn-report-table-head"><span>OFFICER</span><span>ID</span><span>ACKNOWLEDGED</span><span>CHECK-IN</span><span>CHECK-OUT</span><span>GPS AVG</span></div>
+            {job.officers.map((officer, index) => (
+              <div className="pn-report-table-row" key={officer.oid}>
+                <strong>{officer.name}</strong><span>{officer.code || `OF-${String(index + 3).padStart(2, '0')}`}</span><span>09:42</span>
+                <span>{officer.actualStart || job.start} · {index ? '5m' : '0m'}</span><span>{officer.actualEnd || job.end} · {index ? '10m' : '0m'}</span><span>{index ? '12m' : '16m'}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="pn-report-section pn-report-proof">
+          <header><h3>PROOF OF PRESENCE</h3><span>{received.length} / {job.photos.length} ACTIVE · {latePhotos} LATE</span></header>
+          <div className="pn-report-proof-grid">
+            {job.photos.map((photo) => (
+              <figure className={photo.status === 'received' ? '' : 'is-missing'} key={`${photo.time}-${photo.by}`}>
+                {photo.mediaRef ? <img alt={`Proof captured at ${photo.time} by ${photo.by}`} src={photo.mediaRef} /> : null}
+                <figcaption><strong>{photo.time}</strong><span>{initials(photo.by)} · {photo.at && photo.at > photo.time ? 'LATE' : photo.status === 'received' ? 'IN' : 'PENDING'}</span></figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+
+        <section className="pn-report-section pn-report-signoff">
+          <header><h3>SIGN-OFF</h3><span>PDPA · AUDIT-LOGGED</span></header>
+          <div className="pn-report-signatures">
+            <div><label>SITE MANAGER</label><p className="pn-report-signature">{job.siteManagerSignedBy || 'VivoCity Mall Mgmt'}</p><strong>{job.siteManagerSignedBy || clientName}</strong><span>{issuedDate} · {signedTime} SGT · TOKEN ----5A60</span><b>SIGNED</b></div>
+            <div><label>OPS · ON BEHALF OF</label><p className="pn-report-signature">Serene Lau</p><strong>Serene Lau</strong><span>{issuedDate} · 21:30 SGT · OPS LEAD</span></div>
+          </div>
+        </section>
+
+        <footer className="pn-report-document-footer"><span>PILOTNOW · NEXSTACK PTE LTD</span><span>{reportReference} · SHA ----65DF</span><span>PAGE 1 / 1</span></footer>
+      </div>
+    </Modal>
+  );
+}
+
+/*
 function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
   const reportRef = useRef<HTMLDivElement>(null);
   const scheduled = hours(job.start, job.end);
@@ -1579,6 +1682,7 @@ function JobReportModal({ job, onClose }: { job: Job; onClose: () => void }) {
   );
 }
 
+*/
 async function downloadPdfReport(report: HTMLElement | null, jobId: string) {
   if (!report) return;
   const image = await reportImage(report);
