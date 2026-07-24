@@ -18,6 +18,9 @@ const jobCreate = z
     siteId: uuid.optional(),
     siteName: z.string().trim().min(1).optional(),
     siteAddress: z.string().trim().optional(),
+    siteLatitude: z.number().min(-90).max(90),
+    siteLongitude: z.number().min(-180).max(180),
+    siteRadiusMetres: z.number().int().positive(),
     startAt: z.string().datetime(),
     endAt: z.string().datetime(),
     headcountRequired: z.number().int().positive().default(1),
@@ -34,6 +37,9 @@ const jobPatch = z.object({
   siteId: uuid.optional(),
   siteName: z.string().trim().min(1).optional(),
   siteAddress: z.string().trim().nullable().optional(),
+  siteLatitude: z.number().min(-90).max(90).optional(),
+  siteLongitude: z.number().min(-180).max(180).optional(),
+  siteRadiusMetres: z.number().int().positive().optional(),
   startAt: z.string().datetime().optional(),
   endAt: z.string().datetime().optional(),
   headcountRequired: z.number().int().positive().optional(),
@@ -173,7 +179,7 @@ function serializeJob(row: {
   return {
     id: row.job.jobCode,
     customer: { id: row.customer.id, name: row.customer.name, contact: row.customer.contact },
-    site: { id: row.site.id, name: row.site.name, address: row.site.address },
+    site: { id: row.site.id, name: row.site.name, address: row.site.address, latitude: row.site.latitude, longitude: row.site.longitude, allowedRadiusMetres: row.site.allowedRadiusMetres },
     startAt: row.job.startAt.toISOString(),
     endAt: row.job.endAt.toISOString(),
     headcountRequired: row.job.headcountRequired,
@@ -223,10 +229,12 @@ async function serializeJobWithAssignments(row: {
       checkInLatitude: item.job_assignments.checkInLatitude,
       checkInLongitude: item.job_assignments.checkInLongitude,
       checkInLocation: item.job_assignments.checkInLocation,
+      checkInAccuracyMetres: item.job_assignments.checkInAccuracyMetres,
       checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
       checkOutLatitude: item.job_assignments.checkOutLatitude,
       checkOutLongitude: item.job_assignments.checkOutLongitude,
       checkOutLocation: item.job_assignments.checkOutLocation,
+      checkOutAccuracyMetres: item.job_assignments.checkOutAccuracyMetres,
     })),
     proofPhotos: await Promise.all(proofRows.map(async (item) => ({
       id: item.proof_photos.id,
@@ -349,7 +357,7 @@ async function resolveSite(input: z.infer<typeof jobCreate>, customerId: string)
   }
   const [site] = await getDb()
     .insert(schema.sites)
-    .values({ customerId, name: input.siteName, address: input.siteAddress })
+    .values({ customerId, name: input.siteName, address: input.siteAddress, latitude: input.siteLatitude.toString(), longitude: input.siteLongitude.toString(), allowedRadiusMetres: input.siteRadiusMetres })
     .returning({ id: schema.sites.id });
 
   return site?.id;
@@ -569,10 +577,10 @@ export const jobs = new Hono()
     if (input.customerName) {
       await getDb().update(schema.customers).set({ name: input.customerName }).where(eq(schema.customers.id, row.job.customerId));
     }
-    if (input.siteName !== undefined || input.siteAddress !== undefined) {
+    if (input.siteName !== undefined || input.siteAddress !== undefined || input.siteLatitude !== undefined || input.siteLongitude !== undefined || input.siteRadiusMetres !== undefined) {
       await getDb()
         .update(schema.sites)
-        .set({ name: input.siteName, address: input.siteAddress })
+        .set({ name: input.siteName, address: input.siteAddress, latitude: input.siteLatitude?.toString(), longitude: input.siteLongitude?.toString(), allowedRadiusMetres: input.siteRadiusMetres })
         .where(eq(schema.sites.id, row.job.siteId));
     }
 

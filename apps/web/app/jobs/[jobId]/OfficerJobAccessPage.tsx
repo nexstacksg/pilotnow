@@ -24,7 +24,7 @@ type OfficerJob = {
 };
 
 type Slot = { key: string; time: string; title: string; kind: 'check-in' | 'hourly' | 'check-out'; at: Date };
-type Position = { latitude: number; longitude: number };
+type Position = { latitude: number; longitude: number; accuracy?: number };
 
 function apiPath(jobId: string, hp: string, token: string, action = '') {
   return `/api/officer-jobs/${encodeURIComponent(jobId)}${action}?hp=${encodeURIComponent(hp)}&token=${encodeURIComponent(token)}`;
@@ -464,7 +464,7 @@ function checkInProofCount(data: OfficerJob) {
 function currentPosition() {
   return new Promise<Position>((resolve, reject) => {
     navigator.geolocation.getCurrentPosition((pos) => {
-      const position = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      const position = { latitude: pos.coords.latitude, longitude: pos.coords.longitude, accuracy: pos.coords.accuracy };
       if (isValidPosition(position)) resolve(position);
       else reject(new Error('Could not capture valid GPS coordinates. Tap Enable GPS and try again.'));
     }, reject, { enableHighAccuracy: true, timeout: 8000 });

@@ -33,6 +33,7 @@ const attendancePayload = z.object({
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
   location: z.string().trim().max(500).optional(),
+  accuracy: z.number().nonnegative().max(100_000).optional(),
   evidencePhotoUrl: z.string().trim().max(1_500).optional(),
 });
 const evidencePayload = z.object({
@@ -392,6 +393,7 @@ export const officerJobs = new Hono()
         checkInLatitude: parsed.data.latitude?.toString(),
         checkInLongitude: parsed.data.longitude?.toString(),
         checkInLocation: parsed.data.location,
+        checkInAccuracyMetres: parsed.data.accuracy?.toString(),
       })
       .where(eq(schema.jobAssignments.id, access.assignment.id));
 
@@ -468,6 +470,7 @@ export const officerJobs = new Hono()
         checkOutLatitude: parsed.data.latitude?.toString(),
         checkOutLongitude: parsed.data.longitude?.toString(),
         checkOutLocation: parsed.data.location,
+        checkOutAccuracyMetres: parsed.data.accuracy?.toString(),
       })
       .where(eq(schema.jobAssignments.id, access.assignment.id));
 

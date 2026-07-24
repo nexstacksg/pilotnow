@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { jobDetailSignedCompletionMessage } from './JobDetailScreen';
+import { distanceMetres, jobDetailSignedCompletionMessage } from './JobDetailScreen';
 import type { Job } from '../types';
 
 const job = (overrides: Partial<Job> = {}): Job => ({
@@ -21,6 +21,16 @@ const job = (overrides: Partial<Job> = {}): Job => ({
   description: '',
   instructions: '',
   ...overrides,
+});
+
+describe('distanceMetres', () => {
+  it('returns zero for the same point', () => {
+    expect(distanceMetres(1.2644, 103.82213, 1.2644, 103.82213)).toBe(0);
+  });
+
+  it('measures a latitude difference in metres', () => {
+    expect(distanceMetres(1.2644, 103.82213, 1.2654, 103.82213)).toBeCloseTo(111.2, 0);
+  });
 });
 
 describe('jobDetailSignedCompletionMessage', () => {
