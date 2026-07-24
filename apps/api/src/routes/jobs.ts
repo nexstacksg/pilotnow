@@ -220,7 +220,13 @@ async function serializeJobWithAssignments(row: {
       confirmed: item.job_assignments.ackStatus === 'ACKNOWLEDGED',
       onDuty: Boolean(item.job_assignments.reportedOnDutyAt || item.job_assignments.checkInAt),
       checkInAt: item.job_assignments.checkInAt?.toISOString() ?? null,
+      checkInLatitude: item.job_assignments.checkInLatitude,
+      checkInLongitude: item.job_assignments.checkInLongitude,
+      checkInLocation: item.job_assignments.checkInLocation,
       checkOutAt: item.job_assignments.checkOutAt?.toISOString() ?? null,
+      checkOutLatitude: item.job_assignments.checkOutLatitude,
+      checkOutLongitude: item.job_assignments.checkOutLongitude,
+      checkOutLocation: item.job_assignments.checkOutLocation,
     })),
     proofPhotos: await Promise.all(proofRows.map(async (item) => ({
       id: item.proof_photos.id,

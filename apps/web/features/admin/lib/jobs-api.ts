@@ -36,7 +36,13 @@ type ApiJob = {
     confirmed: boolean;
     onDuty: boolean;
     checkInAt: string | null;
+    checkInLatitude?: string | null;
+    checkInLongitude?: string | null;
+    checkInLocation?: string | null;
     checkOutAt: string | null;
+    checkOutLatitude?: string | null;
+    checkOutLongitude?: string | null;
+    checkOutLocation?: string | null;
   }[];
   proofPhotos?: {
     id: string;
@@ -126,6 +132,12 @@ function mergeJob(apiJob: ApiJob, previous?: Job): Job {
         onDuty: assignment.onDuty,
         actualStart: timeLabel(assignment.checkInAt) || existing?.actualStart || '',
         actualEnd: timeLabel(assignment.checkOutAt) || existing?.actualEnd || '',
+        checkInLatitude: assignment.checkInLatitude || undefined,
+        checkInLongitude: assignment.checkInLongitude || undefined,
+        checkInLocation: assignment.checkInLocation || undefined,
+        checkOutLatitude: assignment.checkOutLatitude || undefined,
+        checkOutLongitude: assignment.checkOutLongitude || undefined,
+        checkOutLocation: assignment.checkOutLocation || undefined,
       };
     })
     : previousOfficers;

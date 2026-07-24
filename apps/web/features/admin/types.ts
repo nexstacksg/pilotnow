@@ -37,6 +37,12 @@ export type JobOfficer = {
   onDuty: boolean;
   actualStart: string;
   actualEnd: string;
+  checkInLatitude?: string;
+  checkInLongitude?: string;
+  checkInLocation?: string;
+  checkOutLatitude?: string;
+  checkOutLongitude?: string;
+  checkOutLocation?: string;
 };
 
 export type PhotoCheckpoint = {

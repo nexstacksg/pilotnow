@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { BellIcon, BillingIcon, CheckIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
+import { BellIcon, BillingIcon, CheckIcon, ChevronDownIcon, ChevronLeftIcon, CopyIcon, LinkIcon, MessageIcon, PencilIcon, PlusIcon, TrashIcon, WhatsAppIcon } from '../components/icons';
 import { Badge, Button, Card } from '../components/ui';
 import { createOfficerJobToken, createSignReportToken } from '../lib/jobs-api';
 import { dateLabel, hours, icDocumentLabel, initials, money, statusTone, timeLabel, timeRangeLabel } from '../lib/format';
@@ -471,7 +471,7 @@ export function JobDetailScreen({
           </Card>
         </div>
       </div>
-      {selectedRow ? <OfficerAssignmentModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
+      {selectedRow ? <OfficerParticipationModal copyText={copyText} job={job} onClose={() => setSelectedOfficerId(null)} row={selectedRow} /> : null}
     </div>
   );
 }
@@ -490,6 +490,122 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div>
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function OfficerParticipationModal({
+  copyText,
+  job,
+  onClose,
+  row,
+}: {
+  copyText: (text: string, message: string) => void;
+  job: Job;
+  onClose: () => void;
+  row: { officer: JobOfficer; evidencePhotos: PhotoCheckpoint[]; profile?: Officer; worked: number; pay: number };
+}) {
+  const { officer, profile } = row;
+  const [dutyLink, setDutyLink] = useState('');
+  const [openEvidence, setOpenEvidence] = useState<string | null>(row.evidencePhotos[0]?.time ?? null);
+  const phone = (profile?.phone || officer.phone || '').replace(/\D/g, '');
+  const dutyMutation = useMutation({
+    mutationFn: () => createOfficerJobToken(job.id, phone),
+    onSuccess: ({ token }) => setDutyLink(`${window.location.origin}/jobs/${encodeURIComponent(job.id)}?hp=${encodeURIComponent(phone)}&token=${encodeURIComponent(token)}`),
+  });
+  const officerMsg = `Hi ${officer.name}, your PilotNow duty link for ${job.id} at ${job.location} is ${dutyLink}`;
+  const evidenceGroups = row.evidencePhotos.reduce<Map<string, PhotoCheckpoint[]>>((groups, photo) => {
+    groups.set(photo.time, [...(groups.get(photo.time) ?? []), photo]);
+    return groups;
+  }, new Map());
+  const hoursLabel = officer.actualStart && officer.actualEnd ? `${row.worked.toFixed(2)}h` : '—';
+  const hasCheckInLocation = Boolean(officer.checkInLatitude && officer.checkInLongitude);
+  const hasCheckOutLocation = Boolean(officer.checkOutLatitude && officer.checkOutLongitude);
+
+  useEffect(() => {
+    if (phone && !dutyLink && !dutyMutation.isPending) dutyMutation.mutate();
+    // Generate once when the selected assignment opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone]);
+
+  return (
+    <div className="pn-modal-backdrop" role="dialog" aria-modal="true" aria-label={`${officer.name} participation`}>
+      <section className="pn-officer-participation-modal">
+        <header className="pn-officer-assignment-head">
+          <span className="pn-officer-assignment-avatar">{initials(officer.name)}</span>
+          <div>
+            <h2>{officer.name}<Badge tone={officer.ic ? 'success' : 'danger'}>{officer.ic ? 'IC ✓' : 'No IC'}</Badge></h2>
+            <p>{profile?.phone ?? officer.phone ?? '—'} · {officer.actualEnd ? 'Completed shift' : officer.onDuty ? 'On duty' : 'Assigned'}</p>
+          </div>
+          <button className="pn-icon-btn" disabled={!dutyLink} onClick={() => copyText(officerMsg, 'Officer message copied')} type="button" aria-label="Copy officer message">
+            <MessageIcon size={18} strokeWidth={2} />
+          </button>
+          <button className="pn-icon-btn" onClick={onClose} type="button" aria-label="Close">×</button>
+        </header>
+
+        <div className="pn-officer-assignment-body">
+          <span className="pn-assignment-label">Assignment · {job.id}</span>
+          <p className="pn-assignment-title">{job.customer} · {job.siteName || job.location} · {dateLabel(job.date)}</p>
+
+          <section className="pn-duty-link-card">
+            <h3><LinkIcon size={15} strokeWidth={2} /> Personal duty link</h3>
+            <p>Send this to the officer — they use it to check in, check out and upload their hourly proof photos.</p>
+            <input readOnly value={dutyMutation.isPending ? 'Generating secure link…' : dutyLink || 'Duty link unavailable'} />
+            <div>
+              <button disabled={!dutyLink} onClick={() => copyText(dutyLink, 'Duty link copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy link</button>
+              <button disabled={!dutyLink} onClick={() => copyText(officerMsg, 'Officer message copied')} type="button"><MessageIcon size={14} strokeWidth={2} /> Copy message</button>
+            </div>
+          </section>
+
+          <div className="pn-assignment-metrics">
+            <div><span>Check-in</span><strong>{officer.actualStart || '—'}</strong><small>{officer.actualStart ? 'Check-in recorded' : 'Not checked in'}</small></div>
+            <div><span>Check-out</span><strong>{officer.actualEnd || '—'}</strong><small>{officer.actualEnd ? 'Check-out recorded' : 'Not checked out'}</small></div>
+            <div><span>Hours</span><strong>{hoursLabel}</strong></div>
+          </div>
+
+          <section className="pn-attendance-locations">
+            <header><h3>Attendance locations</h3><p>Recorded check-in and check-out GPS points.</p></header>
+            <div className="pn-attendance-site"><span>Job site</span><strong>{job.siteName || job.location}</strong>{job.siteAddress ? <small>{job.siteAddress}</small> : null}</div>
+            <div className="pn-attendance-point">
+              <div><strong>Check-in · {officer.actualStart || '—'}</strong><span>{officer.checkInLocation || 'Location label unavailable'}</span><small>{hasCheckInLocation ? `${officer.checkInLatitude}, ${officer.checkInLongitude}` : 'Coordinates unavailable'}</small></div>
+              {hasCheckInLocation ? <button onClick={() => copyText(`${officer.checkInLatitude}, ${officer.checkInLongitude}`, 'Check-in coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
+            </div>
+            <div className="pn-attendance-point">
+              <div><strong>Check-out · {officer.actualEnd || '—'}</strong><span>{officer.checkOutLocation || 'Location label unavailable'}</span><small>{hasCheckOutLocation ? `${officer.checkOutLatitude}, ${officer.checkOutLongitude}` : 'Coordinates unavailable'}</small></div>
+              {hasCheckOutLocation ? <button onClick={() => copyText(`${officer.checkOutLatitude}, ${officer.checkOutLongitude}`, 'Check-out coordinates copied')} type="button"><CopyIcon size={14} strokeWidth={2} /> Copy</button> : null}
+            </div>
+          </section>
+
+          <div className="pn-assignment-pay-row">
+            <span className={officer.confirmed ? 'is-on' : ''}>{officer.confirmed ? 'Confirmed' : 'Pending'}</span>
+            <span>{officer.onDuty ? 'On duty' : 'Off duty'}</span>
+            <strong>Scheduled {timeRangeLabel(job.start, job.end)}</strong>
+            <b>{money(row.pay)}</b>
+            <small>· {money(officer.rate)}/h</small>
+          </div>
+
+          <div className="pn-assignment-proof-head"><h3>Evidence photos posted</h3><span>{row.evidencePhotos.length} of {job.photos.length}</span></div>
+          <div className="pn-evidence-groups">
+            {Array.from(evidenceGroups.entries()).map(([time, photos]) => {
+              const expanded = openEvidence === time;
+              return (
+                <section className="pn-evidence-group" key={time}>
+                  <button className="pn-evidence-group-head" onClick={() => setOpenEvidence(expanded ? null : time)} type="button">
+                    <span className={expanded ? '' : 'is-collapsed'}><ChevronDownIcon size={14} strokeWidth={2} /></span><strong>{time}</strong><small>{photos.length} photo{photos.length === 1 ? '' : 's'}</small>
+                  </button>
+                  {expanded ? <div className="pn-evidence-photo-row">{photos.map((photo) => (
+                    <a href={photo.mediaRef} key={photo.id || `${photo.time}-${photo.at}`} rel="noreferrer" target="_blank">
+                      {photo.mediaRef ? <img alt={`${time} evidence`} src={photo.mediaRef} /> : <span>Photo unavailable</span>}
+                      <strong>{photo.at || time}</strong><small>{dateLabel(job.date)} · {time}</small>
+                    </a>
+                  ))}</div> : null}
+                </section>
+              );
+            })}
+            {!evidenceGroups.size ? <div className="pn-assignment-empty">No evidence photos posted by this officer yet.</div> : null}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
